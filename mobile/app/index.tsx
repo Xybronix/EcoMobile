@@ -1,0 +1,16 @@
+import { useRouter } from 'expo-router';
+import MobileWelcome from '../components/MobileWelcome';
+
+export default function WelcomeScreen() {
+  const router = useRouter();
+
+  const handleNavigate = (screen: string) => {
+    if (screen === 'login') {
+      router.navigate('/(auth)/login');
+    } else if (screen === 'register') {
+      router.navigate('/(auth)/register');
+    }
+  };
+
+  return <MobileWelcome onNavigate={handleNavigate} />;
+}
