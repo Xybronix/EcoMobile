@@ -101,12 +101,16 @@ export function Header() {
               {t('nav.admin')}
             </Button>
             
-            <Button 
-              onClick={handleNavigateToMobile}
-              className="bg-green-600 hover:bg-green-700 text-sm xl:text-base"
-            >
-              {t('nav.downloadApp')}
-            </Button>
+            {
+              /*
+              <Button 
+                onClick={handleNavigateToMobile}
+                className="bg-green-600 hover:bg-green-700 text-sm xl:text-base"
+              >
+                {t('nav.downloadApp')}
+              </Button>
+              */
+            }
           </div>
 
           {/* Mobile menu button */}

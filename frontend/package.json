@@ -1,5 +1,5 @@
 {
-      "name": "Application de Location de Vélos",
+      "name": "ecomobile",
       "version": "0.1.0",
       "private": true,
       "dependencies": {
@@ -78,6 +78,7 @@
       },
       "scripts": {
             "dev": "vite",
-            "build": "vite build"
+            "build": "vite build",
+            "deploy": "gh-pages -d build"
       }
 }
