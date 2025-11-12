@@ -185,7 +185,7 @@ export class AuthService {
       console.warn('Logout API call failed:', error);
     } finally {
       removeAuthToken();
-      localStorage.removeItem('freebike_user');
+      localStorage.removeItem('ecomobile_user');
       localStorage.removeItem('refresh_token');
     }
   }
