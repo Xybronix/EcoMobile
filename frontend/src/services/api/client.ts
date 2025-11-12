@@ -1,12 +1,25 @@
 // services/api/client.ts
-const API_BASE_URL = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_URL) 
-  ? import.meta.env.VITE_API_URL 
-  : 'http://localhost:5000/api/v1';
+const getApiBaseUrl = (): string => {
+  // En développement avec Vite
+  if (typeof import.meta !== 'undefined' && import.meta.env) {
+    return import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
+  }
+  
+  // En production (build final)
+  if (process.env.NODE_ENV === 'production') {
+    return 'https://ecomobile-backend.onrender.com/api/v1';
+  }
+  
+  // Fallback
+  return 'http://localhost:5000/api/v1';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 
 class TokenManager {
-  private static readonly TOKEN_KEY = 'freebike_token';
-  private static readonly REFRESH_TOKEN_KEY = 'freebike_refresh_token';
+  private static readonly TOKEN_KEY = 'ecomobile_token';
+  private static readonly REFRESH_TOKEN_KEY = 'ecomobile_refresh_token';
   private static token: string | null = null;
 
   static setTokens(accessToken: string, refreshToken?: string) {
@@ -35,7 +48,7 @@ class TokenManager {
     localStorage.removeItem(this.TOKEN_KEY);
     localStorage.removeItem(this.REFRESH_TOKEN_KEY);
     localStorage.removeItem('authToken');
-    localStorage.removeItem('freebike_user');
+    localStorage.removeItem('ecomobile_user');
   }
 
   static isTokenExpired(token: string): boolean {
