@@ -521,7 +521,7 @@ export function EmployeeManagement() {
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="jean.dupont@freebike.cm"
+                placeholder="jean.dupont@ecomobile.cm"
                 className={formErrors.email ? 'border-red-500' : ''}
               />
               {formErrors.email && <p className="text-xs text-red-500 mt-1">{formErrors.email}</p>}

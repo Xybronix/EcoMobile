@@ -106,7 +106,7 @@ export function Login() {
               <Input
                 id="email"
                 type="email"
-                placeholder={language === 'fr' ? 'admin@freebike.com' : 'admin@freebike.com'}
+                placeholder={language === 'fr' ? 'admin@ecomobile.com' : 'admin@ecomobile.com'}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={isLoading || authLoading}
