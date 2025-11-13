@@ -7,7 +7,7 @@ const getApiBaseUrl = (): string => {
   
   // En production (build final)
   if (process.env.NODE_ENV === 'production') {
-    return 'https://ecomobile-backend.onrender.com/api/v1';
+    return 'https://ecomobile-8bx0.onrender.com/api/v1';
   }
   
   // Fallback
