@@ -17,7 +17,7 @@ const getApiBaseUrl = (): string => {
 const API_BASE_URL = getApiBaseUrl();
 
 
-class TokenManager {
+export class TokenManager {
   private static readonly TOKEN_KEY = 'ecomobile_token';
   private static readonly REFRESH_TOKEN_KEY = 'ecomobile_refresh_token';
   private static token: string | null = null;
@@ -66,6 +66,7 @@ export interface ApiResponse<T = any> {
   data?: T;
   message?: string;
   error?: string;
+  status?: number;
 }
 
 export interface ApiError {
@@ -90,6 +91,14 @@ export class ApiClient {
       const token = TokenManager.getToken();
       const language = localStorage.getItem('language') || 'fr';
 
+      if (!token && this.requiresAuth(endpoint)) {
+        return {
+          success: false,
+          error: 'Authentication required',
+          status: 401,
+        };
+      }
+
       const headers = new Headers({
         'Content-Type': 'application/json',
         'Accept-Language': language,
@@ -97,6 +106,14 @@ export class ApiClient {
       });
 
       if (token) {
+        if (TokenManager.isTokenExpired(token)) {
+          TokenManager.clearTokens();
+          return {
+            success: false,
+            error: 'Token expired',
+            status: 401,
+          };
+        }
         headers.set('Authorization', `Bearer ${token}`);
       }
 
@@ -112,6 +129,7 @@ export class ApiClient {
         return {
           success: false,
           error: data.message || data.error || 'Une erreur est survenue',
+          status: response.status,
         };
       }
 
@@ -119,14 +137,28 @@ export class ApiClient {
         success: true,
         data: data.data || data,
         message: data.message,
+        status: response.status,
       };
     } catch (error) {
       console.error('API Error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Erreur de connexion au serveur',
+        status: 0,
       };
     }
+  }
+
+  private requiresAuth(endpoint: string): boolean {
+    const authRequiredEndpoints = [
+      '/admin/',
+      '/rides',
+      '/notifications',
+      '/users'
+    ];
+    return authRequiredEndpoints.some(authEndpoint => 
+      endpoint.startsWith(authEndpoint)
+    );
   }
 
   async get<T>(endpoint: string, params?: Record<string, any>): Promise<ApiResponse<T>> {

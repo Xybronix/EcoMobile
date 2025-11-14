@@ -1,4 +1,4 @@
-import { MobileSecurity } from '@/components/MobileSecurity';
+import { MobileSecurity } from '@/components/profile/MobileSecurity';
 import { useRouter } from 'expo-router';
 import React from 'react';
 

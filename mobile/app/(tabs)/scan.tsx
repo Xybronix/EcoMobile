@@ -1,4 +1,4 @@
-import { MobileQRScanner } from '@/components/MobileQRScanner';
+import { MobileQRScanner } from '@/components/bike/MobileQRScanner';
 import type { Bike } from '@/lib/mobile-types';
 import { useRouter } from 'expo-router';
 import React from 'react';

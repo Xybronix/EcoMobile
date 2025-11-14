@@ -23,7 +23,7 @@ export function Login() {
   // Redirect if already authenticated
   useEffect(() => {
     if (user) {
-      const from = location.state?.from?.pathname || '/admin';
+      const from = location.state?.from?.pathname || '/users';
       navigate(from, { replace: true });
     }
   }, [user, navigate, location]);
@@ -41,7 +41,7 @@ export function Login() {
     try {
       await login(email, password);
       
-      const from = location.state?.from?.pathname || '/admin';
+      const from = location.state?.from?.pathname || '/users';
       navigate(from, { replace: true });
     } catch (error) {
       // Error already handled in authService

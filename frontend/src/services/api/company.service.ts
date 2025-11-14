@@ -131,11 +131,28 @@ export class CompanyService {
 
     const response = await apiClient.get<PricingConfig>('/public/pricing', params);
     
-    if (!response.success || !response.data) {
+    if (!response.success) {
+      if (response.status === 404 || !response.data) {
+        return this.getEmptyPricingConfig();
+      }
       throw new Error(response.error || 'Erreur lors de la récupération des prix');
     }
 
-    return response.data;
+    return response.data || this.getEmptyPricingConfig();
+  }
+
+  private getEmptyPricingConfig(): PricingConfig {
+    const now = new Date();
+    const nextHour = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours() + 1, 0, 0, 0);
+    
+    return {
+      unlockFee: 0,
+      baseHourlyRate: 0,
+      plans: [],
+      rules: [],
+      promotions: [],
+      nextUpdate: nextHour.toISOString()
+    };
   }
 
   async getPublicSettings(): Promise<CompanySettings> {

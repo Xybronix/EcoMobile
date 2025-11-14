@@ -6,7 +6,7 @@ import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { companyService, PricingConfig } from '../../services/api/company.service';
 
-export function Pricing() {
+export function Pricing(this: any) {
   const { t } = useI18n();
   const [pricing, setPricing] = useState<PricingConfig | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -15,6 +15,7 @@ export function Pricing() {
   useEffect(() => {
     const loadPricing = async () => {
       try {
+        setIsLoading(true);
         const data = await companyService.getPublicPricing(currentTime, currentTime.getHours());
         setPricing(data);
       } catch (error) {
@@ -79,6 +80,12 @@ export function Pricing() {
     return { amount: savings, percentage };
   };
 
+  const getNextHour = () => {
+    const now = new Date();
+    const nextHour = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours() + 1, 0, 0);
+    return nextHour.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  };
+
   if (isLoading) {
     return (
       <section id="pricing" className="py-20 bg-gradient-to-br from-green-50 to-blue-50">
@@ -95,6 +102,23 @@ export function Pricing() {
   }
 
   const activePlans = pricing?.plans?.filter(p => p.isActive) || [];
+
+  if (!isLoading && activePlans.length === 0) {
+    return (
+      <section id="pricing" className="py-20 bg-gradient-to-br from-green-50 to-blue-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <h2 className="text-4xl md:text-5xl text-gray-900 mb-4" style={{ fontWeight: 700 }}>
+              {t('pricing.title')}
+            </h2>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              Aucun plan de tarification disponible pour le moment
+            </p>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section id="pricing" className="py-20 bg-gradient-to-br from-green-50 to-blue-50">
@@ -121,7 +145,7 @@ export function Pricing() {
             <div className="inline-flex items-center gap-2 bg-blue-100 text-blue-800 px-4 py-2 rounded-lg">
               <Clock className="w-4 h-4" />
               <span className="text-sm font-medium">
-                Prochaine mise à jour : {pricing?.nextUpdate ? new Date(pricing.nextUpdate).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : 'N/A'}
+                Prochaine mise à jour : {pricing?.nextUpdate ? new Date(pricing.nextUpdate).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : this.getNextHour()}
               </span>
             </div>
           </div>

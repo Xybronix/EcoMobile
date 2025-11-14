@@ -1,4 +1,4 @@
-import { MobileNotifications } from '@/components/MobileNotifications';
+import { MobileNotifications } from '@/components/profile/MobileNotifications';
 import { useRouter } from 'expo-router';
 import React from 'react';
 

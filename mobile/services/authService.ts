@@ -23,6 +23,7 @@ export interface RegisterData {
 }
 
 export interface User {
+  wallet: any;
   id: string;
   firstName: string;
   lastName: string;
