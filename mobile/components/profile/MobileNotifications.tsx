@@ -9,7 +9,7 @@ import { haptics } from '@/utils/haptics';
 import { AlertCircle, ArrowLeft, Bell, Bike, Clock, CreditCard, Package } from 'lucide-react-native';
 import React from 'react';
 import { ScrollView, TouchableOpacity, View } from 'react-native';
-import { useMobileI18n } from '../lib/mobile-i18n';
+import { useMobileI18n } from '../../lib/mobile-i18n';
 
 interface MobileNotificationsProps {
   onNavigate: (screen: string) => void;

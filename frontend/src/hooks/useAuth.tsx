@@ -1,7 +1,7 @@
 // hooks/useAuth.tsx
 import { useState, useEffect, useContext, createContext } from 'react';
 import { authService, AuthUser } from '../services/api/auth.service';
-import { getAuthToken } from '../services/api/client';
+import { getAuthToken, TokenManager } from '../services/api/client';
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -32,12 +32,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const token = getAuthToken();
       if (token) {
         try {
+          if (TokenManager.isTokenExpired(token)) {
+            throw new Error('Token expired');
+          }
           const userData = await authService.getCurrentUser();
           setUser(userData);
         } catch (error) {
           console.error('Auth initialization failed:', error);
           authService.logout();
+          setUser(null);
         }
+      } else {
+        setUser(null);
       }
       setIsLoading(false);
     };

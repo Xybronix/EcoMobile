@@ -8,7 +8,7 @@ import { haptics } from '@/utils/haptics';
 import { AlertTriangle, ArrowLeft, Eye, EyeOff, Lock, Shield, Smartphone } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { ActivityIndicator, Modal, ScrollView, TouchableOpacity, View } from 'react-native';
-import { useMobileI18n } from '../lib/mobile-i18n';
+import { useMobileI18n } from '../../lib/mobile-i18n';
 
 interface MobileSecurityProps {
   onNavigate: (screen: string) => void;

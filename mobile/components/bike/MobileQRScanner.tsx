@@ -11,11 +11,11 @@ import { haptics } from '@/utils/haptics';
 import { Camera, Hash, Info, MapPin, ScanLine, Sticker, Target, Type, Zap } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { ScrollView, TouchableOpacity, View } from 'react-native';
-import { useMobileI18n } from '../lib/mobile-i18n';
-import { mockBikes } from '../lib/mobile-mock-data';
-import type { Bike } from '../lib/mobile-types';
-import { MobileHeader } from './MobileHeader';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/Tabs';
+import { useMobileI18n } from '../../lib/mobile-i18n';
+import { mockBikes } from '../../lib/mobile-mock-data';
+import type { Bike } from '../../lib/mobile-types';
+import { MobileHeader } from '../layout/MobileHeader';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/Tabs';
 
 interface MobileQRScannerProps {
   onBikeFound: (bike: Bike) => void;

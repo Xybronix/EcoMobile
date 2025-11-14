@@ -1,4 +1,4 @@
-import { MobileWallet } from '@/components/MobileWallet';
+import { MobileWallet } from '@/components/home/MobileWallet';
 import { useRouter } from 'expo-router';
 import React from 'react';
 

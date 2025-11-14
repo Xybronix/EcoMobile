@@ -18,11 +18,11 @@ import {
   View
 } from 'react-native';
 import { toast } from 'sonner';
-import { useMobileAuth } from '../lib/mobile-auth';
-import { useMobileI18n } from '../lib/mobile-i18n';
-import { mockPayments } from '../lib/mobile-mock-data';
-import type { Payment } from '../lib/mobile-types';
-import { MobileHeader } from './MobileHeader';
+import { useMobileAuth } from '../../lib/mobile-auth';
+import { useMobileI18n } from '../../lib/mobile-i18n';
+import { mockPayments } from '../../lib/mobile-mock-data';
+import type { Payment } from '../../lib/mobile-types';
+import { MobileHeader } from '../layout/MobileHeader';
 
 interface MobileWalletProps {
   onBack: () => void;

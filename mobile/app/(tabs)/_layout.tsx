@@ -1,5 +1,5 @@
 // app/(tabs)/_layout.tsx
-import { BottomNavigation } from '@/components/BottomNavigation';
+import { BottomNavigation } from '@/components/layout/BottomNavigation';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { getGlobalStyles } from '@/styles/globalStyles';
 import { Slot, useRouter, useSegments } from 'expo-router';
