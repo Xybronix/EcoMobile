@@ -46,6 +46,8 @@ export function MobileHeader({
 
   useEffect(() => {
     const loadNotificationCount = async () => {
+      if (!showNotifications) return;
+
       try {
         const count = await notificationService.getUnreadCount();
         setRealNotificationCount(count);
@@ -55,9 +57,7 @@ export function MobileHeader({
       }
     };
 
-    if (showNotifications) {
-      loadNotificationCount();
-    }
+    loadNotificationCount();
   }, [showNotifications, notificationCount]);
 
   const refreshNotifications = async () => {

@@ -37,7 +37,7 @@ export interface UserNotification {
 }
 
 class UserService {
-  private baseUrl = `${API_CONFIG.BASE_URL}/api/v1/users`;
+  private baseUrl = `${API_CONFIG.BASE_URL}/users`;
 
   private async getAuthHeaders() {
     const token = await authService.getToken();

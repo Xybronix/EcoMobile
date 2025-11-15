@@ -51,7 +51,7 @@ export interface Area {
 }
 
 class BikeService {
-  private baseUrl = `${API_CONFIG.BASE_URL}/api/v1/bikes`;
+  private baseUrl = `${API_CONFIG.BASE_URL}/bikes`;
 
   private async getAuthHeaders() {
     const token = await authService.getToken();

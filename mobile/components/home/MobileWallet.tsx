@@ -1,28 +1,11 @@
-import {
-  ArrowDownLeft,
-  ArrowUpRight,
-  Clock,
-  CreditCard,
-  Plus,
-  Wallet
-} from 'lucide-react-native';
-import React, { useState } from 'react';
-import {
-  ActivityIndicator,
-  Modal,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
-} from 'react-native';
+import { ArrowDownLeft, ArrowUpRight, Clock, CreditCard, Plus, Wallet } from 'lucide-react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { ActivityIndicator, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, RefreshControl } from 'react-native';
 import { toast } from 'sonner';
-import { useMobileAuth } from '../../lib/mobile-auth';
-import { useMobileI18n } from '../../lib/mobile-i18n';
-import { mockPayments } from '../../lib/mobile-mock-data';
-import type { Payment } from '../../lib/mobile-types';
-import { MobileHeader } from '../layout/MobileHeader';
+import { useMobileAuth } from '@/lib/mobile-auth';
+import { useMobileI18n } from '@/lib/mobile-i18n';
+import { walletService, type Transaction, type WalletBalance } from '@/services/walletService';
+import { MobileHeader } from '@/components/layout/MobileHeader';
 
 interface MobileWalletProps {
   onBack: () => void;
@@ -31,89 +14,206 @@ interface MobileWalletProps {
 
 export function MobileWallet({ onBack, onNavigate }: MobileWalletProps) {
   const { t, language } = useMobileI18n();
-  const { user, updateWalletBalance } = useMobileAuth();
+  const { user } = useMobileAuth();
   const [showTopUpDialog, setShowTopUpDialog] = useState(false);
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
   const [customAmount, setCustomAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'orange-money' | 'mobile-money'>('orange-money');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [walletBalance, setWalletBalance] = useState<WalletBalance | null>(null);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   const predefinedAmounts = [1000, 2000, 5000, 10000, 20000, 50000];
+
+  const loadWalletData = useCallback(async (showRefresh = false) => {
+    try {
+      if (showRefresh) setIsRefreshing(true);
+      else setIsLoading(true);
+      setError(null);
+
+      const [balanceData, transactionsData] = await Promise.all([
+        walletService.getBalance(),
+        walletService.getTransactions(1, 10)
+      ]);
+
+      setWalletBalance(balanceData);
+      setTransactions(transactionsData.transactions);
+    } catch (error) {
+      console.error('Error loading wallet data:', error);
+      setError(error instanceof Error ? error.message : 'unknown_error');
+      
+      const errorMessage = language === 'fr' 
+        ? 'Erreur lors du chargement des données du portefeuille'
+        : 'Error loading wallet data';
+      toast.error(errorMessage);
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  }, [language]);
+
+  const onRefresh = useCallback(() => {
+    loadWalletData(true);
+  }, [loadWalletData]);
+
+  useEffect(() => {
+    loadWalletData();
+  }, [loadWalletData]);
 
   const handleTopUp = async () => {
     const amount = selectedAmount || parseInt(customAmount);
 
     if (!amount || amount <= 0) {
-      toast.error(
-        language === 'fr'
-          ? 'Veuillez sélectionner un montant'
-          : 'Please select an amount'
-      );
+      toast.error(t('wallet.selectValidAmount'));
       return;
     }
 
     if (amount < 500) {
-      toast.error(
-        language === 'fr'
-          ? 'Le montant minimum est de 500 XOF'
-          : 'Minimum amount is 500 XOF'
-      );
+      toast.error(t('wallet.minimumAmount'));
       return;
     }
 
     setIsProcessing(true);
 
-    // TODO: Call payment API
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    try {
+      const paymentMethodMap = {
+        'orange-money': 'ORANGE_MONEY',
+        'mobile-money': 'MOMO'
+      };
 
-    updateWalletBalance(amount);
-    toast.success(
-      language === 'fr'
-        ? `Recharge de ${amount} XOF réussie !`
-        : `Top up of ${amount} XOF successful!`
+      const result = await walletService.initiateDeposit({
+        amount,
+        paymentMethod: paymentMethodMap[paymentMethod],
+        currency: 'XOF'
+      });
+
+      toast.success(t('wallet.depositInitiated'));
+
+      // Rafraîchir les données du portefeuille
+      loadWalletData();
+
+      setShowTopUpDialog(false);
+      setSelectedAmount(null);
+      setCustomAmount('');
+    } catch (error) {
+      console.error('Error initiating deposit:', error);
+      const errorMessage = error instanceof Error ? error.message : 'unknown_error';
+      
+      if (errorMessage === 'invalid_amount') {
+        toast.error(t('wallet.invalidAmount'));
+      } else if (errorMessage === 'network_error') {
+        toast.error(t('common.networkError'));
+      } else {
+        toast.error(t('wallet.depositError'));
+      }
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const getPaymentIcon = (transaction: Transaction) => {
+    switch (transaction.type) {
+      case 'deposit':
+      case 'refund':
+      case 'bonus':
+        return <ArrowUpRight size={20} color="#16a34a" />;
+      case 'withdrawal':
+      case 'ride_payment':
+        return <ArrowDownLeft size={20} color="#dc2626" />;
+      default:
+        return <ArrowUpRight size={20} color="#2563eb" />;
+    }
+  };
+
+  const getPaymentTypeLabel = (type: Transaction['type']) => {
+    switch (type) {
+      case 'deposit':
+        return t('wallet.transaction.deposit');
+      case 'withdrawal':
+        return t('wallet.transaction.withdrawal');
+      case 'ride_payment':
+        return t('wallet.transaction.ridePayment');
+      case 'refund':
+        return t('wallet.transaction.refund');
+      case 'bonus':
+        return t('wallet.transaction.bonus');
+      default:
+        return type;
+    }
+  };
+
+  const getStatusLabel = (status: Transaction['status']) => {
+    switch (status) {
+      case 'completed':
+        return t('wallet.status.completed');
+      case 'pending':
+        return t('wallet.status.pending');
+      case 'failed':
+        return t('wallet.status.failed');
+      case 'cancelled':
+        return t('wallet.status.cancelled');
+      default:
+        return status;
+    }
+  };
+
+  const getStatusStyle = (status: Transaction['status']) => {
+    switch (status) {
+      case 'completed':
+        return styles.completedBadge;
+      case 'pending':
+        return styles.pendingBadge;
+      case 'failed':
+        return styles.failedBadge;
+      case 'cancelled':
+        return styles.cancelledBadge;
+      default:
+        return styles.pendingBadge;
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <View style={styles.container}>
+        <MobileHeader 
+          title={t('wallet.title')} 
+          showBack 
+          onBack={onBack}
+          showNotifications
+          notificationCount={2}
+          onNotifications={() => onNavigate?.('notifications')}
+        />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#16a34a" />
+          <Text style={styles.loadingText}>{t('common.loading')}</Text>
+        </View>
+      </View>
     );
+  }
 
-    setIsProcessing(false);
-    setShowTopUpDialog(false);
-    setSelectedAmount(null);
-    setCustomAmount('');
-  };
-
-  const getPaymentIcon = (payment: Payment) => {
-    if (payment.type === 'ride') {
-      return <ArrowDownLeft size={20} color="#dc2626" />;
-    }
-    if (payment.type === 'wallet-topup') {
-      return <ArrowUpRight size={20} color="#16a34a" />;
-    }
-    return <ArrowUpRight size={20} color="#2563eb" />;
-  };
-
-  const getPaymentTypeLabel = (type: Payment['type']) => {
-    if (language === 'fr') {
-      switch (type) {
-        case 'ride':
-          return 'Paiement trajet';
-        case 'wallet-topup':
-          return 'Recharge compte';
-        case 'refund':
-          return 'Remboursement';
-        default:
-          return type;
-      }
-    } else {
-      switch (type) {
-        case 'ride':
-          return 'Ride payment';
-        case 'wallet-topup':
-          return 'Wallet top-up';
-        case 'refund':
-          return 'Refund';
-        default:
-          return type;
-      }
-    }
-  };
+  if (error && !walletBalance) {
+    return (
+      <View style={styles.container}>
+        <MobileHeader 
+          title={t('wallet.title')} 
+          showBack 
+          onBack={onBack}
+          showNotifications
+          notificationCount={2}
+          onNotifications={() => onNavigate?.('notifications')}
+        />
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>{t('wallet.loadError')}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={() => loadWalletData()}>
+            <Text style={styles.retryButtonText}>{t('common.retry')}</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -126,7 +226,18 @@ export function MobileWallet({ onBack, onNavigate }: MobileWalletProps) {
         onNotifications={() => onNavigate?.('notifications')}
       />
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.scrollView} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={onRefresh}
+            colors={['#16a34a']}
+            tintColor="#16a34a"
+          />
+        }
+      >
         <View style={styles.content}>
           {/* Balance Card */}
           <View style={styles.balanceCard}>
@@ -135,8 +246,8 @@ export function MobileWallet({ onBack, onNavigate }: MobileWalletProps) {
               <Text style={styles.balanceLabel}>{t('wallet.balance')}</Text>
             </View>
             <Text style={styles.balanceAmount}>
-              {user?.wallet.balance.toLocaleString()} 
-              <Text style={styles.currency}> {user?.wallet.currency}</Text>
+              {(walletBalance?.balance || 0).toLocaleString()} 
+              <Text style={styles.currency}> {walletBalance?.currency || 'XOF'}</Text>
             </Text>
             <TouchableOpacity
               style={styles.topUpButton}
@@ -153,79 +264,84 @@ export function MobileWallet({ onBack, onNavigate }: MobileWalletProps) {
               <View style={styles.quickActionIcon}>
                 <CreditCard size={32} color="#2563eb" />
               </View>
-              <Text style={styles.quickActionText}>
-                {language === 'fr' ? 'Mes cartes' : 'My Cards'}
-              </Text>
+              <Text style={styles.quickActionText}>{t('wallet.myCards')}</Text>
             </TouchableOpacity>
             
             <TouchableOpacity style={styles.quickAction}>
               <View style={styles.quickActionIcon}>
                 <Clock size={32} color="#7c3aed" />
               </View>
-              <Text style={styles.quickActionText}>
-                {language === 'fr' ? 'Historique' : 'History'}
-              </Text>
+              <Text style={styles.quickActionText}>{t('wallet.history')}</Text>
             </TouchableOpacity>
           </View>
 
           {/* Recent Transactions */}
           <View style={styles.transactionsSection}>
-            <Text style={styles.sectionTitle}>{t('wallet.history')}</Text>
-            <View style={styles.transactionsList}>
-              {mockPayments.map((payment) => (
-                <View key={payment.id} style={styles.transactionCard}>
-                  <View style={styles.transactionHeader}>
-                    <View style={styles.transactionIcon}>
-                      {getPaymentIcon(payment)}
-                    </View>
-                    
-                    <View style={styles.transactionInfo}>
-                      <Text style={styles.transactionType}>
-                        {getPaymentTypeLabel(payment.type)}
-                      </Text>
-                      <Text style={styles.transactionDate}>
-                        {new Date(payment.createdAt).toLocaleDateString(
-                          language === 'fr' ? 'fr-FR' : 'en-US',
-                          {
-                            month: 'short',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          }
-                        )}
-                      </Text>
-                    </View>
-
-                    <View style={styles.transactionAmount}>
-                      <Text style={[
-                        styles.amountText,
-                        payment.type === 'ride' ? styles.negativeAmount : styles.positiveAmount
-                      ]}>
-                        {payment.type === 'ride' ? '-' : '+'}
-                        {payment.amount} {payment.currency}
-                      </Text>
-                      <View style={[
-                        styles.statusBadge,
-                        payment.status === 'completed' ? styles.completedBadge : styles.pendingBadge
-                      ]}>
-                        <Text style={styles.statusText}>
-                          {payment.status === 'completed'
-                            ? language === 'fr' ? 'Complété' : 'Completed'
-                            : language === 'fr' ? 'En attente' : 'Pending'}
+            <Text style={styles.sectionTitle}>{t('wallet.recentTransactions')}</Text>
+            
+            {transactions.length === 0 ? (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyStateText}>{t('wallet.noTransactions')}</Text>
+              </View>
+            ) : (
+              <View style={styles.transactionsList}>
+                {transactions.map((transaction) => (
+                  <View key={transaction.id} style={styles.transactionCard}>
+                    <View style={styles.transactionHeader}>
+                      <View style={styles.transactionIcon}>
+                        {getPaymentIcon(transaction)}
+                      </View>
+                      
+                      <View style={styles.transactionInfo}>
+                        <Text style={styles.transactionType}>
+                          {getPaymentTypeLabel(transaction.type)}
+                        </Text>
+                        <Text style={styles.transactionDate}>
+                          {new Date(transaction.createdAt).toLocaleDateString(
+                            language === 'fr' ? 'fr-FR' : 'en-US',
+                            {
+                              month: 'short',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            }
+                          )}
                         </Text>
                       </View>
-                    </View>
-                  </View>
 
-                  {payment.details?.phoneNumber && (
-                    <Text style={styles.paymentMethod}>
-                      {payment.method === 'orange-money' ? 'Orange Money' : 'Mobile Money'} •{' '}
-                      {payment.details.phoneNumber}
-                    </Text>
-                  )}
-                </View>
-              ))}
-            </View>
+                      <View style={styles.transactionAmount}>
+                        <Text style={[
+                          styles.amountText,
+                          ['withdrawal', 'ride_payment'].includes(transaction.type) 
+                            ? styles.negativeAmount 
+                            : styles.positiveAmount
+                        ]}>
+                          {['withdrawal', 'ride_payment'].includes(transaction.type) ? '-' : '+'}
+                          {transaction.amount} {transaction.currency}
+                        </Text>
+                        <View style={[
+                          styles.statusBadge,
+                          getStatusStyle(transaction.status)
+                        ]}>
+                          <Text style={[
+                            styles.statusText,
+                            transaction.status === 'pending' && styles.pendingStatusText
+                          ]}>
+                            {getStatusLabel(transaction.status)}
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+
+                    {transaction.description && (
+                      <Text style={styles.transactionDescription}>
+                        {transaction.description}
+                      </Text>
+                    )}
+                  </View>
+                ))}
+              </View>
+            )}
           </View>
         </View>
       </ScrollView>
@@ -241,9 +357,7 @@ export function MobileWallet({ onBack, onNavigate }: MobileWalletProps) {
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>{t('wallet.topUp')}</Text>
             <Text style={styles.modalDescription}>
-              {language === 'fr'
-                ? 'Sélectionnez le montant à recharger'
-                : 'Select the amount to top up'}
+              {t('wallet.selectAmountToTopUp')}
             </Text>
 
             <View style={styles.modalBody}>
@@ -267,7 +381,7 @@ export function MobileWallet({ onBack, onNavigate }: MobileWalletProps) {
                         styles.amountButtonText,
                         selectedAmount === amount && styles.amountButtonTextSelected
                       ]}>
-                        {amount}
+                        {amount.toLocaleString()}
                       </Text>
                     </TouchableOpacity>
                   ))}
@@ -295,7 +409,10 @@ export function MobileWallet({ onBack, onNavigate }: MobileWalletProps) {
                 <Text style={styles.sectionLabel}>{t('wallet.paymentMethod')}</Text>
                 <View style={styles.radioGroup}>
                   <TouchableOpacity
-                    style={styles.radioOption}
+                    style={[
+                      styles.radioOption,
+                      paymentMethod === 'orange-money' && styles.radioOptionSelected
+                    ]}
                     onPress={() => setPaymentMethod('orange-money')}
                   >
                     <View style={styles.radioCircle}>
@@ -305,7 +422,10 @@ export function MobileWallet({ onBack, onNavigate }: MobileWalletProps) {
                   </TouchableOpacity>
                   
                   <TouchableOpacity
-                    style={styles.radioOption}
+                    style={[
+                      styles.radioOption,
+                      paymentMethod === 'mobile-money' && styles.radioOptionSelected
+                    ]}
                     onPress={() => setPaymentMethod('mobile-money')}
                   >
                     <View style={styles.radioCircle}>
@@ -321,6 +441,7 @@ export function MobileWallet({ onBack, onNavigate }: MobileWalletProps) {
               <TouchableOpacity
                 style={styles.cancelButton}
                 onPress={() => setShowTopUpDialog(false)}
+                disabled={isProcessing}
               >
                 <Text style={styles.cancelButtonText}>{t('common.cancel')}</Text>
               </TouchableOpacity>
@@ -358,6 +479,40 @@ const styles = StyleSheet.create({
   content: {
     padding: 16,
     paddingBottom: 32,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 16,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#6b7280',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+    gap: 16,
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#dc2626',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  retryButton: {
+    backgroundColor: '#16a34a',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
   },
   balanceCard: {
     backgroundColor: '#16a34a',
@@ -435,6 +590,22 @@ const styles = StyleSheet.create({
     color: '#111827',
     marginBottom: 16,
   },
+  emptyState: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 24,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  emptyStateText: {
+    fontSize: 14,
+    color: '#6b7280',
+    textAlign: 'center',
+  },
   transactionsList: {
     gap: 12,
   },
@@ -500,12 +671,21 @@ const styles = StyleSheet.create({
   pendingBadge: {
     backgroundColor: '#f3f4f6',
   },
+  failedBadge: {
+    backgroundColor: '#dc2626',
+  },
+  cancelledBadge: {
+    backgroundColor: '#6b7280',
+  },
   statusText: {
     fontSize: 12,
     fontWeight: '500',
     color: 'white',
   },
-  paymentMethod: {
+  pendingStatusText: {
+    color: '#6b7280',
+  },
+  transactionDescription: {
     fontSize: 12,
     color: '#6b7280',
     marginTop: 4,
@@ -598,6 +778,10 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 16,
     gap: 12,
+  },
+  radioOptionSelected: {
+    borderColor: '#16a34a',
+    backgroundColor: '#f0fdf4',
   },
   radioCircle: {
     width: 20,

@@ -52,8 +52,14 @@ export const createGlobalStyles = (colorScheme: 'light' | 'dark') => {
       fontSize: 16,
       fontFamily: Fonts.regular,
     },
+    textLeft: {
+      textAlign: 'left',
+    },
     textCenter: {
       textAlign: 'center',
+    },
+    textRight: {
+      textAlign: 'right',
     },
     textBold: {
       fontFamily: Fonts.bold,
@@ -137,8 +143,14 @@ export const createGlobalStyles = (colorScheme: 'light' | 'dark') => {
     alignCenter: {
       alignItems: 'center',
     },
+    justifyStart: {
+      justifyContent: 'flex-start',
+    },
     justifyCenter: {
       justifyContent: 'center',
+    },
+    justifyEnd: {
+      justifyContent: 'flex-end',
     },
     spaceBetween: {
       justifyContent: 'space-between',
