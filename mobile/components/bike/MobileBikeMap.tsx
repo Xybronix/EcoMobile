@@ -433,32 +433,6 @@ export function MobileBikeMap({ onNavigate }: MobileBikeMapProps) {
                 </Text>
               </View>
             </View>
-
-            {/* Mock bike markers */}
-            {filteredBikes.slice(0, 5).map((bike, index) => (
-              <TouchableOpacity
-                key={bike.id}
-                onPress={() => {
-                  haptics.selection();
-                  setSelectedBike(bike);
-                }}
-                style={[
-                  styles.absolute,
-                  { width: 48, height: 48 },
-                  styles.rounded24,
-                  styles.alignCenter,
-                  styles.justifyCenter,
-                  styles.shadow,
-                  { 
-                    backgroundColor: '#16a34a',
-                    top: `${20 + index * 15}%`,
-                    left: `${30 + index * 10}%`,
-                  }
-                ]}
-              >
-                <Zap size={20} color="white" />
-              </TouchableOpacity>
-            ))}
           </View>
 
           {/* Map Controls */}

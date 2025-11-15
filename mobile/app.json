@@ -8,6 +8,9 @@
     "scheme": "ecomobile",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "extra": {
+      "apiUrl": "https://ecomobile-8bx0.onrender.com/api/v1"
+    },
     "ios": {
       "supportsTablet": true,
       "infoPlist": {

@@ -16,7 +16,7 @@ export interface ChatMessage {
 }
 
 class ChatService {
-  private baseUrl = `${API_CONFIG.BASE_URL}/api/v1/chat`;
+  private baseUrl = `${API_CONFIG.BASE_URL}/chat`;
 
   private async getAuthHeaders() {
     const token = await authService.getToken();

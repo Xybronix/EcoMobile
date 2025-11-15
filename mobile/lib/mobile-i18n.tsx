@@ -117,6 +117,22 @@ const translations: Translations = {
   'wallet.orangeMoney': { fr: 'Orange Money', en: 'Orange Money' },
   'wallet.mobileMoney': { fr: 'Mobile Money', en: 'Mobile Money' },
   'wallet.confirm': { fr: 'Confirmer', en: 'Confirm' },
+  'wallet.myCards': { fr: 'Mes cartes', en: 'My Cards' },
+  'wallet.recentTransactions': { fr: 'Transactions récentes', en: 'Recent Transactions' },
+  'wallet.noTransactions': { fr: 'Aucune transaction', en: 'No transactions' },
+  'wallet.selectValidAmount': { fr: 'Veuillez sélectionner un montant valide', en: 'Please select a valid amount' },
+  'wallet.minimumAmount': { fr: 'Le montant minimum est de 500 XOF', en: 'Minimum amount is 500 XOF' },
+  'wallet.depositInitiated': { fr: 'Dépôt initié avec succès', en: 'Deposit initiated successfully' },
+  'wallet.invalidAmount': { fr: 'Montant invalide', en: 'Invalid amount' },
+  'wallet.depositError': { fr: 'Erreur lors du dépôt', en: 'Deposit error' },
+  'wallet.loadError': { fr: 'Erreur de chargement', en: 'Loading error' },
+  'wallet.selectAmountToTopUp': { fr: 'Sélectionnez le montant à recharger', en: 'Select the amount to top up' },
+
+  // Transaction statuses
+  'wallet.status.completed': { fr: 'Complété', en: 'Completed' },
+  'wallet.status.pending': { fr: 'En attente', en: 'Pending' },
+  'wallet.status.failed': { fr: 'Échoué', en: 'Failed' },
+  'wallet.status.cancelled': { fr: 'Annulé', en: 'Cancelled' },
 
   // Profile
   'profile.title': { fr: 'Mon profil', en: 'My Profile' },
@@ -273,6 +289,8 @@ const translations: Translations = {
   'common.reset': { fr: 'Réinitialiser', en: 'Reset' },
   'common.apply': { fr: 'Appliquer', en: 'Apply' },
   'common.required': { fr: 'Ce champ est requis', en: 'This field is required' },
+  'common.networkError': { fr: 'Erreur de réseau', en: 'Network error' },
+  'common.retry': { fr: 'Réessayer', en: 'Retry' },
 };
 
 interface MobileI18nContextType {

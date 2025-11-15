@@ -213,8 +213,7 @@ export function MobileSecurity({ onNavigate }: MobileSecurityProps) {
                       style={[
                         styles.roundedFull,
                         styles.alignCenter,
-                        styles.justifyCenter,
-                        { backgroundColor: colorScheme === 'light' ? '#f3f4f6' : '#374151' }
+                        styles.justifyCenter
                       ]}
                     >
                       <Lock size={20} color="#2563eb" />
@@ -417,8 +416,7 @@ export function MobileSecurity({ onNavigate }: MobileSecurityProps) {
                       styles.h12,
                       styles.roundedFull,
                       styles.alignCenter,
-                      styles.justifyCenter,
-                      { backgroundColor: '#e0e7ff' }
+                      styles.justifyCenter
                     ]}
                   >
                     <Shield size={20} color="#4f46e5" />
@@ -490,8 +488,7 @@ export function MobileSecurity({ onNavigate }: MobileSecurityProps) {
                       styles.h12,
                       styles.roundedFull,
                       styles.alignCenter,
-                      styles.justifyCenter,
-                      { backgroundColor: '#dbeafe' }
+                      styles.justifyCenter
                     ]}
                   >
                     <Smartphone size={20} color="#2563eb" />

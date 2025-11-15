@@ -21,7 +21,7 @@ export interface NotificationPreferences {
 }
 
 class NotificationService {
-  private baseUrl = `${API_CONFIG.BASE_URL}/api/v1/notifications`;
+  private baseUrl = `${API_CONFIG.BASE_URL}/notifications`;
 
   private async getAuthHeaders() {
     const token = await authService.getToken();
@@ -107,13 +107,16 @@ class NotificationService {
         headers,
       });
 
+      if (!response.ok) {
+        console.warn('Failed to fetch notification count, using default value 0');
+        return 0;
+      }
+
       const result = await handleApiResponse(response);
       return result.data.unreadCount || 0;
     } catch (error) {
-      if (error instanceof ApiError) {
-        throw new Error(this.getErrorMessage(error));
-      }
-      throw new Error('network_error');
+      console.warn('Error fetching notification count:', error);
+      return 0;
     }
   }
 

@@ -17,6 +17,8 @@ export interface Transaction {
   description: string;
   rideId?: string;
   paymentMethod?: string;
+  paymentProvider?: string;
+  externalId?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -25,6 +27,8 @@ export interface DepositRequest {
   amount: number;
   paymentMethod: string;
   currency?: string;
+  phoneNumber?: string;
+  description?: string;
 }
 
 export interface FeeCalculation {
@@ -35,7 +39,9 @@ export interface FeeCalculation {
 }
 
 export interface WalletStats {
-  totalDeposits: number;
+  currentBalance: number;
+  totalDeposited: number;
+  totalSpent: number;
   totalWithdrawals: number;
   totalRidePayments: number;
   averageDeposit: number;
@@ -70,7 +76,8 @@ class WalletService {
         headers,
       });
 
-      return await handleApiResponse(response);
+      const data = await handleApiResponse(response);
+      return data.data || data; // Gérer les différents formats de réponse
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(this.getErrorMessage(error));
@@ -79,7 +86,12 @@ class WalletService {
     }
   }
 
-  async getTransactions(page: number = 1, limit: number = 20): Promise<{ transactions: Transaction[]; total: number; page: number }> {
+  async getTransactions(page: number = 1, limit: number = 20): Promise<{ 
+    transactions: Transaction[]; 
+    total: number; 
+    page: number;
+    totalPages: number;
+  }> {
     const headers = await this.getAuthHeaders();
     
     try {
@@ -92,7 +104,21 @@ class WalletService {
         headers,
       });
 
-      return await handleApiResponse(response);
+      const data = await handleApiResponse(response);
+      
+      // Mapper les types du backend vers les types frontend si nécessaire
+      const mappedTransactions = (data.data?.transactions || data.transactions || []).map((t: any) => ({
+        ...t,
+        type: this.mapTransactionType(t.type),
+        status: this.mapTransactionStatus(t.status)
+      }));
+
+      return {
+        transactions: mappedTransactions,
+        total: data.data?.total || data.total || 0,
+        page: data.data?.page || data.page || page,
+        totalPages: Math.ceil((data.data?.total || data.total || 0) / limit)
+      };
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(this.getErrorMessage(error));
@@ -110,7 +136,8 @@ class WalletService {
         headers,
       });
 
-      return await handleApiResponse(response);
+      const data = await handleApiResponse(response);
+      return data.data || data;
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(this.getErrorMessage(error));
@@ -128,7 +155,8 @@ class WalletService {
         headers,
       });
 
-      return await handleApiResponse(response);
+      const data = await handleApiResponse(response);
+      return data.data || data;
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(this.getErrorMessage(error));
@@ -147,7 +175,8 @@ class WalletService {
         body: JSON.stringify({ amount, paymentMethod }),
       });
 
-      return await handleApiResponse(response);
+      const data = await handleApiResponse(response);
+      return data.data || data;
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(this.getErrorMessage(error));
@@ -156,7 +185,12 @@ class WalletService {
     }
   }
 
-  async initiateDeposit(depositRequest: DepositRequest): Promise<{ transactionId: string; paymentUrl?: string; qrCode?: string }> {
+  async initiateDeposit(depositRequest: DepositRequest): Promise<{ 
+    transactionId: string; 
+    paymentUrl?: string; 
+    qrCode?: string;
+    status: string;
+  }> {
     const headers = await this.getAuthHeaders();
     
     try {
@@ -166,7 +200,8 @@ class WalletService {
         body: JSON.stringify(depositRequest),
       });
 
-      return await handleApiResponse(response);
+      const data = await handleApiResponse(response);
+      return data.data || data;
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(this.getErrorMessage(error));
@@ -175,7 +210,10 @@ class WalletService {
     }
   }
 
-  async verifyPayment(transactionId: string): Promise<{ status: string; transaction?: Transaction }> {
+  async verifyPayment(transactionId: string): Promise<{ 
+    status: string; 
+    transaction?: Transaction;
+  }> {
     const headers = await this.getAuthHeaders();
     
     try {
@@ -184,7 +222,8 @@ class WalletService {
         headers,
       });
 
-      return await handleApiResponse(response);
+      const data = await handleApiResponse(response);
+      return data.data || data;
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(this.getErrorMessage(error));
@@ -193,22 +232,25 @@ class WalletService {
     }
   }
 
-  async getPaymentMethods(): Promise<string[]> {
-    const headers = await this.getAuthHeaders();
-    
-    try {
-      const response = await fetch(`${this.baseUrl}/payment-methods`, {
-        method: 'GET',
-        headers,
-      });
+  // Méthodes utilitaires pour mapper les types backend/frontend
+  private mapTransactionType(backendType: string): Transaction['type'] {
+    const typeMap: { [key: string]: Transaction['type'] } = {
+      'DEPOSIT': 'deposit',
+      'WITHDRAWAL': 'withdrawal', 
+      'RIDE_PAYMENT': 'ride_payment',
+      'REFUND': 'refund'
+    };
+    return typeMap[backendType] || 'deposit';
+  }
 
-      return await handleApiResponse(response);
-    } catch (error) {
-      if (error instanceof ApiError) {
-        throw new Error(this.getErrorMessage(error));
-      }
-      throw new Error('network_error');
-    }
+  private mapTransactionStatus(backendStatus: string): Transaction['status'] {
+    const statusMap: { [key: string]: Transaction['status'] } = {
+      'PENDING': 'pending',
+      'COMPLETED': 'completed',
+      'FAILED': 'failed',
+      'CANCELLED': 'cancelled'
+    };
+    return statusMap[backendStatus] || 'pending';
   }
 
   private getErrorMessage(error: ApiError): string {

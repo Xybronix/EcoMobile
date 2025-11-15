@@ -25,7 +25,7 @@ export interface CreateIncidentData {
 }
 
 class IncidentService {
-  private baseUrl = `${API_CONFIG.BASE_URL}/api/v1/incidents`;
+  private baseUrl = `${API_CONFIG.BASE_URL}/incidents`;
 
   private async getAuthHeaders() {
     const token = await authService.getToken();
