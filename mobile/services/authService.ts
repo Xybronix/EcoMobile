@@ -32,6 +32,7 @@ export interface User {
   language: string;
   role: string;
   isActive: boolean;
+  emailVerified: boolean;
   verificationStatus: {
     email: boolean;
     phone: boolean;
@@ -48,19 +49,6 @@ export interface AuthResponse {
 
 class AuthService {
   private baseUrl = `${API_CONFIG.BASE_URL}/auth`;
-
-  private formatPhoneNumber(phone: string): string {
-    const cleanedPhone = phone.replace(/\s/g, '');
-    
-    if (cleanedPhone.startsWith('+')) {
-      const countryCode = cleanedPhone.substring(0, 3)
-      const number = cleanedPhone.substring(3);
-      
-      return `${countryCode} ${number}`;
-    } else {
-      return `+237 ${cleanedPhone}`;
-    }
-  }
 
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
     try {
@@ -87,15 +75,10 @@ class AuthService {
 
   async register(userData: RegisterData): Promise<AuthResponse> {
     try {
-      const formattedUserData = {
-        ...userData,
-        phone: this.formatPhoneNumber(userData.phone),
-      };
-
       const response = await fetch(`${this.baseUrl}/register`, {
         method: 'POST',
         headers: API_CONFIG.HEADERS,
-        body: JSON.stringify(formattedUserData),
+        body: JSON.stringify(userData),
       });
 
       const responseData = await handleApiResponse(response);

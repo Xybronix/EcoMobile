@@ -1,4 +1,3 @@
-// components/mobile/MobileBikeInspection.tsx
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Label } from '@/components/ui/Label';
@@ -11,13 +10,13 @@ import { haptics } from '@/utils/haptics';
 import { AlertTriangle, ArrowLeft, Camera, Check, X } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { ScrollView, TouchableOpacity, View } from 'react-native';
-import { useMobileI18n } from '../../lib/mobile-i18n';
+import { useMobileI18n } from '@/lib/mobile-i18n';
 
 interface MobileBikeInspectionProps {
   bikeId: string;
   bikeName: string;
   inspectionType: 'pickup' | 'return';
-  bikeEquipment?: string[]; // Équipements configurés pour ce vélo
+  bikeEquipment?: string[];
   onComplete: (data: InspectionData) => void;
   onBack: () => void;
 }
@@ -94,7 +93,7 @@ export function MobileBikeInspection({ bikeId, bikeName, inspectionType, bikeEqu
       setPhotos(newPhotos);
     } else {
       haptics.error();
-      toast.error('Maximum 5 photos');
+      toast.error(t('inspection.maxPhotos'));
     }
   };
 
@@ -110,7 +109,7 @@ export function MobileBikeInspection({ bikeId, bikeName, inspectionType, bikeEqu
     
     if (!allInspected) {
       haptics.error();
-      toast.error('Veuillez inspecter tous les éléments');
+      toast.error(t('inspection.allItemsRequired'));
       return;
     }
 
@@ -122,7 +121,7 @@ export function MobileBikeInspection({ bikeId, bikeName, inspectionType, bikeEqu
 
     if (hasIssues && !notes.trim()) {
       haptics.error();
-      toast.error('Veuillez ajouter des notes pour les problèmes identifiés');
+      toast.error(t('inspection.notesRequired'));
       return;
     }
 
@@ -139,14 +138,6 @@ export function MobileBikeInspection({ bikeId, bikeName, inspectionType, bikeEqu
 
   const allInspected = inspectionItems.every(item => item.isGood !== null);
   const hasIssues = inspectionItems.some(item => item.isGood === false);
-
-  const titleText = inspectionType === 'pickup' 
-    ? 'Inspection avant prise'
-    : 'Inspection avant retour';
-
-  const descriptionText = inspectionType === 'pickup'
-    ? 'Vérifiez l\'état du vélo avant de commencer votre trajet'
-    : 'Vérifiez l\'état du vélo avant de le retourner';
 
   return (
     <View style={styles.container}>
@@ -174,7 +165,7 @@ export function MobileBikeInspection({ bikeId, bikeName, inspectionType, bikeEqu
           </TouchableOpacity>
           <View style={styles.flex1}>
             <Text variant="subtitle" color="#16a34a">
-              {titleText}
+              {t(`inspection.title.${inspectionType}`)}
             </Text>
             <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
               {bikeName}
@@ -194,7 +185,7 @@ export function MobileBikeInspection({ bikeId, bikeName, inspectionType, bikeEqu
             <AlertTriangle size={20} color="#3b82f6" style={{ marginTop: 2 }} />
             <View style={styles.flex1}>
               <Text size="sm" color="#1e40af">
-                {descriptionText}. Signalez tout problème constaté.
+                {t(`inspection.description.${inspectionType}`)}
               </Text>
             </View>
           </View>
@@ -203,7 +194,7 @@ export function MobileBikeInspection({ bikeId, bikeName, inspectionType, bikeEqu
         {/* Inspection Items */}
         <Card style={styles.p16}>
           <Text variant="body" color={colorScheme === 'light' ? '#111827' : '#f9fafb'} style={styles.mb16}>
-            Éléments à vérifier
+            {t('inspection.checkItems')}
           </Text>
           <View style={styles.gap12}>
             {inspectionItems.map((item) => (
@@ -272,7 +263,7 @@ export function MobileBikeInspection({ bikeId, bikeName, inspectionType, bikeEqu
         <Card style={styles.p16}>
           <View style={[styles.row, styles.spaceBetween, styles.alignCenter, styles.mb8]}>
             <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
-              Progression
+              {t('inspection.progress')}
             </Text>
             <Text size="sm" color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
               {inspectionItems.filter(item => item.isGood !== null).length} / {inspectionItems.length}
@@ -306,7 +297,7 @@ export function MobileBikeInspection({ bikeId, bikeName, inspectionType, bikeEqu
               <AlertTriangle size={20} color="#f59e0b" style={{ marginTop: 2 }} />
               <View style={styles.flex1}>
                 <Text size="sm" color="#92400e" style={styles.mb4}>
-                  Problèmes identifiés :
+                  {t('inspection.issues')} :
                 </Text>
                 <View style={styles.gap4}>
                   {inspectionItems
@@ -322,16 +313,16 @@ export function MobileBikeInspection({ bikeId, bikeName, inspectionType, bikeEqu
           </Card>
         )}
 
-        {/* Notes (required if issues) */}
+        {/* Notes */}
         {(hasIssues || allInspected) && (
           <Card style={styles.p16}>
-            <Label>Notes {hasIssues && '*'}</Label>
+            <Label>{t('inspection.notes')} {hasIssues && '*'}</Label>
             <Textarea
               value={notes}
               onChangeText={setNotes}
               placeholder={hasIssues 
-                ? "Décrivez les problèmes identifiés en détail..."
-                : "Ajoutez des notes (optionnel)"}
+                ? t('inspection.notesPlaceholderRequired')
+                : t('inspection.notesPlaceholderOptional')}
               style={[
                 styles.mt8,
                 hasIssues && !notes.trim() && { borderColor: '#f59e0b', borderWidth: 2 }
@@ -339,20 +330,20 @@ export function MobileBikeInspection({ bikeId, bikeName, inspectionType, bikeEqu
             />
             {hasIssues && !notes.trim() && (
               <Text size="xs" color="#f59e0b" style={styles.mt4}>
-                Des notes sont requises lorsque des problèmes sont identifiés
+                {t('inspection.notesRequired')}
               </Text>
             )}
           </Card>
         )}
 
-        {/* Photos (optional but recommended if issues) */}
+        {/* Photos */}
         {allInspected && (
           <Card style={styles.p16}>
-            <Label>Photos {hasIssues && '(recommandé)'}</Label>
+            <Label>{t('inspection.photos')} {hasIssues && `(${t('inspection.recommended')})`}</Label>
             <Text size="xs" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={[styles.mt4, styles.mb12]}>
               {hasIssues 
-                ? 'Ajoutez des photos des problèmes identifiés'
-                : 'Ajoutez des photos de l\'état du vélo (optionnel)'}
+                ? t('inspection.photosHelpRequired')
+                : t('inspection.photosHelpOptional')}
             </Text>
             
             {/* Photo Grid */}
@@ -370,7 +361,7 @@ export function MobileBikeInspection({ bikeId, bikeName, inspectionType, bikeEqu
                   ]}
                 >
                   <Text size="xs" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
-                    Photo {index + 1}
+                    {t('inspection.photo')} {index + 1}
                   </Text>
                   <TouchableOpacity
                     onPress={() => handleRemovePhoto(index)}
@@ -399,7 +390,7 @@ export function MobileBikeInspection({ bikeId, bikeName, inspectionType, bikeEqu
               >
                 <Camera size={16} color={colorScheme === 'light' ? '#111827' : '#f9fafb'} />
                 <Text style={styles.ml8} color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
-                  Ajouter une photo
+                  {t('inspection.addPhoto')}
                 </Text>
               </Button>
             )}
@@ -415,14 +406,12 @@ export function MobileBikeInspection({ bikeId, bikeName, inspectionType, bikeEqu
         >
           <Check size={16} color="white" />
           <Text style={styles.ml8} color="white">
-            {inspectionType === 'pickup' ? 'Commencer le trajet' : 'Retourner le vélo'}
+            {t(`inspection.${inspectionType === 'pickup' ? 'startRide' : 'returnBike'}`)}
           </Text>
         </Button>
 
         <Text size="xs" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={styles.textCenter}>
-          {inspectionType === 'pickup' 
-            ? 'En confirmant, vous déclarez avoir vérifié l\'état du vélo'
-            : 'En confirmant, vous déclarez retourner le vélo dans l\'état indiqué'}
+          {t(`inspection.confirm${inspectionType === 'pickup' ? 'Pickup' : 'Return'}`)}
         </Text>
       </ScrollView>
     </View>

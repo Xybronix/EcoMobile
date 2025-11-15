@@ -1,12 +1,13 @@
 // BikeManagement.tsx
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bike, Battery, MapPin, Signal, AlertCircle, Search, Filter, Plus, Edit, Trash2, X, Check } from 'lucide-react';
+import { Bike, Battery, MapPin, Signal, DollarSign, AlertCircle, Search, Filter, Plus, Edit, Trash2, X, Check } from 'lucide-react';
 import { Card } from '../../ui/card';
 import { Input } from '../../ui/input';
 import { Badge } from '../../ui/badge';
 import { Button } from '../../ui/button';
 import { bikeService, type CreateBikeData, type UpdateBikeData, BikePosition } from '../../../services/api/bike.service';
+import { companyService, PricingPlan } from '../../../services/api/company.service';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
 import { Pagination } from '../../Pagination';
 import { useTranslation } from '../../../lib/i18n';
@@ -37,6 +38,7 @@ interface BikeFormData {
   maintenanceDetails?: string;
   gpsDeviceId?: string;
   equipment: string[];
+  pricingPlanId?: string;
 }
 
 // Liste des équipements disponibles
@@ -59,6 +61,7 @@ export function BikeManagement() {
   const [locationFilter, setLocationFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [bikes, setBikes] = useState<BikePosition[]>([]);
+  const [availablePlans, setAvailablePlans] = useState<PricingPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
@@ -87,6 +90,7 @@ export function BikeManagement() {
 
   useEffect(() => {
     loadBikes();
+    loadAvailablePlans();
   }, [currentPage, statusFilter, locationFilter, searchTerm]);
 
   const loadBikes = async () => {
@@ -176,6 +180,15 @@ export function BikeManagement() {
     }
   };
 
+  const loadAvailablePlans = async () => {
+    try {
+      const pricingConfig = await companyService.getPricing();
+      setAvailablePlans(pricingConfig.plans.filter(plan => plan.isActive));
+    } catch (error) {
+      console.error('Erreur lors du chargement des plans:', error);
+    }
+  };
+
   const filteredBikes = bikes.filter((bike) => {
     const matchesSearch = bike.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (bike.model || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -249,7 +262,8 @@ export function BikeManagement() {
       maintenanceReason: '',
       maintenanceDetails: '',
       gpsDeviceId: '',
-      equipment: ['headlight', 'taillight', 'bell', 'lock']
+      equipment: ['headlight', 'taillight', 'bell', 'lock'],
+      pricingPlanId: 'none'
     });
     setFormErrors({});
     setIsAddDialogOpen(true);
@@ -270,7 +284,8 @@ export function BikeManagement() {
       maintenanceReason: bike.maintenanceReason || '',
       maintenanceDetails: bike.maintenanceDetails || '',
       gpsDeviceId: bike.gpsDeviceId || '',
-      equipment: bike.equipment || ['headlight', 'taillight', 'bell', 'lock']
+      equipment: bike.equipment || ['headlight', 'taillight', 'bell', 'lock'],
+      pricingPlanId: bike.pricingPlan?.id || 'none'
     });
     setFormErrors({});
     setIsEditDialogOpen(true);
@@ -296,11 +311,18 @@ export function BikeManagement() {
         longitude: formData.location?.coordinates.lng,
         locationName: formData.location?.displayName,
         gpsDeviceId: formData.gpsDeviceId,
-        equipment: formData.equipment
+        equipment: formData.equipment,
+        pricingPlanId: formData.pricingPlanId === 'none' ? undefined : formData.pricingPlanId
       };
       
       await bikeService.createBike(bikeData);
-      toast.success(`Vélo "${formData.code}" créé avec succès`);
+    
+      if (!formData.pricingPlanId) {
+        toast.warning('Vélo créé sans plan tarifaire. Il ne sera pas visible dans l\'application client.');
+      } else {
+        toast.success(`Vélo "${formData.code}" créé avec succès`);
+      }
+
       setIsAddDialogOpen(false);
       await loadBikes();
     } catch (error) {
@@ -325,11 +347,17 @@ export function BikeManagement() {
         locationName: formData.location?.displayName,
         maintenanceReason: formData.maintenanceReason,
         maintenanceDetails: formData.maintenanceDetails,
-        equipment: formData.equipment
+        pricingPlanId: formData.pricingPlanId === 'none' ? undefined : formData.pricingPlanId
       };
       
       await bikeService.updateBike(selectedBike.id, bikeData);
-      toast.success(`Vélo "${formData.code}" modifié avec succès`);
+      
+      if (!formData.pricingPlanId) {
+        toast.warning('Vélo modifié sans plan tarifaire. Il ne sera pas visible dans l\'application client.');
+      } else {
+        toast.success(`Vélo "${formData.code}" modifié avec succès`);
+      }
+
       setIsEditDialogOpen(false);
       await loadBikes();
     } catch (error) {
@@ -534,6 +562,25 @@ export function BikeManagement() {
                 </span>
               </div>
 
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <DollarSign className="w-4 h-4 text-gray-400" />
+                  <span className="text-sm text-gray-600">Plan</span>
+                </div>
+                <span className="text-sm text-gray-900 max-w-32 truncate" title={bike.pricingPlan?.name || 'Aucun plan'}>
+                  {bike.pricingPlan?.name || 'Aucun plan'}
+                </span>
+              </div>
+
+              {!bike.pricingPlan && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                  <div className="text-xs text-amber-700">
+                    <p>Pas de plan tarifaire - invisible pour les utilisateurs</p>
+                  </div>
+                </div>
+              )}
+
               {bike.speed !== undefined && bike.speed > 0 && (
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">Vitesse</span>
@@ -655,6 +702,29 @@ export function BikeManagement() {
               />
               <p className="text-xs text-gray-500 mt-1">
                 Identifiant du dispositif GPS pour synchronisation automatique
+              </p>
+            </div>
+
+            <div>
+              <Label>Plan Tarifaire (optionnel)</Label>
+              <Select 
+                value={formData.pricingPlanId || ''} 
+                onValueChange={(value) => setFormData({ ...formData, pricingPlanId: value || undefined })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner un plan tarifaire" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Aucun plan (vélo non visible dans l'app)</SelectItem>
+                  {availablePlans.map((plan) => (
+                    <SelectItem key={plan.id} value={plan.id!}>
+                      {plan.name} - {plan.hourlyRate.toLocaleString()} FCFA/h
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-amber-600 mt-1">
+                Sans plan tarifaire, ce vélo ne sera pas disponible pour les utilisateurs de l'application
               </p>
             </div>
 
@@ -782,6 +852,29 @@ export function BikeManagement() {
                 </div>
               </>
             )}
+
+            <div>
+              <Label>Plan Tarifaire (optionnel)</Label>
+              <Select 
+                value={formData.pricingPlanId || ''} 
+                onValueChange={(value) => setFormData({ ...formData, pricingPlanId: value || undefined })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner un plan tarifaire" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Aucun plan (vélo non visible dans l'app)</SelectItem>
+                  {availablePlans.map((plan) => (
+                    <SelectItem key={plan.id} value={plan.id!}>
+                      {plan.name} - {plan.hourlyRate.toLocaleString()} FCFA/h
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-amber-600 mt-1">
+                Sans plan tarifaire, ce vélo ne sera pas disponible pour les utilisateurs de l'application
+              </p>
+            </div>
 
             <LocationSelector
               value={formData.location}

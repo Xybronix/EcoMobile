@@ -10,8 +10,8 @@ import { haptics } from '@/utils/haptics';
 import { ArrowLeft, Bike, Eye, EyeOff } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { TouchableOpacity, View } from 'react-native';
-import { useMobileAuth } from '../../lib/mobile-auth';
-import { useMobileI18n } from '../../lib/mobile-i18n';
+import { useMobileAuth } from '@/lib/mobile-auth';
+import { useMobileI18n } from '@/lib/mobile-i18n';
 
 interface MobileLoginProps {
   onNavigate: (screen: string) => void;

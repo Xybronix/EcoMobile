@@ -1,16 +1,13 @@
 import { API_CONFIG, handleApiResponse, ApiError } from '@/lib/api/config';
 import { authService } from './authService';
 
-export interface Message {
+export interface ChatMessage {
   id: string;
-  senderId: string;
-  receiverId: string;
-  content: string;
-  type: 'text' | 'image' | 'file' | 'system';
-  isRead: boolean;
+  userId: string;
+  message: string;
+  isAdmin: boolean;
   createdAt: string;
-  updatedAt: string;
-  sender?: {
+  user?: {
     id: string;
     firstName: string;
     lastName: string;
@@ -18,18 +15,8 @@ export interface Message {
   };
 }
 
-export interface Conversation {
-  id: string;
-  participant1: string;
-  participant2: string;
-  lastMessage?: Message;
-  unreadCount: number;
-  createdAt: string;
-  updatedAt: string;
-}
-
 class ChatService {
-  private baseUrl = `${API_CONFIG.BASE_URL}/chat`;
+  private baseUrl = `${API_CONFIG.BASE_URL}/api/v1/chat`;
 
   private async getAuthHeaders() {
     const token = await authService.getToken();
@@ -42,17 +29,18 @@ class ChatService {
     };
   }
 
-  async sendMessage(receiverId: string, content: string, type: 'text' | 'image' | 'file' = 'text'): Promise<Message> {
+  async sendMessage(message: string): Promise<ChatMessage> {
     const headers = await this.getAuthHeaders();
     
     try {
       const response = await fetch(`${this.baseUrl}/messages`, {
         method: 'POST',
         headers,
-        body: JSON.stringify({ receiverId, content, type }),
+        body: JSON.stringify({ message }),
       });
 
-      return await handleApiResponse(response);
+      const result = await handleApiResponse(response);
+      return result.data;
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(this.getErrorMessage(error));
@@ -61,7 +49,7 @@ class ChatService {
     }
   }
 
-  async getMessages(conversationId?: string, page: number = 1, limit: number = 50): Promise<{ messages: Message[]; total: number; page: number }> {
+  async getMessages(page: number = 1, limit: number = 50): Promise<{ messages: ChatMessage[]; total: number; page: number }> {
     const headers = await this.getAuthHeaders();
     
     try {
@@ -69,16 +57,13 @@ class ChatService {
       queryParams.append('page', page.toString());
       queryParams.append('limit', limit.toString());
       
-      if (conversationId) {
-        queryParams.append('conversationId', conversationId);
-      }
-      
       const response = await fetch(`${this.baseUrl}/messages?${queryParams.toString()}`, {
         method: 'GET',
         headers,
       });
 
-      return await handleApiResponse(response);
+      const result = await handleApiResponse(response);
+      return result.data;
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(this.getErrorMessage(error));
@@ -105,97 +90,6 @@ class ChatService {
     }
   }
 
-  async getConversations(page: number = 1, limit: number = 20): Promise<{ conversations: Conversation[]; total: number; page: number }> {
-    const headers = await this.getAuthHeaders();
-    
-    try {
-      const queryParams = new URLSearchParams();
-      queryParams.append('page', page.toString());
-      queryParams.append('limit', limit.toString());
-      
-      const response = await fetch(`${this.baseUrl}/conversations?${queryParams.toString()}`, {
-        method: 'GET',
-        headers,
-      });
-
-      return await handleApiResponse(response);
-    } catch (error) {
-      if (error instanceof ApiError) {
-        throw new Error(this.getErrorMessage(error));
-      }
-      throw new Error('network_error');
-    }
-  }
-
-  async markMessageAsRead(messageId: string): Promise<void> {
-    const headers = await this.getAuthHeaders();
-    
-    try {
-      const response = await fetch(`${this.baseUrl}/messages/${messageId}/read`, {
-        method: 'PUT',
-        headers,
-      });
-
-      await handleApiResponse(response);
-    } catch (error) {
-      if (error instanceof ApiError) {
-        throw new Error(this.getErrorMessage(error));
-      }
-      throw new Error('network_error');
-    }
-  }
-
-  async getUnreadMessagesCount(): Promise<number> {
-    const headers = await this.getAuthHeaders();
-    
-    try {
-      const response = await fetch(`${this.baseUrl}/messages/unread-count`, {
-        method: 'GET',
-        headers,
-      });
-
-      const data = await handleApiResponse(response);
-      return data.count || 0;
-    } catch (error) {
-      if (error instanceof ApiError) {
-        throw new Error(this.getErrorMessage(error));
-      }
-      throw new Error('network_error');
-    }
-  }
-
-  async uploadFile(fileUri: string, fileName: string, fileType: string): Promise<{ fileUrl: string; message: Message }> {
-    const token = await authService.getToken();
-    if (!token) {
-      throw new Error('not_authenticated');
-    }
-
-    try {
-      const formData = new FormData();
-      formData.append('file', {
-        uri: fileUri,
-        type: fileType,
-        name: fileName,
-      } as any);
-
-      const response = await fetch(`${this.baseUrl}/upload`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: formData,
-      });
-
-      return await handleApiResponse(response);
-    } catch (error) {
-      if (error instanceof ApiError) {
-        throw new Error(this.getErrorMessage(error));
-      }
-      throw new Error('network_error');
-    }
-  }
-
   private getErrorMessage(error: ApiError): string {
     switch (error.status) {
       case 400:
@@ -203,7 +97,7 @@ class ChatService {
       case 401:
         return 'unauthorized';
       case 404:
-        return 'conversation_not_found';
+        return 'message_not_found';
       case 422:
         return 'validation_error';
       case 429:

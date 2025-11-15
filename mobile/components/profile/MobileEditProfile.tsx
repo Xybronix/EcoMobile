@@ -10,8 +10,8 @@ import * as ImagePicker from 'expo-image-picker';
 import { ArrowLeft, Camera, Edit, Mail, Save, User, X } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { Image, Modal, ScrollView, TouchableOpacity, View } from 'react-native';
-import { useMobileAuth } from '../../lib/mobile-auth';
-import { useMobileI18n } from '../../lib/mobile-i18n';
+import { useMobileAuth } from '@/lib/mobile-auth';
+import { useMobileI18n } from '@/lib/mobile-i18n';
 
 interface MobileEditProfileProps {
   onNavigate: (screen: string) => void;

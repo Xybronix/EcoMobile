@@ -63,13 +63,21 @@ export function PhoneInput({
     setCountryCallingCode(country.callingCode[0]);
     setShowCountryPicker(false);
 
+    // Recalculer le numéro complet avec le nouveau code pays
+    const cleanPhone = value.replace(/\D/g, '');
+    const fullNumber = `+${country.callingCode[0]}${cleanPhone}`;
+    onChangeText(fullNumber);
+
     const isValid = validatePhoneNumber(value, country.cca2, country.callingCode[0]);
     onValidationChange?.(isValid);
-  }, [value, validatePhoneNumber, onValidationChange]);
+  }, [value, validatePhoneNumber, onChangeText, onValidationChange]);
 
   const handlePhoneChange = useCallback((text: string) => {
-    const cleanedText = text.replace(/[^\d\s]/g, '');
-    onChangeText(cleanedText);
+    const cleanedText = text.replace(/\D/g, '');
+    
+    // Construire le numéro complet avec le code pays
+    const fullNumber = `+${countryCallingCode}${cleanedText}`;
+    onChangeText(fullNumber);
     
     const isValid = validatePhoneNumber(cleanedText, selectedCountry, countryCallingCode);
     onValidationChange?.(isValid);
@@ -79,6 +87,21 @@ export function PhoneInput({
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setShowCountryPicker(true);
   }, []);
+
+  // Extraire uniquement la partie locale du numéro pour l'affichage
+  const getDisplayPhoneNumber = (fullPhone: string) => {
+    if (!fullPhone.startsWith('+')) return fullPhone;
+    
+    // Retirer le code pays pour l'affichage dans l'input
+    const withoutPlus = fullPhone.substring(1);
+    const callingCodeLength = countryCallingCode.length;
+    
+    if (withoutPlus.startsWith(countryCallingCode)) {
+      return withoutPlus.substring(callingCodeLength);
+    }
+    
+    return fullPhone.substring(1);
+  };
 
   const formatPhoneNumber = (phone: string) => {
     const cleaned = phone.replace(/\D/g, '');
@@ -157,7 +180,7 @@ export function PhoneInput({
       {/* Input de téléphone */}
       <TextInput
         style={inputStyle}
-        value={formatPhoneNumber(value)}
+        value={formatPhoneNumber(getDisplayPhoneNumber(value))}
         onChangeText={handlePhoneChange}
         placeholder={placeholder}
         placeholderTextColor={colors.icon}
@@ -166,7 +189,7 @@ export function PhoneInput({
         editable={!disabled}
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
-        maxLength={14}
+        maxLength={20}
       />
     </View>
   );

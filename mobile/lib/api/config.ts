@@ -1,12 +1,20 @@
 import Constants from 'expo-constants';
 
-//const API_BASE_URL = Constants.expoConfig?.extra?.apiUrl || 'http://10.142.28.189:5000/api/v1';
-const API_BASE_URL = 'http://10.142.28.189:5000/api/v1';
+// Configuration dynamique selon l'environnement
+const getApiBaseUrl = () => {
+  if (__DEV__) {
+    return 'http://10.201.154.189:5000/api/v1';
+  }
+  
+  return Constants.expoConfig?.extra?.apiUrl || 'https://votre-domaine-prod.com/api/v1';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 
 export const API_CONFIG = {
   BASE_URL: API_BASE_URL,
-  TIMEOUT: 10000,
+  TIMEOUT: 15000,
   HEADERS: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
@@ -28,8 +36,26 @@ export class ApiError extends Error {
 // Intercepteur de requêtes
 export const handleApiResponse = async (response: Response) => {
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
-    throw new ApiError(response.status, errorData.message || 'Request failed', errorData.code);
+    let errorData;
+    try {
+      errorData = await response.json();
+    } catch {
+      errorData = { 
+        message: `HTTP ${response.status} - ${response.statusText}`,
+        code: 'UNKNOWN_ERROR'
+      };
+    }
+    
+    throw new ApiError(
+      response.status, 
+      errorData.message || `Request failed with status ${response.status}`, 
+      errorData.code
+    );
   }
-  return response.json();
+  
+  try {
+    return await response.json();
+  } catch (error) {
+    throw new ApiError(500, 'Invalid JSON response from server', 'PARSE_ERROR');
+  }
 };

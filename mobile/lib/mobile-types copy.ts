@@ -6,10 +6,9 @@ export interface MobileUser {
   firstName: string;
   lastName: string;
   phone: string;
-  avatar?: string;
+  profileImage?: string;
   language: 'fr' | 'en';
-  wallet?: {
-    id: string;
+  wallet: {
     balance: number;
     currency: string;
   };
@@ -18,66 +17,50 @@ export interface MobileUser {
     phone: boolean;
     identity: boolean;
   };
-  createdAt: string;
+  createdAt: Date;
 }
 
 export interface Bike {
   id: string;
-  code: string;
-  model: string;
-  status: 'AVAILABLE' | 'IN_USE' | 'MAINTENANCE' | 'UNAVAILABLE';
-  batteryLevel: number;
-  latitude?: number;
-  longitude?: number;
-  locationName?: string;
-  equipment?: Record<string, any>;
-  qrCode: string;
-  gpsDeviceId?: string;
-  pricingPlan?: PricingPlan;
-  lastMaintenanceAt?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface PricingPlan {
-  id: string;
   name: string;
-  hourlyRate: number;
-  dailyRate: number;
-  weeklyRate: number;
-  monthlyRate: number;
-  minimumHours: number;
-  discount: number;
-  isActive: boolean;
+  status: 'available' | 'in-use' | 'maintenance' | 'reserved';
+  battery: number;
+  location: {
+    lat: number;
+    lng: number;
+    address: string;
+  };
+  lastUpdate: Date;
+  model: string;
+  image?: string;
+  qrCode: string;
+  pricePerMinute: number;
+  features: string[];
+  equipment?: string[]; // Équipements du vélo (phares, panier, etc.)
 }
 
 export interface Ride {
   id: string;
-  userId: string;
   bikeId: string;
-  bike?: Bike;
-  startTime: string;
-  endTime?: string;
-  startLatitude: number;
-  startLongitude: number;
-  endLatitude?: number;
-  endLongitude?: number;
-  distance?: number;
-  duration?: number;
-  cost?: number;
-  status: 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
-  gpsTrack?: Array<{ latitude: number; longitude: number; timestamp: string }>;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface RideStats {
-  totalRides: number;
-  totalDistance: number;
-  totalDuration: number;
-  totalCost: number;
-  averageDistance: number;
-  averageDuration: number;
+  bikeName: string;
+  userId: string;
+  startTime: Date;
+  endTime?: Date;
+  startLocation: {
+    lat: number;
+    lng: number;
+    address: string;
+  };
+  endLocation?: {
+    lat: number;
+    lng: number;
+    address: string;
+  };
+  distance: number; // in km
+  duration: number; // in minutes
+  cost: number;
+  status: 'active' | 'completed' | 'cancelled';
+  route?: Array<{ lat: number; lng: number; timestamp: Date }>;
 }
 
 export interface Reservation {
@@ -146,23 +129,6 @@ export interface Notification {
   data?: Record<string, unknown>;
 }
 
-export interface Location {
-  latitude: number;
-  longitude: number;
-  address?: string;
-}
-
-export interface ApiResponse<T> {
-  success: boolean;
-  data?: T;
-  message?: string;
-  error?: {
-    code: string;
-    message: string;
-  };
-  timestamp?: string;
-}
-
 // API Integration types
 export interface GPSApiConfig {
   name: string;
@@ -188,4 +154,14 @@ export interface PaymentApiConfig {
     refund: string;
     [key: string]: string;
   };
+}
+
+export interface ApiResponse<T> {
+  success: boolean;
+  data?: T;
+  error?: {
+    code: string;
+    message: string;
+  };
+  timestamp: Date;
 }

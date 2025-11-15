@@ -30,6 +30,7 @@ export interface BikePosition {
   qrCode?: string;
   locationName?: string;
   gpsDeviceId?: string;
+  pricingPlan?: any;
   createdAt: string;
   updatedAt: string;
 }
@@ -79,6 +80,7 @@ export interface CreateBikeData {
   locationName?: string;
   gpsDeviceId?: string;
   equipment?: string[];
+  pricingPlanId?: string;
 }
 
 export interface UpdateBikeData {
@@ -91,6 +93,7 @@ export interface UpdateBikeData {
   maintenanceReason?: string;
   maintenanceDetails?: string;
   equipment?: string[];
+  pricingPlanId?: string;
 }
 
 

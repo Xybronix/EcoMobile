@@ -1,108 +1,36 @@
-// components/mobile/MobileChat.tsx
 import { Input } from '@/components/ui/Input';
 import { Text } from '@/components/ui/Text';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { getGlobalStyles } from '@/styles/globalStyles';
 import { haptics } from '@/utils/haptics';
-import { ArrowLeft, Info, MoreVertical, Paperclip, Send } from 'lucide-react-native';
+import { ArrowLeft, Info, Paperclip, Send } from 'lucide-react-native';
 import React, { useEffect, useRef, useState } from 'react';
-import { ScrollView, TouchableOpacity, View } from 'react-native';
-import { useMobileAuth } from '../../lib/mobile-auth';
-import { useMobileI18n } from '../../lib/mobile-i18n';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/Dialog';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../ui/DropdownMenu';
-
-interface Message {
-  id: string;
-  senderId: string;
-  senderName: string;
-  senderRole: 'user' | 'admin' | 'support';
-  content: string;
-  timestamp: string;
-  isRead: boolean;
-}
+import { ScrollView, TouchableOpacity, View, RefreshControl } from 'react-native';
+import { useMobileAuth } from '@/lib/mobile-auth';
+import { useMobileI18n } from '@/lib/mobile-i18n';
+import { chatService, ChatMessage } from '@/services/chatService';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/Dialog';
 
 interface MobileChatProps {
   onNavigate: (screen: string) => void;
 }
-
-// Messages mock pour la conversation avec le support
-const mockMessages: Message[] = [
-  {
-    id: '1',
-    senderId: 'support-1',
-    senderName: 'Support FreeBike',
-    senderRole: 'admin',
-    content: 'Bonjour ! Comment puis-je vous aider aujourd\'hui ?',
-    timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-    isRead: true,
-  },
-  {
-    id: '2',
-    senderId: 'current',
-    senderName: 'Vous',
-    senderRole: 'user',
-    content: 'Bonjour, j\'ai un problème avec mon dernier trajet',
-    timestamp: new Date(Date.now() - 1.5 * 60 * 60 * 1000).toISOString(),
-    isRead: true,
-  },
-  {
-    id: '3',
-    senderId: 'support-1',
-    senderName: 'Support FreeBike',
-    senderRole: 'admin',
-    content: 'Je comprends. Pouvez-vous me donner plus de détails sur le problème rencontré ?',
-    timestamp: new Date(Date.now() - 1.4 * 60 * 60 * 1000).toISOString(),
-    isRead: true,
-  },
-  {
-    id: '4',
-    senderId: 'current',
-    senderName: 'Vous',
-    senderRole: 'user',
-    content: 'Le vélo ne s\'est pas déverrouillé correctement et j\'ai été facturé quand même',
-    timestamp: new Date(Date.now() - 1.3 * 60 * 60 * 1000).toISOString(),
-    isRead: true,
-  },
-  {
-    id: '5',
-    senderId: 'support-1',
-    senderName: 'Support FreeBike',
-    senderRole: 'admin',
-    content: 'Je vérifie votre compte et vos trajets récents. Un instant s\'il vous plaît...',
-    timestamp: new Date(Date.now() - 1.2 * 60 * 60 * 1000).toISOString(),
-    isRead: true,
-  },
-  {
-    id: '6',
-    senderId: 'support-1',
-    senderName: 'Support FreeBike',
-    senderRole: 'admin',
-    content: 'J\'ai trouvé le trajet en question. Je vais procéder au remboursement immédiatement. Vous recevrez 500 XOF dans votre portefeuille dans les 5 prochaines minutes.',
-    timestamp: new Date(Date.now() - 1.1 * 60 * 60 * 1000).toISOString(),
-    isRead: true,
-  },
-  {
-    id: '7',
-    senderId: 'current',
-    senderName: 'Vous',
-    senderRole: 'user',
-    content: 'Merci beaucoup pour votre réactivité !',
-    timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
-    isRead: true,
-  },
-];
 
 export function MobileChat({ onNavigate }: MobileChatProps) {
   const { t, language } = useMobileI18n();
   const { user } = useMobileAuth();
   const colorScheme = useColorScheme();
   const styles = getGlobalStyles(colorScheme);
-  const [messages, setMessages] = useState<Message[]>(mockMessages);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [showInfoDialog, setShowInfoDialog] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSending, setIsSending] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
+
+  useEffect(() => {
+    loadMessages();
+  }, []);
 
   useEffect(() => {
     if (scrollViewRef.current) {
@@ -110,38 +38,57 @@ export function MobileChat({ onNavigate }: MobileChatProps) {
     }
   }, [messages]);
 
-  const handleSendMessage = () => {
-    if (!newMessage.trim()) return;
+  const loadMessages = async () => {
+    try {
+      setIsLoading(true);
+      const result = await chatService.getMessages(1, 100); // Charger plus de messages pour le contexte
+      setMessages(result.messages.reverse()); // Inverser pour avoir les plus récents en bas
+    } catch (error) {
+      console.error('Error loading messages:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSendMessage = async () => {
+    if (!newMessage.trim() || isSending) return;
 
     haptics.light();
-    const message: Message = {
-      id: Date.now().toString(),
-      senderId: 'current',
-      senderName: t('chat.you'),
-      senderRole: 'user',
-      content: newMessage,
-      timestamp: new Date().toISOString(),
-      isRead: true,
-    };
+    setIsSending(true);
+    
+    const messageContent = newMessage;
+    setNewMessage(''); // Clear input immediately
 
-    setMessages([...messages, message]);
-    setNewMessage('');
-
-    // Simuler la réponse du support après 2 secondes
-    setIsTyping(true);
-    setTimeout(() => {
-      setIsTyping(false);
-      const supportMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        senderId: 'support-1',
-        senderName: t('chat.support'),
-        senderRole: 'admin',
-        content: t('chat.autoResponse'),
-        timestamp: new Date().toISOString(),
-        isRead: true,
-      };
-      setMessages(prev => [...prev, supportMessage]);
-    }, 2000);
+    try {
+      const sentMessage = await chatService.sendMessage(messageContent);
+      setMessages(prev => [...prev, sentMessage]);
+      
+      // Simuler la réponse du support après 2 secondes
+      setIsTyping(true);
+      setTimeout(() => {
+        setIsTyping(false);
+        const supportMessage: ChatMessage = {
+          id: Date.now().toString(),
+          userId: 'support-admin',
+          message: t('chat.autoResponse'),
+          isAdmin: true,
+          createdAt: new Date().toISOString(),
+          user: {
+            id: 'support-admin',
+            firstName: 'Support',
+            lastName: 'FreeBike',
+            role: 'admin'
+          }
+        };
+        setMessages(prev => [...prev, supportMessage]);
+      }, 2000);
+    } catch (error) {
+      console.error('Error sending message:', error);
+      // Revert message on error
+      setNewMessage(messageContent);
+    } finally {
+      setIsSending(false);
+    }
   };
 
   const formatTime = (timestamp: string) => {
@@ -172,7 +119,7 @@ export function MobileChat({ onNavigate }: MobileChatProps) {
         <TouchableOpacity
           onPress={() => {
             haptics.light();
-            onNavigate('home');
+            onNavigate('profile');
           }}
           style={[styles.p8, styles.rounded8]}
         >
@@ -215,19 +162,15 @@ export function MobileChat({ onNavigate }: MobileChatProps) {
           </View>
         </View>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <TouchableOpacity style={[styles.p8, styles.rounded8]}>
-              <MoreVertical size={20} color={colorScheme === 'light' ? '#111827' : '#f9fafb'} />
-            </TouchableOpacity>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => setShowInfoDialog(true)}>
-              <Info className="w-4 h-4 mr-2" />
-              {t('chat.information')}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <TouchableOpacity 
+          style={[styles.p8, styles.rounded8]}
+          onPress={() => {
+            haptics.light();
+            setShowInfoDialog(true);
+          }}
+        >
+          <Info size={20} color={colorScheme === 'light' ? '#111827' : '#f9fafb'} />
+        </TouchableOpacity>
       </View>
 
       {/* Messages */}
@@ -236,6 +179,14 @@ export function MobileChat({ onNavigate }: MobileChatProps) {
         style={styles.flex1}
         contentContainerStyle={[styles.p16, styles.gap16]}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isLoading}
+            onRefresh={loadMessages}
+            colors={['#16a34a']}
+            tintColor="#16a34a"
+          />
+        }
       >
         {/* Info Banner */}
         <View 
@@ -257,9 +208,9 @@ export function MobileChat({ onNavigate }: MobileChatProps) {
 
         {/* Messages */}
         {messages.map((message, index) => {
-          const isCurrentUser = message.senderId === 'current';
+          const isCurrentUser = message.userId === user?.id;
           const showDate = index === 0 || 
-            new Date(messages[index - 1].timestamp).toDateString() !== new Date(message.timestamp).toDateString();
+            new Date(messages[index - 1].createdAt).toDateString() !== new Date(message.createdAt).toDateString();
 
           return (
             <View key={message.id}>
@@ -275,7 +226,7 @@ export function MobileChat({ onNavigate }: MobileChatProps) {
                     ]}
                   >
                     <Text size="xs" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
-                      {new Date(message.timestamp).toLocaleDateString(
+                      {new Date(message.createdAt).toLocaleDateString(
                         language === 'fr' ? 'fr-FR' : 'en-US',
                         { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }
                       )}
@@ -331,7 +282,7 @@ export function MobileChat({ onNavigate }: MobileChatProps) {
                       size="sm" 
                       color={isCurrentUser ? 'white' : (colorScheme === 'light' ? '#111827' : '#f9fafb')}
                     >
-                      {message.content}
+                      {message.message}
                     </Text>
                   </View>
                   <Text 
@@ -339,7 +290,7 @@ export function MobileChat({ onNavigate }: MobileChatProps) {
                     color={colorScheme === 'light' ? '#9ca3af' : '#6b7280'} 
                     style={[styles.mt4, isCurrentUser && styles.textCenter]}
                   >
-                    {formatTime(message.timestamp)}
+                    {formatTime(message.createdAt)}
                   </Text>
                 </View>
               </View>
@@ -375,11 +326,9 @@ export function MobileChat({ onNavigate }: MobileChatProps) {
                 }
               ]}
             >
-              <View style={[styles.row, styles.gap4]}>
-                <View style={[styles.w8, styles.h8, styles.rounded4, { backgroundColor: colorScheme === 'light' ? '#9ca3af' : '#6b7280' }]} />
-                <View style={[styles.w8, styles.h8, styles.rounded4, { backgroundColor: colorScheme === 'light' ? '#9ca3af' : '#6b7280' }]} />
-                <View style={[styles.w8, styles.h8, styles.rounded4, { backgroundColor: colorScheme === 'light' ? '#9ca3af' : '#6b7280' }]} />
-              </View>
+              <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
+                {t('chat.typing')}
+              </Text>
             </View>
           </View>
         )}
@@ -409,14 +358,15 @@ export function MobileChat({ onNavigate }: MobileChatProps) {
             value={newMessage}
             onChangeText={setNewMessage}
             style={styles.flex1}
+            editable={!isSending}
           />
           <TouchableOpacity
             onPress={handleSendMessage}
-            disabled={!newMessage.trim()}
+            disabled={!newMessage.trim() || isSending}
             style={[
               styles.p12,
               styles.rounded8,
-              { backgroundColor: newMessage.trim() ? '#16a34a' : (colorScheme === 'light' ? '#d1d5db' : '#4b5563') }
+              { backgroundColor: (newMessage.trim() && !isSending) ? '#16a34a' : (colorScheme === 'light' ? '#d1d5db' : '#4b5563') }
             ]}
           >
             <Send size={16} color="white" />
@@ -433,42 +383,42 @@ export function MobileChat({ onNavigate }: MobileChatProps) {
           <DialogHeader>
             <DialogTitle>{t('chat.information')}</DialogTitle>
             <DialogDescription>
-              {language === 'fr' ? 'Informations sur le support' : 'Support Information'}
+              {t('chat.supportInfo.description')}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <p className="text-sm text-gray-600 mb-2">
-                {language === 'fr' ? 'Service' : 'Service'}
-              </p>
-              <p className="text-gray-900">{t('chat.support')}</p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-600 mb-2">
-                {language === 'fr' ? 'Statut' : 'Status'}
-              </p>
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full" />
-                <p className="text-gray-900">{t('chat.online')}</p>
-              </div>
-            </div>
-            <div>
-              <p className="text-sm text-gray-600 mb-2">
-                {language === 'fr' ? 'Temps de réponse' : 'Response Time'}
-              </p>
-              <p className="text-gray-900">
-                {language === 'fr' ? '~5 minutes' : '~5 minutes'}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-600 mb-2">
-                {language === 'fr' ? 'Disponibilité' : 'Availability'}
-              </p>
-              <p className="text-gray-900">
-                {language === 'fr' ? 'Lun-Dim 7h-22h' : 'Mon-Sun 7am-10pm'}
-              </p>
-            </div>
-          </div>
+          <View style={styles.gap16}>
+            <View>
+              <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={styles.mb8}>
+                {t('chat.supportInfo.service')}
+              </Text>
+              <Text color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>{t('chat.support')}</Text>
+            </View>
+            <View>
+              <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={styles.mb8}>
+                {t('chat.supportInfo.status')}
+              </Text>
+              <View style={[styles.row, styles.alignCenter, styles.gap8]}>
+                <View style={[styles.w8, styles.h8, styles.rounded4, { backgroundColor: '#10b981' }]} />
+                <Text color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>{t('chat.online')}</Text>
+              </View>
+            </View>
+            <View>
+              <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={styles.mb8}>
+                {t('chat.supportInfo.responseTime')}
+              </Text>
+              <Text color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
+                {t('chat.supportInfo.responseTimeValue')}
+              </Text>
+            </View>
+            <View>
+              <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={styles.mb8}>
+                {t('chat.supportInfo.availability')}
+              </Text>
+              <Text color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
+                {t('chat.supportInfo.availabilityValue')}
+              </Text>
+            </View>
+          </View>
         </DialogContent>
       </Dialog>
     </View>
