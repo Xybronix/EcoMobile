@@ -1,52 +1,41 @@
-// services/bikeService.ts
 import { API_CONFIG, handleApiResponse, ApiError } from '@/lib/api/config';
 import { authService } from './authService';
 
 export interface Bike {
   id: string;
-  name: string;
   code: string;
   qrCode: string;
-  type: string;
-  status: 'available' | 'in_use' | 'maintenance' | 'unavailable';
+  model: string;
+  status: 'AVAILABLE' | 'IN_USE' | 'MAINTENANCE' | 'UNAVAILABLE';
   batteryLevel: number;
-  location: Location;
-  pricePerMinute: number;
-  isUnlocked: boolean;
-  lastMaintenance: string;
-  totalDistance: number;
-  totalRides: number;
+  latitude: number | null;
+  longitude: number | null;
+  locationName?: string;
+  equipment?: string[];
+  lastMaintenanceAt?: string;
   createdAt: string;
   updatedAt: string;
   distance?: number;
-  model?: string;
-  features?: string[];
-  equipment?: string[];
+  currentPricing?: {
+    hourlyRate: number;
+    originalHourlyRate: number;
+    unlockFee: number;
+    appliedRule?: any;
+    appliedPromotions?: any[];
+    pricingPlan?: any;
+  };
 }
 
 export interface Location {
   latitude: number;
   longitude: number;
-  address?: string;
   lat?: number;
   lng?: number;
 }
 
-export interface MaintenanceLog {
-  id: string;
-  bikeId: string;
-  type: string;
-  description: string;
-  cost?: number;
-  performedBy: string;
-  createdAt: string;
-}
-
 export interface BikeFilters {
   status?: string;
-  type?: string;
-  minBattery?: number;
-  maxBattery?: number;
+  minBatteryLevel?: number;
   latitude?: number;
   longitude?: number;
   radius?: number;
@@ -59,12 +48,10 @@ export interface Area {
     lat: number;
     lng: number;
   };
-  country?: string;
-  region?: string;
 }
 
 class BikeService {
-  private baseUrl = `${API_CONFIG.BASE_URL}/bikes`;
+  private baseUrl = `${API_CONFIG.BASE_URL}/api/v1/bikes`;
 
   private async getAuthHeaders() {
     const token = await authService.getToken();
@@ -77,35 +64,7 @@ class BikeService {
     };
   }
 
-  async getAllBikes(filters?: BikeFilters, page: number = 1, limit: number = 20): Promise<{ bikes: Bike[]; total: number; page: number }> {
-    try {
-      const queryParams = new URLSearchParams();
-      queryParams.append('page', page.toString());
-      queryParams.append('limit', limit.toString());
-      
-      if (filters) {
-        Object.entries(filters).forEach(([key, value]) => {
-          if (value !== undefined && value !== null && value !== '') {
-            queryParams.append(key, value.toString());
-          }
-        });
-      }
-      
-      const response = await fetch(`${this.baseUrl}?${queryParams.toString()}`, {
-        method: 'GET',
-        headers: API_CONFIG.HEADERS,
-      });
-
-      return await handleApiResponse(response);
-    } catch (error) {
-      if (error instanceof ApiError) {
-        throw new Error(this.getErrorMessage(error));
-      }
-      throw new Error('network_error');
-    }
-  }
-
-  async getAvailableBikes(filters?: BikeFilters, page: number = 1, limit: number = 20): Promise<{ bikes: Bike[]; total: number; page: number }> {
+  async getAvailableBikes(filters?: BikeFilters, page: number = 1, limit: number = 20): Promise<{ bikes: Bike[]; pagination: any }> {
     try {
       const queryParams = new URLSearchParams();
       queryParams.append('page', page.toString());
@@ -124,28 +83,11 @@ class BikeService {
         headers: API_CONFIG.HEADERS,
       });
 
-      return await handleApiResponse(response);
-    } catch (error) {
-      if (error instanceof ApiError) {
-        throw new Error(this.getErrorMessage(error));
-      }
-      throw new Error('network_error');
-    }
-  }
-
-  async getNearbyBikes(location: Location, radius: number = 1000): Promise<Bike[]> {
-    try {
-      const queryParams = new URLSearchParams();
-      queryParams.append('latitude', (location.latitude || location.lat || 0).toString());
-      queryParams.append('longitude', (location.longitude || location.lng || 0).toString());
-      queryParams.append('radius', radius.toString());
-      
-      const response = await fetch(`${this.baseUrl}/nearby?${queryParams.toString()}`, {
-        method: 'GET',
-        headers: API_CONFIG.HEADERS,
-      });
-
-      return await handleApiResponse(response);
+      const result = await handleApiResponse(response);
+      return {
+        bikes: result.data || [],
+        pagination: result.pagination || { page, limit, total: 0, totalPages: 0 }
+      };
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(this.getErrorMessage(error));
@@ -161,7 +103,8 @@ class BikeService {
         headers: API_CONFIG.HEADERS,
       });
 
-      return await handleApiResponse(response);
+      const result = await handleApiResponse(response);
+      return result.data;
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(this.getErrorMessage(error));
@@ -179,7 +122,8 @@ class BikeService {
         headers,
       });
 
-      return await handleApiResponse(response);
+      const result = await handleApiResponse(response);
+      return result.data;
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(this.getErrorMessage(error));
@@ -197,85 +141,8 @@ class BikeService {
         headers,
       });
 
-      return await handleApiResponse(response);
-    } catch (error) {
-      if (error instanceof ApiError) {
-        throw new Error(this.getErrorMessage(error));
-      }
-      throw new Error('network_error');
-    }
-  }
-
-  async lockBike(bikeId: string): Promise<{ success: boolean; message: string }> {
-    const headers = await this.getAuthHeaders();
-    
-    try {
-      const response = await fetch(`${this.baseUrl}/${bikeId}/lock`, {
-        method: 'POST',
-        headers,
-      });
-
-      return await handleApiResponse(response);
-    } catch (error) {
-      if (error instanceof ApiError) {
-        throw new Error(this.getErrorMessage(error));
-      }
-      throw new Error('network_error');
-    }
-  }
-
-  async getMaintenanceHistory(bikeId: string, page: number = 1, limit: number = 20): Promise<{ logs: MaintenanceLog[]; total: number; page: number }> {
-    const headers = await this.getAuthHeaders();
-    
-    try {
-      const queryParams = new URLSearchParams({
-        page: page.toString(),
-        limit: limit.toString(),
-      });
-      
-      const response = await fetch(`${this.baseUrl}/${bikeId}/maintenance?${queryParams.toString()}`, {
-        method: 'GET',
-        headers,
-      });
-
-      return await handleApiResponse(response);
-    } catch (error) {
-      if (error instanceof ApiError) {
-        throw new Error(this.getErrorMessage(error));
-      }
-      throw new Error('network_error');
-    }
-  }
-
-  async reportIssue(bikeId: string, issue: string, description?: string): Promise<void> {
-    const headers = await this.getAuthHeaders();
-    
-    try {
-      const response = await fetch(`${this.baseUrl}/${bikeId}/report-issue`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ issue, description }),
-      });
-
-      await handleApiResponse(response);
-    } catch (error) {
-      if (error instanceof ApiError) {
-        throw new Error(this.getErrorMessage(error));
-      }
-      throw new Error('network_error');
-    }
-  }
-
-  // Service Google Places pour les quartiers
-  async searchAreas(query: string, country: string = 'CM'): Promise<Area[]> {
-    try {
-      const response = await fetch(`${this.baseUrl}/areas/search`, {
-        method: 'POST',
-        headers: API_CONFIG.HEADERS,
-        body: JSON.stringify({ query, country }),
-      });
-
-      return await handleApiResponse(response);
+      const result = await handleApiResponse(response);
+      return result;
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(this.getErrorMessage(error));
@@ -291,7 +158,34 @@ class BikeService {
         headers: API_CONFIG.HEADERS,
       });
 
-      return await handleApiResponse(response);
+      const result = await handleApiResponse(response);
+      return result.data || [];
+    } catch (error) {
+      console.error('Error loading default areas:', error);
+      return [];
+    }
+  }
+
+  async reportIssue(bikeId: string, issueData: {
+    type: string;
+    description: string;
+    photos?: string[];
+  }): Promise<void> {
+    const headers = await this.getAuthHeaders();
+    
+    try {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/api/v1/incidents`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          bikeId,
+          type: issueData.type,
+          description: issueData.description,
+          priority: 'MEDIUM'
+        }),
+      });
+
+      await handleApiResponse(response);
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(this.getErrorMessage(error));

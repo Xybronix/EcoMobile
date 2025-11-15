@@ -1,29 +1,6 @@
 import { API_CONFIG, handleApiResponse, ApiError } from '@/lib/api/config';
 import { authService } from './authService';
-import { Bike } from './bikeService';
-
-export interface Ride {
-  id: string;
-  userId: string;
-  bikeId: string;
-  bike?: Bike;
-  startTime: string;
-  endTime?: string;
-  startLocation: Location;
-  endLocation?: Location;
-  distance: number;
-  duration: number;
-  cost: number;
-  status: 'active' | 'completed' | 'cancelled';
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface Location {
-  latitude: number;
-  longitude: number;
-  address?: string;
-}
+import { Ride, RideStats, Location, ApiResponse } from '@/lib/mobile-types';
 
 export interface RideHistoryFilters {
   startDate?: string;
@@ -33,22 +10,13 @@ export interface RideHistoryFilters {
   limit?: number;
 }
 
-export interface RideStats {
-  totalRides: number;
-  totalDistance: number;
-  totalCost: number;
-  totalDuration: number;
-  averageRating: number;
-  carbonSaved: number;
-}
-
 class RideService {
   private baseUrl = `${API_CONFIG.BASE_URL}/rides`;
 
   private async getAuthHeaders() {
     const token = await authService.getToken();
     if (!token) {
-      throw new Error('not_authenticated');
+      throw new Error('auth.notAuthenticated');
     }
     return {
       ...API_CONFIG.HEADERS,
@@ -66,12 +34,10 @@ class RideService {
         body: JSON.stringify({ bikeId, startLocation }),
       });
 
-      return await handleApiResponse(response);
+      const result: ApiResponse<Ride> = await handleApiResponse(response);
+      return result.data!;
     } catch (error) {
-      if (error instanceof ApiError) {
-        throw new Error(this.getErrorMessage(error));
-      }
-      throw new Error('network_error');
+      throw this.handleError(error);
     }
   }
 
@@ -85,16 +51,22 @@ class RideService {
         body: JSON.stringify({ endLocation }),
       });
 
-      return await handleApiResponse(response);
+      const result: ApiResponse<Ride> = await handleApiResponse(response);
+      return result.data!;
     } catch (error) {
-      if (error instanceof ApiError) {
-        throw new Error(this.getErrorMessage(error));
-      }
-      throw new Error('network_error');
+      throw this.handleError(error);
     }
   }
 
-  async getUserRides(filters?: RideHistoryFilters): Promise<{ rides: Ride[]; total: number; page: number }> {
+  async getUserRides(filters?: RideHistoryFilters): Promise<{ 
+    rides: Ride[]; 
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+    } 
+  }> {
     const headers = await this.getAuthHeaders();
     
     try {
@@ -115,15 +87,16 @@ class RideService {
         headers,
       });
 
-      return await handleApiResponse(response);
+      const result: ApiResponse<any> = await handleApiResponse(response);
+      return result.data!;
     } catch (error) {
       if (error instanceof ApiError && error.status === 404) {
-        return { rides: [], total: 0, page: 1 };
+        return { 
+          rides: [], 
+          pagination: { page: 1, limit: 10, total: 0, totalPages: 0 }
+        };
       }
-      if (error instanceof ApiError) {
-        throw new Error(this.getErrorMessage(error));
-      }
-      throw new Error('network_error');
+      throw this.handleError(error);
     }
   }
 
@@ -136,12 +109,13 @@ class RideService {
         headers,
       });
 
-      return await handleApiResponse(response);
+      const result: ApiResponse<Ride | null> = await handleApiResponse(response);
+      return result.data || null;
     } catch (error) {
       if (error instanceof ApiError && error.status === 404) {
         return null;
       }
-      throw error;
+      throw this.handleError(error);
     }
   }
 
@@ -149,17 +123,15 @@ class RideService {
     const headers = await this.getAuthHeaders();
     
     try {
-      const response = await fetch(`${this.baseUrl}/${rideId}`, {
+      const response = await fetch(`${this.baseUrl}/${rideId}/details`, {
         method: 'GET',
         headers,
       });
 
-      return await handleApiResponse(response);
+      const result: ApiResponse<Ride> = await handleApiResponse(response);
+      return result.data!;
     } catch (error) {
-      if (error instanceof ApiError) {
-        throw new Error(this.getErrorMessage(error));
-      }
-      throw new Error('network_error');
+      throw this.handleError(error);
     }
   }
 
@@ -174,10 +146,7 @@ class RideService {
 
       await handleApiResponse(response);
     } catch (error) {
-      if (error instanceof ApiError) {
-        throw new Error(this.getErrorMessage(error));
-      }
-      throw new Error('network_error');
+      throw this.handleError(error);
     }
   }
 
@@ -190,7 +159,8 @@ class RideService {
         headers,
       });
 
-      return await handleApiResponse(response);
+      const result: ApiResponse<RideStats> = await handleApiResponse(response);
+      return result.data!;
     } catch (error) {
       if (error instanceof ApiError && error.status === 404) {
         return {
@@ -198,14 +168,11 @@ class RideService {
           totalDistance: 0,
           totalCost: 0,
           totalDuration: 0,
-          averageRating: 0,
-          carbonSaved: 0
+          averageDistance: 0,
+          averageDuration: 0
         };
       }
-      if (error instanceof ApiError) {
-        throw new Error(this.getErrorMessage(error));
-      }
-      throw new Error('network_error');
+      throw this.handleError(error);
     }
   }
 
@@ -221,32 +188,32 @@ class RideService {
 
       await handleApiResponse(response);
     } catch (error) {
-      if (error instanceof ApiError) {
-        throw new Error(this.getErrorMessage(error));
-      }
-      throw new Error('network_error');
+      throw this.handleError(error);
     }
   }
 
-  private getErrorMessage(error: ApiError): string {
-    switch (error.status) {
-      case 400:
-        return 'invalid_data';
-      case 401:
-        return 'unauthorized';
-      case 404:
-        return 'ride_not_found';
-      case 409:
-        return 'ride_in_progress';
-      case 422:
-        return 'validation_error';
-      case 429:
-        return 'too_many_requests';
-      case 500:
-        return 'server_error';
-      default:
-        return 'unknown_error';
+  private handleError(error: any): Error {
+    if (error instanceof ApiError) {
+      switch (error.status) {
+        case 400:
+          return new Error('ride.invalidData');
+        case 401:
+          return new Error('auth.unauthorized');
+        case 404:
+          return new Error('ride.notFound');
+        case 409:
+          return new Error('ride.alreadyInProgress');
+        case 422:
+          return new Error('ride.validationError');
+        case 429:
+          return new Error('common.tooManyRequests');
+        case 500:
+          return new Error('common.serverError');
+        default:
+          return new Error('common.unknownError');
+      }
     }
+    return new Error('common.networkError');
   }
 }
 

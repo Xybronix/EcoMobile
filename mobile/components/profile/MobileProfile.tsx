@@ -3,24 +3,25 @@ import { Text } from '@/components/ui/Text';
 import { toast } from '@/components/ui/Toast';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { notificationService } from '@/services/notificationService';
-import { userService, UserStats } from '@/services/userService';
+import { userService } from '@/services/userService';
+import type { UserStats } from '@/services/userService';
 import { getGlobalStyles } from '@/styles/globalStyles';
 import { haptics } from '@/utils/haptics';
 import { storeLanguage } from '@/utils/storage';
 import { Bell, ChevronRight, FileText, Globe, HelpCircle, LogOut, MessageCircle, Shield, User } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { RefreshControl, ScrollView, TouchableOpacity, View } from 'react-native';
-import { useMobileAuth } from '../../lib/mobile-auth';
-import { useMobileI18n } from '../../lib/mobile-i18n';
-import { MobileHeader } from '../layout/MobileHeader';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/AlertDialog';
+import { useMobileAuth } from '@/lib/mobile-auth';
+import { useMobileI18n } from '@/lib/mobile-i18n';
+import { MobileHeader } from '@/components/layout/MobileHeader';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/AlertDialog';
 
 interface MobileProfileProps {
   onNavigate: (screen: string) => void;
 }
 
 export default function MobileProfile({ onNavigate }: MobileProfileProps) {
-  const { user, logout } = useMobileAuth();
+  const { user, logout, refreshUser } = useMobileAuth();
   const { t, language, setLanguage } = useMobileI18n();
   const colorScheme = useColorScheme();
   const styles = getGlobalStyles(colorScheme);
@@ -43,7 +44,7 @@ export default function MobileProfile({ onNavigate }: MobileProfileProps) {
       setUserStats(stats);
       
       // Charger le nombre de notifications non lues
-      const unreadCount = await notificationService.getUnreadCount();
+      const unreadCount = await userService.getUnreadNotificationsCount();
       setUnreadNotifications(unreadCount);
       
       // Charger les préférences de notifications
@@ -52,6 +53,8 @@ export default function MobileProfile({ onNavigate }: MobileProfileProps) {
       
     } catch (error) {
       console.error('Error loading profile data:', error);
+      // Ne pas afficher d'erreur pour éviter de perturber l'utilisateur
+      // Les statistiques resteront vides
     } finally {
       setIsLoading(false);
     }
@@ -67,9 +70,9 @@ export default function MobileProfile({ onNavigate }: MobileProfileProps) {
       }
       
       setLanguage(newLanguage);
-      
       await storeLanguage(newLanguage);
       
+      // Mettre à jour le profil utilisateur avec la nouvelle langue
       await userService.updateProfile({ language: newLanguage });
       
       toast.success(
@@ -114,7 +117,7 @@ export default function MobileProfile({ onNavigate }: MobileProfileProps) {
 
   const menuSections = [
     {
-      title: language === 'fr' ? 'Compte' : 'Account',
+      title: t('profile.sections.account'),
       items: [
         {
           icon: User,
@@ -127,7 +130,7 @@ export default function MobileProfile({ onNavigate }: MobileProfileProps) {
         },
         {
           icon: Shield,
-          label: language === 'fr' ? 'Sécurité' : 'Security',
+          label: t('profile.security'),
           onPress: () => {
             haptics.light();
             onNavigate('security');
@@ -137,14 +140,13 @@ export default function MobileProfile({ onNavigate }: MobileProfileProps) {
       ],
     },
     {
-      title: language === 'fr' ? 'Préférences' : 'Preferences',
+      title: t('profile.sections.preferences'),
       items: [
         {
           icon: Globe,
           label: t('profile.language'),
           onPress: () => {
             haptics.light();
-            // La gestion de la langue se fait via les boutons
           },
           color: '#7c3aed',
           rightElement: (
@@ -203,7 +205,6 @@ export default function MobileProfile({ onNavigate }: MobileProfileProps) {
           label: t('profile.notifications'),
           onPress: () => {
             haptics.light();
-            // La gestion des notifications se fait via le toggle
           },
           color: '#d97706',
           rightElement: (
@@ -242,11 +243,11 @@ export default function MobileProfile({ onNavigate }: MobileProfileProps) {
       ],
     },
     {
-      title: language === 'fr' ? 'Support' : 'Support',
+      title: t('profile.sections.support'),
       items: [
         {
           icon: MessageCircle,
-          label: language === 'fr' ? 'Chat avec le support' : 'Chat with support',
+          label: t('profile.chatSupport'),
           onPress: () => {
             haptics.light();
             onNavigate('chat');
@@ -258,12 +259,7 @@ export default function MobileProfile({ onNavigate }: MobileProfileProps) {
           label: t('profile.help'),
           onPress: () => {
             haptics.light();
-            // TODO: Implémenter la page d'aide
-            toast.info(
-              language === 'fr' 
-                ? 'Page d\'aide bientôt disponible' 
-                : 'Help page coming soon'
-            );
+            toast.info(t('profile.helpComingSoon'));
           },
           color: '#ea580c',
         },
@@ -272,12 +268,7 @@ export default function MobileProfile({ onNavigate }: MobileProfileProps) {
           label: t('profile.legal'),
           onPress: () => {
             haptics.light();
-            // TODO: Implémenter la page légale
-            toast.info(
-              language === 'fr' 
-                ? 'Page légale bientôt disponible' 
-                : 'Legal page coming soon'
-            );
+            toast.info(t('profile.legalComingSoon'));
           },
           color: '#6b7280',
         },
@@ -354,7 +345,7 @@ export default function MobileProfile({ onNavigate }: MobileProfileProps) {
                     ]}
                   >
                     <Text size="xs" color="#166534">
-                      ✓ {language === 'fr' ? 'Email vérifié' : 'Email verified'}
+                      ✓ {t('profile.emailVerified')}
                     </Text>
                   </View>
                 )}
@@ -368,7 +359,7 @@ export default function MobileProfile({ onNavigate }: MobileProfileProps) {
                     ]}
                   >
                     <Text size="xs" color="#1e40af">
-                      ✓ {language === 'fr' ? 'Téléphone vérifié' : 'Phone verified'}
+                      ✓ {t('profile.phoneVerified')}
                     </Text>
                   </View>
                 )}
@@ -451,7 +442,7 @@ export default function MobileProfile({ onNavigate }: MobileProfileProps) {
               color={colorScheme === 'light' ? '#111827' : '#f9fafb'}
               style={styles.mb16}
             >
-              {language === 'fr' ? 'Vos statistiques' : 'Your statistics'}
+              {t('profile.yourStats')}
             </Text>
             <View style={[styles.row, styles.gap16]}>
               <View style={[styles.flex1, styles.alignCenter]}>
@@ -460,14 +451,14 @@ export default function MobileProfile({ onNavigate }: MobileProfileProps) {
                   color={colorScheme === 'light' ? '#111827' : '#f9fafb'}
                   style={styles.mb4}
                 >
-                  {userStats.totalRides || 0}
+                  {userStats.rides?.total || 0}
                 </Text>
                 <Text 
                   size="sm" 
                   color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}
                   style={styles.textCenter}
                 >
-                  {language === 'fr' ? 'Trajets' : 'Rides'}
+                  {t('profile.stats.rides')}
                 </Text>
               </View>
               <View style={[styles.flex1, styles.alignCenter]}>
@@ -476,7 +467,7 @@ export default function MobileProfile({ onNavigate }: MobileProfileProps) {
                   color={colorScheme === 'light' ? '#111827' : '#f9fafb'}
                   style={styles.mb4}
                 >
-                  {(userStats.totalDistance || 0).toFixed(1)}
+                  {(userStats.rides?.totalDistance || 0).toFixed(1)}
                 </Text>
                 <Text 
                   size="sm" 
@@ -499,7 +490,7 @@ export default function MobileProfile({ onNavigate }: MobileProfileProps) {
                   color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}
                   style={styles.textCenter}
                 >
-                  CO₂ {language === 'fr' ? 'économisé' : 'saved'}
+                  {t('profile.stats.carbonSaved')}
                 </Text>
               </View>
             </View>
@@ -510,7 +501,7 @@ export default function MobileProfile({ onNavigate }: MobileProfileProps) {
                   color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}
                   style={styles.mr8}
                 >
-                  {language === 'fr' ? 'Note moyenne' : 'Average rating'}:
+                  {t('profile.stats.averageRating')}:
                 </Text>
                 <Text 
                   variant="body" 
@@ -563,12 +554,10 @@ export default function MobileProfile({ onNavigate }: MobileProfileProps) {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {language === 'fr' ? 'Se déconnecter ?' : 'Log out?'}
+              {t('profile.logoutConfirm.title')}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {language === 'fr'
-                ? 'Êtes-vous sûr de vouloir vous déconnecter ?'
-                : 'Are you sure you want to log out?'}
+              {t('profile.logoutConfirm.description')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

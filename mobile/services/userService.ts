@@ -11,10 +11,12 @@ export interface UpdateProfileData {
 }
 
 export interface UserStats {
-  totalRides: number;
-  totalDistance: number;
-  totalCost: number;
-  totalDuration: number;
+  rides: {
+    total: number;
+    totalDistance: number;
+    totalCost: number;
+    totalDuration: number;
+  };
   averageRating: number;
   carbonSaved: number;
   monthlyStats?: {
@@ -25,18 +27,17 @@ export interface UserStats {
   }[];
 }
 
-export interface Notification {
+export interface UserNotification {
   id: string;
   title: string;
   message: string;
   type: 'info' | 'warning' | 'success' | 'error' | 'promotional';
   isRead: boolean;
-  data?: any;
   createdAt: string;
 }
 
 class UserService {
-  private baseUrl = `${API_CONFIG.BASE_URL}/users`;
+  private baseUrl = `${API_CONFIG.BASE_URL}/api/v1/users`;
 
   private async getAuthHeaders() {
     const token = await authService.getToken();
@@ -58,18 +59,10 @@ class UserService {
         headers,
       });
 
-      const user = await handleApiResponse(response);
-      await authService.getUser().then(async (storedUser) => {
-        if (storedUser) {
-          // Mettre à jour les données utilisateur stockées
-          await authService.logout();
-          const token = await authService.getToken();
-          if (token) {
-            await authService.getCurrentUser();
-          }
-        }
-      });
-
+      const result = await handleApiResponse(response);
+      const user = result.data;
+      
+      await storeUserData(user);
       return user;
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
@@ -89,7 +82,8 @@ class UserService {
         body: JSON.stringify(profileData),
       });
 
-      const user = await handleApiResponse(response);
+      const result = await handleApiResponse(response);
+      const user = result.data;
       
       await storeUserData(user);
       
@@ -134,7 +128,8 @@ class UserService {
         headers,
       });
 
-      return await handleApiResponse(response);
+      const result = await handleApiResponse(response);
+      return result.data;
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(this.getErrorMessage(error));
@@ -143,7 +138,7 @@ class UserService {
     }
   }
 
-  async getNotifications(page: number = 1, limit: number = 20): Promise<{ notifications: Notification[]; total: number; page: number }> {
+  async getNotifications(page: number = 1, limit: number = 20): Promise<{ notifications: UserNotification[]; total: number; page: number }> {
     const headers = await this.getAuthHeaders();
     
     try {
@@ -156,7 +151,8 @@ class UserService {
         headers,
       });
 
-      return await handleApiResponse(response);
+      const result = await handleApiResponse(response);
+      return result.data;
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(this.getErrorMessage(error));
@@ -210,8 +206,8 @@ class UserService {
         headers,
       });
 
-      const data = await handleApiResponse(response);
-      return data.count || 0;
+      const result = await handleApiResponse(response);
+      return result.data.unreadCount || 0;
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(this.getErrorMessage(error));
@@ -243,7 +239,8 @@ class UserService {
         body: formData,
       });
 
-      return await handleApiResponse(response);
+      const result = await handleApiResponse(response);
+      return result.data;
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(this.getErrorMessage(error));
@@ -256,7 +253,7 @@ class UserService {
     const headers = await this.getAuthHeaders();
     
     try {
-      const response = await fetch(`${this.baseUrl}/profile`, {
+      const response = await fetch(`${this.baseUrl}/account`, {
         method: 'DELETE',
         headers,
       });
@@ -280,7 +277,7 @@ class UserService {
       case 404:
         return 'not_found';
       case 409:
-        return 'conflict';
+        return 'user_already_exists';
       case 422:
         return 'validation_error';
       case 429:

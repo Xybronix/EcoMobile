@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { authService, User, LoginCredentials, RegisterData } from '@/services/authService';
 import { userService, UpdateProfileData } from '@/services/userService';
@@ -13,6 +14,8 @@ interface AuthContextType {
   logout: () => Promise<void>;
   updateProfile: (profileData: UpdateProfileData) => Promise<User>;
   refreshUser: () => Promise<void>;
+  forgotPassword: (email: string) => Promise<void>;
+  resetPassword: (token: string, password: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -44,7 +47,7 @@ export function MobileAuthProvider({ children }: AuthProviderProps) {
         router.replace('/');
       }
     }
-  }, [user, segments, isLoading]);
+  }, [user, segments, isLoading, router]);
 
   const loadStoredUser = async () => {
     try {
@@ -170,6 +173,22 @@ export function MobileAuthProvider({ children }: AuthProviderProps) {
     }
   };
 
+  const forgotPassword = async (email: string): Promise<void> => {
+    try {
+      await authService.forgotPassword(email);
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  const resetPassword = async (token: string, password: string): Promise<void> => {
+    try {
+      await authService.resetPassword(token, password);
+    } catch (error) {
+      throw error;
+    }
+  };
+
   const value: AuthContextType = {
     user,
     isLoading,
@@ -179,6 +198,8 @@ export function MobileAuthProvider({ children }: AuthProviderProps) {
     logout,
     updateProfile,
     refreshUser,
+    forgotPassword,
+    resetPassword,
   };
 
   return (

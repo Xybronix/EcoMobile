@@ -11,8 +11,8 @@ import { haptics } from '@/utils/haptics';
 import { ArrowLeft, Bike, Eye, EyeOff } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { TouchableOpacity, View } from 'react-native';
-import { useMobileAuth } from '../../lib/mobile-auth';
-import { useMobileI18n } from '../../lib/mobile-i18n';
+import { useMobileAuth } from '@/lib/mobile-auth';
+import { useMobileI18n } from '@/lib/mobile-i18n';
 
 interface MobileRegisterProps {
   onNavigate: (screen: string) => void;
@@ -201,6 +201,7 @@ export function MobileRegister({ onNavigate }: MobileRegisterProps) {
                 <Label required>{t('auth.firstName')}</Label>
                 <Input
                   value={formData.firstName}
+                  placeholder="Jean"
                   onChangeText={(text) => setFormData({ ...formData, firstName: text })}
                   autoComplete="given-name"
                   textContentType="givenName"
@@ -213,6 +214,7 @@ export function MobileRegister({ onNavigate }: MobileRegisterProps) {
                 <Label required>{t('auth.lastName')}</Label>
                 <Input
                   value={formData.lastName}
+                  placeholder="Pierre"
                   onChangeText={(text) => setFormData({ ...formData, lastName: text })}
                   autoComplete="family-name"
                   textContentType="familyName"
@@ -226,7 +228,7 @@ export function MobileRegister({ onNavigate }: MobileRegisterProps) {
             <Input
               value={formData.email}
               onChangeText={handleEmailChange}
-              placeholder="exemple@email.com"
+              placeholder="jean@email.com"
               keyboardType="email-address"
               autoCapitalize="none"
               autoComplete="email"
@@ -246,7 +248,7 @@ export function MobileRegister({ onNavigate }: MobileRegisterProps) {
               value={formData.phone}
               onChangeText={(text) => setFormData({ ...formData, phone: text })}
               onValidationChange={setIsPhoneValid}
-              placeholder="+237 6 90 63 58 27"
+              placeholder="690635827"
               error={formData.phone.length > 0 && !isPhoneValid}
               defaultCountry="CM"
             />

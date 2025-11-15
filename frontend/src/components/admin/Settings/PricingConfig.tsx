@@ -1,10 +1,12 @@
 // components/admin/settings/PricingConfig.tsx
 import { useState, useEffect } from 'react';
-import { DollarSign, Plus, Edit, Check, X, Clock, Tag, Trash2, Eye, EyeOff } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { DollarSign, Bike, Battery, MapPin, Plus, Edit, Check, X, Clock, Tag, Trash2, Eye, EyeOff } from 'lucide-react';
 import { Card } from '../../ui/card';
 import { Button } from '../../ui/button';
 import { Badge } from '../../ui/badge';
 import { companyService, PricingPlan, PricingRule, PricingConfig as PricingConfigType, Promotion } from '../../../services/api/company.service';
+import { bikeService } from '../../../services/api/bike.service';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../../ui/dialog';
 import { Input } from '../../ui/input';
 import { Label } from '../../ui/label';
@@ -32,6 +34,10 @@ export function PricingConfig() {
   const [isDeletingPromotion, setIsDeletingPromotion] = useState<string | null>(null);
   const [selectedPromotion, setSelectedPromotion] = useState<Promotion | null>(null);
   const [isViewingPromotion, setIsViewingPromotion] = useState(false);
+  const [selectedPlanForDetails, setSelectedPlanForDetails] = useState<PricingPlan | null>(null);
+  const [isPlanDetailsDialogOpen, setIsPlanDetailsDialogOpen] = useState(false);
+  const [planBikes, setPlanBikes] = useState<any[]>([]);
+  const [planBikesLoading, setPlanBikesLoading] = useState(false);
 
   // Form states
   const [editedPlan, setEditedPlan] = useState({
@@ -189,10 +195,17 @@ export function PricingConfig() {
 
     try {
       const updatedPlans = isAddingNewPlan 
-        ? [...(pricingConfig?.plans || []), { ...editedPlan, id: Date.now().toString() }]
+        ? [...(pricingConfig?.plans || []), { 
+            // Create a full PricingPlan shape for new plans (include bikes and bikeCount)
+            ...editedPlan, 
+            id: Date.now().toString(),
+            bikes: [],
+            bikeCount: 0
+          }]
         : (pricingConfig?.plans || []).map(plan => 
             plan.id === (selectedPlan?.id ?? '') 
-              ? { ...editedPlan, id: selectedPlan!.id }
+              // Preserve existing plan fields (like bikes, bikeCount) and override with edited values
+              ? { ...plan, ...editedPlan, id: selectedPlan!.id }
               : plan
           );
 
@@ -503,6 +516,35 @@ export function PricingConfig() {
     resetPromotionForm();
   };
 
+  const handleViewPlanDetails = async (plan: PricingPlan) => {
+    setSelectedPlanForDetails(plan);
+    setIsPlanDetailsDialogOpen(true);
+    setPlanBikesLoading(true);
+    
+    try {
+      // Récupérer tous les vélos avec ce plan
+      const allBikes = await bikeService.getAllBikes({ page: 1, limit: 100 });
+
+      let allBikesData = [...allBikes.bikes];
+
+      if (allBikes.pagination && allBikes.pagination.totalPages > 1) {
+        for (let page = 2; page <= allBikes.pagination.totalPages; page++) {
+          const moreBikes = await bikeService.getAllBikes({ page, limit: 100 });
+          allBikesData = [...allBikesData, ...moreBikes.bikes];
+        }
+      }
+
+      const bikesWithThisPlan = allBikes.bikes.filter(bike => bike.pricingPlan?.id === plan.id);
+      setPlanBikes(bikesWithThisPlan);
+    } catch (error) {
+      console.error('Erreur lors du chargement des vélos du plan:', error);
+      toast.error('Erreur lors du chargement des vélos');
+      setPlanBikes([]);
+    } finally {
+      setPlanBikesLoading(false);
+    }
+  };
+
   if (isLoading) {
     return <div className="p-8">Chargement...</div>;
   }
@@ -620,6 +662,15 @@ export function PricingConfig() {
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleViewPlanDetails(plan)}
+                    title="Voir les détails et vélos associés"
+                  >
+                    <Eye className="w-4 h-4 mr-1" />
+                    Détails
+                  </Button>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -1361,6 +1412,159 @@ export function PricingConfig() {
               }}>
                 <Edit className="w-4 h-4 mr-2" />
                 Modifier
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Plan Details Dialog */}
+      {isPlanDetailsDialogOpen && selectedPlanForDetails && (
+        <Dialog open={isPlanDetailsDialogOpen} onOpenChange={setIsPlanDetailsDialogOpen}>
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto" aria-describedby={undefined}>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-3">
+                <DollarSign className="w-6 h-6 text-green-600" />
+                Détails du Plan : {selectedPlanForDetails.name}
+              </DialogTitle>
+            </DialogHeader>
+            
+            <div className="space-y-6">
+              {/* Informations du plan */}
+              <Card className="p-4">
+                <h3 className="text-lg mb-4">Informations Tarifaires</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="bg-gray-50 p-3 rounded-lg">
+                    <p className="text-xs text-gray-500 mb-1">Heure</p>
+                    <p className="text-lg font-medium">{formatPrice(selectedPlanForDetails.hourlyRate)} FCFA</p>
+                  </div>
+                  <div className="bg-gray-50 p-3 rounded-lg">
+                    <p className="text-xs text-gray-500 mb-1">Jour</p>
+                    <p className="text-lg font-medium">{formatPrice(selectedPlanForDetails.dailyRate)} FCFA</p>
+                  </div>
+                  <div className="bg-gray-50 p-3 rounded-lg">
+                    <p className="text-xs text-gray-500 mb-1">Semaine</p>
+                    <p className="text-lg font-medium">{formatPrice(selectedPlanForDetails.weeklyRate)} FCFA</p>
+                  </div>
+                  <div className="bg-gray-50 p-3 rounded-lg">
+                    <p className="text-xs text-gray-500 mb-1">Mois</p>
+                    <p className="text-lg font-medium">{formatPrice(selectedPlanForDetails.monthlyRate)} FCFA</p>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
+                  <div>
+                    <p className="text-sm text-gray-600">Durée minimum</p>
+                    <p className="font-medium">{selectedPlanForDetails.minimumHours}h</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Réduction</p>
+                    <p className="font-medium">{selectedPlanForDetails.discount}%</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Statut</p>
+                    <Badge variant={selectedPlanForDetails.isActive ? "default" : "secondary"}>
+                      {selectedPlanForDetails.isActive ? 'Actif' : 'Inactif'}
+                    </Badge>
+                  </div>
+                </div>
+              </Card>
+
+              {/* Vélos associés */}
+              <Card className="p-4">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg">Vélos Associés ({planBikes.length})</h3>
+                  <Badge variant="outline">
+                    {planBikes.length} vélo(s)
+                  </Badge>
+                </div>
+                
+                {planBikesLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="text-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto mb-2"></div>
+                      <p className="text-gray-600">Chargement des vélos...</p>
+                    </div>
+                  </div>
+                ) : planBikes.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-60 overflow-y-auto">
+                    {planBikes.map((bike: any) => (
+                      <div key={bike.id} className="border rounded-lg p-3 bg-gray-50">
+                        <div className="flex items-center justify-between mb-2">
+                          <div>
+                            <p className="font-medium text-sm">{bike.code}</p>
+                            <p className="text-xs text-gray-500">{bike.model}</p>
+                          </div>
+                          <Badge 
+                            variant={
+                              bike.status === 'AVAILABLE' ? 'default' :
+                              bike.status === 'IN_USE' ? 'secondary' :
+                              bike.status === 'MAINTENANCE' ? 'destructive' : 'outline'
+                            }
+                            className="text-xs"
+                          >
+                            {bike.status}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center justify-between text-xs text-gray-600">
+                          <span className="flex items-center gap-1">
+                            <Battery className="w-3 h-3" />
+                            {bike.battery}%
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <MapPin className="w-3 h-3" />
+                            {bike.location || 'N/A'}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <Bike className="w-6 h-6 text-gray-400" />
+                    </div>
+                    <p>Aucun vélo associé à ce plan</p>
+                    <p className="text-sm mt-1">Assignez des vélos à ce plan lors de leur création ou modification</p>
+                  </div>
+                )}
+              </Card>
+              
+              {/* Statistiques d'utilisation */}
+              <Card className="p-4">
+                <h3 className="text-lg mb-4">Statistiques d'Utilisation</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="text-center">
+                    <p className="text-2xl font-bold text-green-600">{planBikes.filter(b => b.status === 'AVAILABLE').length}</p>
+                    <p className="text-sm text-gray-600">Disponibles</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-2xl font-bold text-blue-600">{planBikes.filter(b => b.status === 'IN_USE').length}</p>
+                    <p className="text-sm text-gray-600">En utilisation</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-2xl font-bold text-red-600">{planBikes.filter(b => b.status === 'MAINTENANCE').length}</p>
+                    <p className="text-sm text-gray-600">Maintenance</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-2xl font-bold text-gray-600">{planBikes.filter(b => b.battery < 30).length}</p>
+                    <p className="text-sm text-gray-600">Batterie faible</p>
+                  </div>
+                </div>
+              </Card>
+            </div>
+
+            <DialogFooter className="gap-2">
+              <Button variant="outline" onClick={() => setIsPlanDetailsDialogOpen(false)}>
+                <X className="w-4 h-4 mr-2" />
+                Fermer
+              </Button>
+              <Button onClick={() => {
+                setIsPlanDetailsDialogOpen(false);
+                handleEditPlan(selectedPlanForDetails);
+              }}>
+                <Edit className="w-4 h-4 mr-2" />
+                Modifier ce Plan
               </Button>
             </DialogFooter>
           </DialogContent>

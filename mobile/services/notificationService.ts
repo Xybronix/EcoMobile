@@ -8,7 +8,6 @@ export interface Notification {
   message: string;
   type: 'info' | 'warning' | 'success' | 'error' | 'promotional';
   isRead: boolean;
-  data?: any;
   createdAt: string;
 }
 
@@ -22,7 +21,7 @@ export interface NotificationPreferences {
 }
 
 class NotificationService {
-  private baseUrl = `${API_CONFIG.BASE_URL}/notifications`;
+  private baseUrl = `${API_CONFIG.BASE_URL}/api/v1/notifications`;
 
   private async getAuthHeaders() {
     const token = await authService.getToken();
@@ -39,16 +38,22 @@ class NotificationService {
     const headers = await this.getAuthHeaders();
     
     try {
+      const offset = (page - 1) * limit;
       const queryParams = new URLSearchParams();
-      queryParams.append('page', page.toString());
       queryParams.append('limit', limit.toString());
+      queryParams.append('offset', offset.toString());
       
       const response = await fetch(`${this.baseUrl}?${queryParams.toString()}`, {
         method: 'GET',
         headers,
       });
 
-      return await handleApiResponse(response);
+      const result = await handleApiResponse(response);
+      return {
+        notifications: result.data.notifications || [],
+        total: result.data.notifications?.length || 0,
+        page
+      };
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(this.getErrorMessage(error));
@@ -102,8 +107,8 @@ class NotificationService {
         headers,
       });
 
-      const data = await handleApiResponse(response);
-      return data.count || 0;
+      const result = await handleApiResponse(response);
+      return result.data.unreadCount || 0;
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(this.getErrorMessage(error));
@@ -134,12 +139,13 @@ class NotificationService {
     const headers = await this.getAuthHeaders();
     
     try {
-      const response = await fetch(`${this.baseUrl}/preferences`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/api/v1/users/preferences`, {
         method: 'GET',
         headers,
       });
 
-      return await handleApiResponse(response);
+      const result = await handleApiResponse(response);
+      return result.data;
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(this.getErrorMessage(error));
@@ -152,20 +158,19 @@ class NotificationService {
     const headers = await this.getAuthHeaders();
     
     try {
-      const response = await fetch(`${this.baseUrl}/preferences`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/api/v1/users/preferences`, {
         method: 'PUT',
         headers,
         body: JSON.stringify(preferences),
       });
 
-      const updatedPreferences = await handleApiResponse(response);
+      const result = await handleApiResponse(response);
       
-      // Stocker localement l'état des notifications
       if (preferences.pushNotifications !== undefined) {
         await storeNotificationsEnabled(preferences.pushNotifications);
       }
       
-      return updatedPreferences;
+      return result.data;
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(this.getErrorMessage(error));
@@ -174,14 +179,14 @@ class NotificationService {
     }
   }
 
-  async registerPushToken(token: string): Promise<void> {
+  async registerPushToken(token: string, device?: string, platform?: string): Promise<void> {
     const headers = await this.getAuthHeaders();
     
     try {
-      const response = await fetch(`${this.baseUrl}/push-token`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/api/v1/users/push-token`, {
         method: 'POST',
         headers,
-        body: JSON.stringify({ token }),
+        body: JSON.stringify({ token, device, platform }),
       });
 
       await handleApiResponse(response);
@@ -193,13 +198,14 @@ class NotificationService {
     }
   }
 
-  async unregisterPushToken(): Promise<void> {
+  async unregisterPushToken(token?: string): Promise<void> {
     const headers = await this.getAuthHeaders();
     
     try {
-      const response = await fetch(`${this.baseUrl}/push-token`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/api/v1/users/push-token`, {
         method: 'DELETE',
         headers,
+        body: JSON.stringify({ token }),
       });
 
       await handleApiResponse(response);

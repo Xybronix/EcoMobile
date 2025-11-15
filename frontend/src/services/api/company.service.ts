@@ -1,5 +1,6 @@
 // services/api/company.service.ts
 import { apiClient } from './client';
+import { BikePosition } from './bike.service';
 
 export interface CompanySettings {
   companyName: string;
@@ -32,6 +33,8 @@ export interface PricingPlan {
   originalHourlyRate?: number;
   appliedRule?: string;
   appliedPromotions?: Promotion[];
+  bikes: BikePosition[];
+  bikeCount: number;
 }
 
 export interface PricingRule {
@@ -236,6 +239,29 @@ export class CompanyService {
     if (!response.success) {
       throw new Error(response.error || 'Erreur lors de la suppression de la promotion');
     }
+  }
+
+  async getPlanDetails(planId: string): Promise<PricingPlan> {
+    const response = await apiClient.get<PricingPlan>(`/admin/plans/${planId}/details`);
+    
+    if (!response.success || !response.data) {
+      throw new Error(response.error || 'Erreur lors de la récupération des détails du plan');
+    }
+
+    return response.data;
+  }
+
+  async getPlanBikes(planId: string, params?: {
+    page?: number;
+    limit?: number;
+  }): Promise<{ bikes: BikePosition[], total: number, pagination: any }> {
+    const response = await apiClient.get<{ bikes: BikePosition[], total: number, pagination: any }>(`/admin/plans/${planId}/bikes`, params);
+    
+    if (!response.success || !response.data) {
+      throw new Error(response.error || 'Erreur lors de la récupération des vélos du plan');
+    }
+
+    return response.data;
   }
 }
 

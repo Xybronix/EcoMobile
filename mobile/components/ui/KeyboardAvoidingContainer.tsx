@@ -24,7 +24,7 @@ export function KeyboardAvoidingContainer({
   children,
   safeArea = true,
   behavior = Platform.OS === 'ios' ? 'padding' : 'height',
-  keyboardVerticalOffset = Platform.OS === 'ios' ? 0 : 20,
+  keyboardVerticalOffset = Platform.OS === 'ios' ? 0 : 0,
   style,
   contentContainerStyle,
   ...scrollProps

@@ -1,26 +1,12 @@
-import {
-  AlertTriangle,
-  Clock,
-  DollarSign,
-  MapPin,
-  Pause,
-  Play,
-  StopCircle
-} from 'lucide-react-native';
+import { AlertTriangle, Clock, DollarSign, MapPin, Pause, Play, StopCircle } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
-import {
-  Modal,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
-} from 'react-native';
+import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator } from 'react-native';
 import { toast } from 'sonner';
-import { useMobileAuth } from '../../lib/mobile-auth';
-import { useMobileI18n } from '../../lib/mobile-i18n';
-import type { Bike } from '../../lib/mobile-types';
-import { MobileHeader } from '../layout/MobileHeader';
+import { useMobileAuth } from '@/lib/mobile-auth';
+import { useMobileI18n } from '@/lib/mobile-i18n';
+import { rideService } from '@/services/rideService';
+import type { Bike, Ride, Location } from '@/lib/mobile-types';
+import { MobileHeader } from '@/components/layout/MobileHeader';
 
 interface MobileRideInProgressProps {
   bike: Bike;
@@ -35,25 +21,55 @@ export function MobileRideInProgress({
   onReportIssue,
   onNavigate,
 }: MobileRideInProgressProps) {
-  const { t, language } = useMobileI18n();
-  const { user, updateWalletBalance } = useMobileAuth();
+  const { t } = useMobileI18n();
+  const { user, refreshUser } = useMobileAuth();
   const [isPaused, setIsPaused] = useState(false);
   const [duration, setDuration] = useState(0); // in seconds
   const [distance, setDistance] = useState(0); // in km
   const [showEndDialog, setShowEndDialog] = useState(false);
+  const [currentRide, setCurrentRide] = useState<Ride | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingRide, setIsLoadingRide] = useState(true);
+
+  // Load current active ride
+  useEffect(() => {
+    loadActiveRide();
+  }, []);
+
+  const loadActiveRide = async () => {
+    try {
+      setIsLoadingRide(true);
+      const activeRide = await rideService.getActiveRide();
+      if (activeRide) {
+        setCurrentRide(activeRide);
+        // Calculate duration from start time
+        const startTime = new Date(activeRide.startTime);
+        const now = new Date();
+        setDuration(Math.floor((now.getTime() - startTime.getTime()) / 1000));
+        // Set distance from ride data if available
+        if (activeRide.distance) {
+          setDistance(activeRide.distance);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load active ride:', error);
+      toast.error(t('ride.failedToLoad'));
+    } finally {
+      setIsLoadingRide(false);
+    }
+  };
 
   // Timer effect
   useEffect(() => {
-    if (!isPaused) {
+    if (!isPaused && currentRide) {
       const timer = setInterval(() => {
         setDuration((prev) => prev + 1);
-        // Simulate distance increase (in real app, use GPS)
         setDistance((prev) => prev + 0.01);
       }, 1000);
 
       return () => clearInterval(timer);
     }
-  }, [isPaused]);
+  }, [isPaused, currentRide]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -61,27 +77,24 @@ export function MobileRideInProgress({
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const currentCost = Math.ceil((duration / 60) * bike.pricePerMinute);
+  const currentCost = bike.pricingPlan 
+    ? Math.ceil((duration / 3600) * bike.pricingPlan.hourlyRate)
+    : Math.ceil((duration / 60) * 0.5 + 1);
 
   const handlePauseResume = () => {
     setIsPaused(!isPaused);
     toast.success(
       isPaused
-        ? language === 'fr'
-          ? 'Trajet repris'
-          : 'Ride resumed'
-        : language === 'fr'
-        ? 'Trajet mis en pause'
-        : 'Ride paused'
+        ? t('ride.resumed')
+        : t('ride.paused')
     );
   };
 
   const handleEndRide = () => {
-    // Navigate to inspection screen before ending the ride
     if (onNavigate) {
       onNavigate('bike-inspection', {
         bikeId: bike.id,
-        bikeName: bike.name,
+        bikeName: bike.code,
         inspectionType: 'return'
       });
     } else {
@@ -89,30 +102,66 @@ export function MobileRideInProgress({
     }
   };
 
-  const confirmEndRide = () => {
-    // Deduct cost from wallet
-    updateWalletBalance(-currentCost);
+  const confirmEndRide = async () => {
+    if (!currentRide) return;
     
-    toast.success(
-      language === 'fr'
-        ? `Trajet terminé ! Coût: ${currentCost} ${user?.wallet.currency}`
-        : `Ride completed! Cost: ${currentCost} ${user?.wallet.currency}`
-    );
-    
-    setShowEndDialog(false);
-    onEndRide();
+    setIsLoading(true);
+    try {
+      const endLocation: Location = {
+        latitude: bike.latitude || 0,
+        longitude: bike.longitude || 0,
+        address: bike.locationName || t('ride.unknownLocation')
+      };
+
+      const completedRide = await rideService.endRide(currentRide.id, endLocation);
+      
+      await refreshUser();
+      
+      toast.success(`${t('ride.completedMessage')} ${ completedRide.cost || 0, user?.wallet?.currency || 'XAF' }`);
+      
+      setShowEndDialog(false);
+      onEndRide();
+    } catch (error: any) {
+      toast.error(t(error.message) || t('common.error'));
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleReportIssue = () => {
     if (onNavigate) {
       onNavigate('report-issue', {
         bikeId: bike.id,
-        bikeName: bike.name
+        bikeName: bike.code,
+        rideId: currentRide?.id
       });
     } else {
       onReportIssue();
     }
   };
+
+  if (isLoadingRide) {
+    return (
+      <View style={styles.container}>
+        <MobileHeader title={t('ride.inProgress')} />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#5D5CDE" />
+          <Text style={styles.loadingText}>{t('ride.loading')}</Text>
+        </View>
+      </View>
+    );
+  }
+
+  if (!currentRide) {
+    return (
+      <View style={styles.container}>
+        <MobileHeader title={t('ride.inProgress')} />
+        <View style={styles.loadingContainer}>
+          <Text style={styles.errorText}>{t('ride.noActiveRide')}</Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -124,12 +173,10 @@ export function MobileRideInProgress({
           <View style={styles.mapContent}>
             <MapPin size={64} color="#16a34a" />
             <Text style={styles.mapTitle}>
-              {language === 'fr' ? 'Trajet en cours...' : 'Ride in progress...'}
+              {t('ride.inProgressMessage')}
             </Text>
             <Text style={styles.mapSubtitle}>
-              {language === 'fr'
-                ? 'GPS tracking actif'
-                : 'GPS tracking active'}
+              {t('ride.gpsActive')}
             </Text>
           </View>
 
@@ -138,7 +185,7 @@ export function MobileRideInProgress({
             <View style={styles.pauseOverlay}>
               <Pause size={64} color="white" />
               <Text style={styles.pauseText}>
-                {language === 'fr' ? 'Trajet en pause' : 'Ride Paused'}
+                {t('ride.pausedMessage')}
               </Text>
             </View>
           )}
@@ -151,16 +198,16 @@ export function MobileRideInProgress({
               <View style={styles.bikeInfo}>
                 <View>
                   <Text style={styles.cardLabel}>
-                    {language === 'fr' ? 'Vélo actuel' : 'Current Bike'}
+                    {t('ride.currentBike')}
                   </Text>
-                  <Text style={styles.bikeName}>{bike.name}</Text>
+                  <Text style={styles.bikeName}>{bike.code}</Text>
                   <Text style={styles.bikeModel}>{bike.model}</Text>
                 </View>
                 <View style={styles.batteryInfo}>
                   <Text style={styles.cardLabel}>
-                    {language === 'fr' ? 'Batterie' : 'Battery'}
+                    {t('bike.battery')}
                   </Text>
-                  <Text style={styles.batteryLevel}>{bike.battery}%</Text>
+                  <Text style={styles.batteryLevel}>{bike.batteryLevel}%</Text>
                 </View>
               </View>
             </View>
@@ -183,7 +230,9 @@ export function MobileRideInProgress({
                 <DollarSign size={24} color="#16a34a" />
                 <Text style={styles.statLabel}>{t('ride.currentCost')}</Text>
                 <Text style={styles.statValue}>
-                  {currentCost} <Text style={styles.currencySmall}>{user?.wallet.currency}</Text>
+                  {currentCost} <Text style={styles.currencySmall}>
+                    {user?.wallet?.currency || 'XAF'}
+                  </Text>
                 </Text>
               </View>
             </View>
@@ -192,26 +241,27 @@ export function MobileRideInProgress({
             <View style={styles.costCard}>
               <View style={styles.costRow}>
                 <Text style={styles.costLabel}>
-                  {language === 'fr' ? 'Temps écoulé' : 'Elapsed Time'}
+                  {t('ride.elapsedTime')}
                 </Text>
                 <Text style={styles.costValue}>
-                  {Math.ceil(duration / 60)} {language === 'fr' ? 'min' : 'min'}
+                  {Math.ceil(duration / 60)} {t('common.minutes')}
                 </Text>
               </View>
               <View style={styles.costRow}>
                 <Text style={styles.costLabel}>
-                  {language === 'fr' ? 'Tarif' : 'Rate'}
+                  {t('ride.rate')}
                 </Text>
                 <Text style={styles.costValue}>
-                  {bike.pricePerMinute} {user?.wallet.currency}/min
+                  {bike.pricingPlan?.hourlyRate || '0.5'} {user?.wallet?.currency || 'XAF'}/
+                  {bike.pricingPlan ? t('common.hour') : t('common.minute')}
                 </Text>
               </View>
               <View style={[styles.costRow, styles.totalRow]}>
                 <Text style={styles.totalLabel}>
-                  {language === 'fr' ? 'Total estimé' : 'Estimated Total'}
+                  {t('ride.estimatedTotal')}
                 </Text>
                 <Text style={styles.totalValue}>
-                  {currentCost} {user?.wallet.currency}
+                  {currentCost} {user?.wallet?.currency || 'XAF'}
                 </Text>
               </View>
             </View>
@@ -226,14 +276,14 @@ export function MobileRideInProgress({
                   <>
                     <Play size={20} color="#374151" />
                     <Text style={styles.pauseButtonText}>
-                      {language === 'fr' ? 'Reprendre' : 'Resume'}
+                      {t('ride.resume')}
                     </Text>
                   </>
                 ) : (
                   <>
                     <Pause size={20} color="#374151" />
                     <Text style={styles.pauseButtonText}>
-                      {t('ride.pauseRide')}
+                      {t('ride.pause')}
                     </Text>
                   </>
                 )}
@@ -242,10 +292,11 @@ export function MobileRideInProgress({
               <TouchableOpacity
                 onPress={handleEndRide}
                 style={styles.endButton}
+                disabled={isLoading}
               >
                 <StopCircle size={20} color="white" />
                 <Text style={styles.endButtonText}>
-                  {t('ride.endRide')}
+                  {isLoading ? t('common.loading') : t('ride.endRide')}
                 </Text>
               </TouchableOpacity>
 
@@ -263,9 +314,7 @@ export function MobileRideInProgress({
             {/* Safety Info */}
             <View style={styles.safetyCard}>
               <Text style={styles.safetyText}>
-                {language === 'fr'
-                  ? '⚠️ Pensez à porter un casque et à respecter le code de la route'
-                  : '⚠️ Remember to wear a helmet and follow traffic rules'}
+                {t('ride.safetyReminder')}
               </Text>
             </View>
           </View>
@@ -282,48 +331,34 @@ export function MobileRideInProgress({
         <View style={styles.dialogOverlay}>
           <View style={styles.dialogContent}>
             <Text style={styles.dialogTitle}>
-              {language === 'fr' ? 'Terminer le trajet ?' : 'End ride?'}
+              {t('ride.confirmEnd')}
             </Text>
-            <Text style={styles.dialogDescription}>
-              {language === 'fr' ? (
-                <>
-                  <Text style={styles.dialogSummary}>Résumé de votre trajet :</Text>
-                  <View style={styles.rideSummary}>
-                    <Text style={styles.summaryItem}>• Durée : {formatTime(duration)}</Text>
-                    <Text style={styles.summaryItem}>• Distance : {distance.toFixed(2)} km</Text>
-                    <Text style={styles.summaryItem}>• Coût : {currentCost} {user?.wallet.currency}</Text>
-                  </View>
-                  <Text style={styles.dialogWarning}>
-                    Le montant sera débité de votre portefeuille.
-                  </Text>
-                </>
-              ) : (
-                <>
-                  <Text style={styles.dialogSummary}>Your ride summary:</Text>
-                  <View style={styles.rideSummary}>
-                    <Text style={styles.summaryItem}>• Duration: {formatTime(duration)}</Text>
-                    <Text style={styles.summaryItem}>• Distance: {distance.toFixed(2)} km</Text>
-                    <Text style={styles.summaryItem}>• Cost: {currentCost} {user?.wallet.currency}</Text>
-                  </View>
-                  <Text style={styles.dialogWarning}>
-                    The amount will be deducted from your wallet.
-                  </Text>
-                </>
-              )}
-            </Text>
+            <View style={styles.dialogDescription}>
+              <Text style={styles.dialogSummary}>{t('ride.summaryTitle')}</Text>
+              <View style={styles.rideSummary}>
+                <Text style={styles.summaryItem}>• {t('ride.duration')}: {formatTime(duration)}</Text>
+                <Text style={styles.summaryItem}>• {t('ride.distance')}: {distance.toFixed(2)} km</Text>
+                <Text style={styles.summaryItem}>• {t('ride.cost')}: {currentCost} {user?.wallet?.currency || 'XAF'}</Text>
+              </View>
+              <Text style={styles.dialogWarning}>
+                {t('ride.chargeWarning')}
+              </Text>
+            </View>
             <View style={styles.dialogActions}>
               <TouchableOpacity
                 style={styles.dialogCancel}
                 onPress={() => setShowEndDialog(false)}
+                disabled={isLoading}
               >
                 <Text style={styles.dialogCancelText}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={styles.dialogConfirm}
+                style={[styles.dialogConfirm, isLoading && { opacity: 0.5 }]}
                 onPress={confirmEndRide}
+                disabled={isLoading}
               >
                 <Text style={styles.dialogConfirmText}>
-                  {t('ride.endRide')}
+                  {isLoading ? t('common.loading') : t('ride.endRide')}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -334,6 +369,7 @@ export function MobileRideInProgress({
   );
 }
 
+// Les styles restent identiques...
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -342,9 +378,24 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#6b7280',
+    marginTop: 16,
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#ef4444',
+    textAlign: 'center',
+  },
   mapContainer: {
     height: '40%',
-    backgroundColor: 'linear-gradient(135deg, #dbeafe 0%, #dcfce7 100%)',
+    backgroundColor: '#dbeafe',
     position: 'relative',
   },
   mapContent: {
@@ -570,8 +621,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   dialogDescription: {
-    fontSize: 14,
-    color: '#6b7280',
     marginBottom: 24,
   },
   dialogSummary: {
