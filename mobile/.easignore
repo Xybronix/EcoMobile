@@ -1,23 +1,25 @@
-# Ignorer les dossiers et fichiers non nécessaires à la construction
+# Ignorer les dossiers et fichiers non nécessaires à la construction EAS
 
-# Fichiers de configuration spécifiques à l'utilisateur/OS
-.DS_Store
-.idea
-.vscode
-
-# Historique de Git (non nécessaire pour le build)
-.git
-
-# Dossiers de cache locaux d'Expo
-.expo/web
-.expo/packager-info.json
-
-# Logs
+# Dossiers de cache et d'outils locaux
+.expo/
+.vscode/
+.idea/
+.git/
+.svn/
 *.log
 
-# Images de très haute résolution, vidéos ou autres assets lourds 
-# (Si vous avez des fichiers de 50 Mo+ dans 'assets', les ignorer temporairement 
-# peut vous aider à identifier la source de l'erreur, même si vous en avez besoin plus tard)
+# Dossiers de plateformes inutiles pour la construction sur le cloud (EAS les génère)
+ios/
+android/
 
-# Note: 'node_modules' est généralement ignoré par défaut, mais inclure ceci ne fait pas de mal
+# Dépendances (déjà ignorées par défaut, mais une bonne pratique)
 node_modules/
+
+# Fichiers volumineux (si vous avez identifié un dossier d'assets très lourd)
+# Par exemple, si vous avez un dossier 'downloads' avec des fichiers volumineux:
+# assets/downloads/
+
+# Si vous avez des fichiers zip, vidéos, ou autres médias volumineux non essentiels à la compilation
+# (À ne faire que si vous n'avez pas besoin de ces fichiers pour le build)
+# **/*.zip
+# **/*.mp4
