@@ -1,0 +1,23 @@
+# Ignorer les dossiers et fichiers non nécessaires à la construction
+
+# Fichiers de configuration spécifiques à l'utilisateur/OS
+.DS_Store
+.idea
+.vscode
+
+# Historique de Git (non nécessaire pour le build)
+.git
+
+# Dossiers de cache locaux d'Expo
+.expo/web
+.expo/packager-info.json
+
+# Logs
+*.log
+
+# Images de très haute résolution, vidéos ou autres assets lourds 
+# (Si vous avez des fichiers de 50 Mo+ dans 'assets', les ignorer temporairement 
+# peut vous aider à identifier la source de l'erreur, même si vous en avez besoin plus tard)
+
+# Note: 'node_modules' est généralement ignoré par défaut, mais inclure ceci ne fait pas de mal
+node_modules/
