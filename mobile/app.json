@@ -19,8 +19,10 @@
       "supportsTablet": true,
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "L'application a besoin d'accéder à vos photos pour modifier votre photo de profil.",
-        "NSCameraUsageDescription": "L'application a besoin d'accéder à votre caméra pour prendre une photo de profil."
-      }
+        "NSCameraUsageDescription": "L'application a besoin d'accéder à votre caméra pour prendre une photo de profil.",
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "bundleIdentifier": "com.anonymous.EcoMobile"
     },
     "android": {
       "adaptiveIcon": {
