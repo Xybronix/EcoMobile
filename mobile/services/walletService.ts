@@ -1,3 +1,4 @@
+// services/walletService.ts
 import { API_CONFIG, handleApiResponse, ApiError } from '@/lib/api/config';
 import { authService } from './authService';
 
@@ -12,8 +13,8 @@ export interface Transaction {
   id: string;
   amount: number;
   currency: string;
-  type: 'deposit' | 'withdrawal' | 'ride_payment' | 'refund' | 'bonus';
-  status: 'pending' | 'completed' | 'failed' | 'cancelled';
+  type: 'DEPOSIT' | 'RIDE_PAYMENT' | 'REFUND' | 'DEPOSIT_RECHARGE' | 'DAMAGE_CHARGE';
+  status: 'PENDING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
   description: string;
   rideId?: string;
   paymentMethod?: string;
@@ -77,7 +78,7 @@ class WalletService {
       });
 
       const data = await handleApiResponse(response);
-      return data.data || data; // Gérer les différents formats de réponse
+      return data.data || data;
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(this.getErrorMessage(error));
@@ -106,15 +107,8 @@ class WalletService {
 
       const data = await handleApiResponse(response);
       
-      // Mapper les types du backend vers les types frontend si nécessaire
-      const mappedTransactions = (data.data?.transactions || data.transactions || []).map((t: any) => ({
-        ...t,
-        type: this.mapTransactionType(t.type),
-        status: this.mapTransactionStatus(t.status)
-      }));
-
       return {
-        transactions: mappedTransactions,
+        transactions: data.data?.transactions || data.transactions || [],
         total: data.data?.total || data.total || 0,
         page: data.data?.page || data.page || page,
         totalPages: Math.ceil((data.data?.total || data.total || 0) / limit)
@@ -232,25 +226,152 @@ class WalletService {
     }
   }
 
-  // Méthodes utilitaires pour mapper les types backend/frontend
-  private mapTransactionType(backendType: string): Transaction['type'] {
-    const typeMap: { [key: string]: Transaction['type'] } = {
-      'DEPOSIT': 'deposit',
-      'WITHDRAWAL': 'withdrawal', 
-      'RIDE_PAYMENT': 'ride_payment',
-      'REFUND': 'refund'
-    };
-    return typeMap[backendType] || 'deposit';
+  async getDepositInfo(): Promise<{
+    currentDeposit: number;
+    requiredDeposit: number;
+    canUseService: boolean;
+    negativeBalance: number;
+  }> {
+    const headers = await this.getAuthHeaders();
+    
+    try {
+      const response = await fetch(`${this.baseUrl}/deposit-info`, {
+        method: 'GET',
+        headers,
+      });
+
+      const data = await handleApiResponse(response);
+      return data.data || data;
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new Error(this.getErrorMessage(error));
+      }
+      throw new Error('network_error');
+    }
   }
 
-  private mapTransactionStatus(backendStatus: string): Transaction['status'] {
-    const statusMap: { [key: string]: Transaction['status'] } = {
-      'PENDING': 'pending',
-      'COMPLETED': 'completed',
-      'FAILED': 'failed',
-      'CANCELLED': 'cancelled'
-    };
-    return statusMap[backendStatus] || 'pending';
+  async getCurrentSubscription(): Promise<{
+    id: string;
+    planName: string;
+    packageType: string;
+    startDate: string;
+    endDate: string;
+    status: string;
+  } | null> {
+    const headers = await this.getAuthHeaders();
+    
+    try {
+      const response = await fetch(`${this.baseUrl}/current-subscription`, {
+        method: 'GET',
+        headers,
+      });
+
+      const data = await handleApiResponse(response);
+      return data.data || null;
+    } catch (error) {
+      console.error('Error getting current subscription:', error);
+      return null;
+    }
+  }
+
+  async getUserReports(): Promise<any[]> {
+    const headers = await this.getAuthHeaders();
+    
+    try {
+      const response = await fetch(`${this.baseUrl}/user-reports`, {
+        method: 'GET',
+        headers,
+      });
+
+      const data = await handleApiResponse(response);
+      return data.data || [];
+    } catch (error) {
+      console.error('Error getting user reports:', error);
+      return [];
+    }
+  }
+
+  async rechargeDeposit(amount: number): Promise<void> {
+    const headers = await this.getAuthHeaders();
+    
+    try {
+      const response = await fetch(`${this.baseUrl}/deposit/recharge`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ amount }),
+      });
+
+      await handleApiResponse(response);
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new Error(this.getErrorMessage(error));
+      }
+      throw new Error('network_error');
+    }
+  }
+
+  async requestCashDeposit(request: { 
+    amount: number; 
+    description?: string 
+  }): Promise<{ 
+    transactionId: string; 
+    status: string; 
+  }> {
+    const headers = await this.getAuthHeaders();
+    
+    try {
+      const response = await fetch(`${this.baseUrl}/deposit/cash`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(request),
+      });
+      
+      const data = await handleApiResponse(response);
+      return data.data || data;
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new Error(this.getErrorMessage(error));
+      }
+      throw new Error('network_error');
+    }
+  }
+
+  async updateCashDepositRequest(transactionId: string, amount: number): Promise<void> {
+    const headers = await this.getAuthHeaders();
+    
+    try {
+      const response = await fetch(`${this.baseUrl}/deposit/cash/${transactionId}`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify({ amount }),
+      });
+      
+      const data = await handleApiResponse(response);
+      return data.data || data;
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new Error(this.getErrorMessage(error));
+      }
+      throw new Error('network_error');
+    }
+  }
+
+  async cancelCashDepositRequest(transactionId: string): Promise<void> {
+    const headers = await this.getAuthHeaders();
+    
+    try {
+      const response = await fetch(`${this.baseUrl}/deposit/cash/${transactionId}`, {
+        method: 'DELETE',
+        headers,
+      });
+      
+      await handleApiResponse(response);
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new Error(this.getErrorMessage(error));
+      }
+      throw new Error('network_error');
+    }
   }
 
   private getErrorMessage(error: ApiError): string {

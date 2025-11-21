@@ -59,6 +59,13 @@ export function Sidebar({ isCollapsed }: SidebarProps) {
           action: 'read'
         },
         { 
+          id: 'bikesAction', 
+          label: t('nav.bikes'), 
+          path: '/admin/bikes/actions',
+          resource: 'bikes',
+          action: 'read'
+        },
+        { 
           id: 'users', 
           label: t('nav.users'), 
           path: '/admin/users',
@@ -92,6 +99,13 @@ export function Sidebar({ isCollapsed }: SidebarProps) {
           path: '/admin/financial',
           resource: 'wallet',
           action: 'read'
+        },
+        { 
+          id: 'wallet-transactions', 
+          label: 'Transactions Wallet', 
+          path: '/admin/wallet',
+          resource: 'wallet',
+          action: 'manage'
         },
         { 
           id: 'pricing', 

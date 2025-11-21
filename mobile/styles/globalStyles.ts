@@ -143,6 +143,9 @@ export const createGlobalStyles = (colorScheme: 'light' | 'dark') => {
     alignCenter: {
       alignItems: 'center',
     },
+    alignEnd: {
+      alignItems: 'flex-end',
+    },
     justifyStart: {
       justifyContent: 'flex-start',
     },

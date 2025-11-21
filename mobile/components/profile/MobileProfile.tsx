@@ -8,7 +8,7 @@ import type { UserStats } from '@/services/userService';
 import { getGlobalStyles } from '@/styles/globalStyles';
 import { haptics } from '@/utils/haptics';
 import { storeLanguage } from '@/utils/storage';
-import { Bell, ChevronRight, FileText, Globe, HelpCircle, LogOut, MessageCircle, Shield, User } from 'lucide-react-native';
+import { Bell, ChevronRight, FileText, Globe, HelpCircle, LogOut, MessageCircle, Shield, User, Wallet } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { RefreshControl, ScrollView, TouchableOpacity, View } from 'react-native';
 import { useMobileAuth } from '@/lib/mobile-auth';
@@ -127,6 +127,16 @@ export default function MobileProfile({ onNavigate }: MobileProfileProps) {
             onNavigate('edit-profile');
           },
           color: '#2563eb',
+        },
+        {
+          icon: Wallet,
+          label: 'Gestion de compte',
+          onPress: () => {
+            haptics.light();
+            onNavigate('account-management');
+          },
+          color: '#16a34a',
+          badge: unreadNotifications > 0 ? unreadNotifications : undefined,
         },
         {
           icon: Shield,

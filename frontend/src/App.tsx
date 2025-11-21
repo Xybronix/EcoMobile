@@ -13,12 +13,15 @@ import { BikeManagement } from './components/admin/Bikes/BikeManagement';
 import { BikeDetails } from './components/admin/Bikes/BikeDetails';
 import { BikeTripHistory } from './components/admin/Bikes/BikeTripHistory';
 import { BikeMaintenanceHistory } from './components/admin/Bikes/BikeMaintenanceHistory';
+import { BikeActionManagement } from './components/admin/Bikes/BikeActionManagement';
 import { BikeMap } from './components/admin/Bikes/BikeMap';
 import { UserManagement } from './components/admin/Users/UserManagement';
 import { UserDetails } from './components/admin/Users/UserDetails';
 import { FinancialDashboard } from './components/admin/Financial/FinancialDashboard';
 import { IncidentManagement } from './components/admin/Incidents/IncidentManagement';
 import { ReviewManagement } from './components/admin/Review/ReviewManagement';
+import { WalletManagement } from './components/admin/Wallet/WalletManagement';
+import { ReservationManagement } from './components/admin/Reservations/ReservationManagement';
 import { PricingConfig } from './components/admin/Settings/PricingConfig';
 import { CompanySettings } from './components/admin/Settings/CompanySettings';
 import { EmployeeManagement } from './components/admin/Employees/EmployeeManagement';
@@ -50,6 +53,7 @@ export default function App() {
               
               {/* Bike Management */}
               <Route path="bikes" element={<ProtectedAccess mode="route" resource="bikes" action="read"><BikeManagement /></ProtectedAccess>} />
+              <Route path="bikes/actions" element={<ProtectedAccess mode="route" resource="bikes" action="read"><BikeActionManagement /></ProtectedAccess>} />
               <Route path="bikes/:id" element={<ProtectedAccess mode="route" resource="bikes" action="read"><BikeDetails /></ProtectedAccess>} />
               <Route path="bikes/:id/trips" element={<ProtectedAccess mode="route" resource="bikes" action="read"><BikeTripHistory /></ProtectedAccess>} />
               <Route path="bikes/:id/maintenance" element={<ProtectedAccess mode="route" resource="bikes" action="read"><BikeMaintenanceHistory /></ProtectedAccess>} />
@@ -58,6 +62,9 @@ export default function App() {
               {/* User Management */}
               <Route path="users" element={<ProtectedAccess mode="route" resource="users" action="read"><UserManagement /></ProtectedAccess>} />
               <Route path="users/:id" element={<ProtectedAccess mode="route" resource="users" action="read"><UserDetails /></ProtectedAccess>} />
+
+              {/* Reservations */}
+              <Route path="reservations" element={<ProtectedAccess mode="route" resource="incidents" action="read"><ReservationManagement /></ProtectedAccess>} />
               
               {/* Financial */}
               <Route path="financial" element={<ProtectedAccess mode="route" resource="wallet" action="read"><FinancialDashboard /></ProtectedAccess>} />
@@ -69,6 +76,7 @@ export default function App() {
               <Route path="reviews" element={<ProtectedAccess mode="route" resource="reviews" action="read"><ReviewManagement /></ProtectedAccess>} />
               
               {/* Settings */}
+              <Route path="wallet" element={<ProtectedAccess mode="route" resource="wallet" action="read"><WalletManagement /></ProtectedAccess>} />
               <Route path="pricing" element={<ProtectedAccess mode="route" resource="pricing" action="read"><PricingConfig /></ProtectedAccess>} />
               <Route path="settings" element={<ProtectedAccess mode="route" resource="settings" action="read"><CompanySettings /></ProtectedAccess>} />
               

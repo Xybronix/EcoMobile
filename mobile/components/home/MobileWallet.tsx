@@ -18,11 +18,13 @@ export function MobileWallet({ onBack, onNavigate }: MobileWalletProps) {
   const [showTopUpDialog, setShowTopUpDialog] = useState(false);
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
   const [customAmount, setCustomAmount] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<'orange-money' | 'mobile-money'>('orange-money');
+  const [paymentMethod, setPaymentMethod] = useState<'orange-money' | 'mobile-money' | 'cash'>('orange-money');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [walletBalance, setWalletBalance] = useState<WalletBalance | null>(null);
+  const [editingCashRequest, setEditingCashRequest] = useState(null);
+  const [newCashAmount, setNewCashAmount] = useState('');
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [error, setError] = useState<string | null>(null);
 
@@ -81,7 +83,8 @@ export function MobileWallet({ onBack, onNavigate }: MobileWalletProps) {
     try {
       const paymentMethodMap = {
         'orange-money': 'ORANGE_MONEY',
-        'mobile-money': 'MOMO'
+        'mobile-money': 'MOMO',
+        'cash': 'EN ESPECES'
       };
 
       const result = await walletService.initiateDeposit({
@@ -112,6 +115,98 @@ export function MobileWallet({ onBack, onNavigate }: MobileWalletProps) {
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  const handleCashTopUp = async () => {
+    const amount = selectedAmount || parseInt(customAmount);
+    
+    if (!amount || amount <= 0) {
+      toast.error(t('wallet.selectValidAmount'));
+      return;
+    }
+    
+    if (amount < 500) {
+      toast.error('Le montant minimum pour une recharge en espèces est de 500 FCFA');
+      return;
+    }
+    
+    setIsProcessing(true);
+    
+    try {
+      const result = await walletService.requestCashDeposit({
+        amount,
+        description: 'Demande de recharge en espèces'
+      });
+      
+      toast.success('Demande de recharge en espèces créée avec succès. Un administrateur va valider votre demande.');
+      
+      // Rafraîchir les données du portefeuille
+      loadWalletData();
+      setShowTopUpDialog(false);
+      setSelectedAmount(null);
+      setCustomAmount('');
+    } catch (error) {
+      console.error('Error requesting cash deposit:', error);
+      toast.error('Erreur lors de la création de la demande de recharge');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleUpdateCashRequest = async (transactionId: string) => {
+    const amount = parseInt(newCashAmount);
+    
+    if (!amount || amount < 500) {
+      toast.error('Le montant minimum est de 500 FCFA');
+      return;
+    }
+    
+    try {
+      await walletService.updateCashDepositRequest(transactionId, amount);
+      toast.success('Demande de recharge modifiée avec succès');
+      setEditingCashRequest(null);
+      setNewCashAmount('');
+      loadWalletData();
+    } catch (error) {
+      console.error('Error updating cash request:', error);
+      toast.error('Erreur lors de la modification de la demande');
+    }
+  };
+
+  const handleCancelCashRequest = async (transactionId: string) => {
+    try {
+      await walletService.cancelCashDepositRequest(transactionId);
+      toast.success('Demande de recharge annulée avec succès');
+      loadWalletData();
+    } catch (error) {
+      console.error('Error cancelling cash request:', error);
+      toast.error('Erreur lors de l\'annulation de la demande');
+    }
+  };
+
+  const canModifyTransaction = (transaction: Transaction) => {
+    return transaction.type === 'deposit' && 
+          transaction.status === 'pending' && 
+          transaction.paymentMethod === 'CASH' && 
+          (transaction as any).canModify !== false;
+  };
+
+  const getCashStatusLabel = (transaction: Transaction) => {
+    if (transaction.paymentMethod === 'CASH') {
+      switch (transaction.status) {
+        case 'pending':
+          return 'En attente de validation';
+        case 'completed':
+          return 'Validée';
+        case 'failed':
+          return 'Rejetée';
+        case 'cancelled':
+          return 'Annulée';
+        default:
+          return getStatusLabel(transaction.status);
+      }
+    }
+    return getStatusLabel(transaction.status);
   };
 
   const getPaymentIcon = (transaction: Transaction) => {
