@@ -151,7 +151,7 @@ class BikeRequestService {
       queryParams.append('page', page.toString());
       queryParams.append('limit', limit.toString());
       
-      const response = await fetch(`${this.baseUrl}/unlock-requests/user?${queryParams.toString()}`, {
+      const response = await fetch(`${this.baseUrl}/bike-requests/unlock-requests/user?${queryParams.toString()}`, {
         method: 'GET',
         headers,
       });
@@ -183,7 +183,7 @@ class BikeRequestService {
       queryParams.append('page', page.toString());
       queryParams.append('limit', limit.toString());
       
-      const response = await fetch(`${this.baseUrl}/lock-requests/user?${queryParams.toString()}`, {
+      const response = await fetch(`${this.baseUrl}/bike-requests/lock-requests/user?${queryParams.toString()}`, {
         method: 'GET',
         headers,
       });
