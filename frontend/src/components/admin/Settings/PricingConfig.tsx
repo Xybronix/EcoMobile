@@ -49,7 +49,10 @@ export function PricingConfig() {
     minimumHours: 1,
     discount: 0,
     isActive: true,
-    conditions: [] as string[]
+    conditions: [] as string[],
+    hasOverride: false,
+    overTimeType: 'PERCENTAGE_REDUCTION' as 'FIXED_PRICE' | 'PERCENTAGE_REDUCTION',
+    overTimeValue: 0
   });
 
   const [editedRule, setEditedRule] = useState({
@@ -193,11 +196,23 @@ export function PricingConfig() {
       return;
     }
 
+    const planData = {
+      name: editedPlan.name,
+      hourlyRate: editedPlan.hourlyRate,
+      dailyRate: editedPlan.dailyRate,
+      weeklyRate: editedPlan.weeklyRate,
+      monthlyRate: editedPlan.monthlyRate,
+      minimumHours: editedPlan.minimumHours,
+      discount: editedPlan.discount,
+      isActive: editedPlan.isActive,
+      conditions: editedPlan.conditions
+    }; 
+
     try {
       const updatedPlans = isAddingNewPlan 
         ? [...(pricingConfig?.plans || []), { 
             // Create a full PricingPlan shape for new plans (include bikes and bikeCount)
-            ...editedPlan, 
+            ...planData, 
             id: Date.now().toString(),
             bikes: [],
             bikeCount: 0
@@ -215,6 +230,26 @@ export function PricingConfig() {
       };
 
       await companyService.updatePricing(newConfig);
+
+      const planId = isAddingNewPlan 
+        ? updatedPlans[updatedPlans.length - 1].id 
+        : selectedPlan!.id;
+
+      if (editedPlan.hasOverride && planId) {
+        if (editedPlan.overTimeValue > 0) {
+          await companyService.createPlanOverride(
+            planId, 
+            editedPlan.overTimeType, 
+            editedPlan.overTimeValue
+          );
+        }
+      } else if (!editedPlan.hasOverride && planId) {
+        try {
+          await companyService.deletePlanOverride(planId);
+        } catch (error) {
+          // Ignorer l'erreur si l'override n'existe pas
+        }
+      }
       setPricingConfig(newConfig as PricingConfigType);
       
       toast.success(isAddingNewPlan ? 
@@ -420,7 +455,10 @@ export function PricingConfig() {
       minimumHours: plan.minimumHours,
       discount: plan.discount,
       isActive: plan.isActive,
-      conditions: plan.conditions || []
+      conditions: plan.conditions || [],
+      hasOverride: false,
+      overTimeType: 'PERCENTAGE_REDUCTION' as 'FIXED_PRICE' | 'PERCENTAGE_REDUCTION',
+      overTimeValue: 0
     });
     setFormErrors({});
     setIsEditingPlan(true);
@@ -451,7 +489,10 @@ export function PricingConfig() {
       minimumHours: 1,
       discount: 0,
       isActive: true,
-      conditions: []
+      conditions: [],
+      hasOverride: false,
+      overTimeType: 'PERCENTAGE_REDUCTION' as 'FIXED_PRICE' | 'PERCENTAGE_REDUCTION',
+      overTimeValue: 0
     });
     setFormErrors({});
     setIsAddingNewPlan(true);
@@ -1034,6 +1075,67 @@ export function PricingConfig() {
                   />
                   {formErrors.monthlyRate && <p className="text-xs text-red-500 mt-1">{formErrors.monthlyRate}</p>}
                 </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={editedPlan.hasOverride}
+                    onCheckedChange={(checked: any) => setEditedPlan({ 
+                      ...editedPlan, 
+                      hasOverride: checked,
+                      overTimeValue: checked ? editedPlan.overTimeValue : 0
+                    })}
+                  />
+                  <Label>Tarification spéciale hors forfait</Label>
+                </div>
+
+                {editedPlan.hasOverride && (
+                  <Card className="p-4 bg-yellow-50 border-yellow-200">
+                    <h4 className="text-sm font-medium mb-3 text-yellow-800">
+                      Configuration Overtime (Hors heures forfait)
+                    </h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label>Type de tarification</Label>
+                        <Select 
+                          value={editedPlan.overTimeType} 
+                          onValueChange={(value: 'FIXED_PRICE' | 'PERCENTAGE_REDUCTION') => 
+                            setEditedPlan({ ...editedPlan, overTimeType: value })
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="PERCENTAGE_REDUCTION">Réduction en %</SelectItem>
+                            <SelectItem value="FIXED_PRICE">Prix fixe</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label>
+                          {editedPlan.overTimeType === 'FIXED_PRICE' 
+                            ? 'Prix fixe (FCFA)' 
+                            : 'Réduction (%)'}
+                        </Label>
+                        <Input
+                          type="number"
+                          value={editedPlan.overTimeValue}
+                          onChange={(e) => setEditedPlan({ 
+                            ...editedPlan, 
+                            overTimeValue: parseFloat(e.target.value) || 0 
+                          })}
+                          min="0"
+                          max={editedPlan.overTimeType === 'PERCENTAGE_REDUCTION' ? "100" : undefined}
+                        />
+                      </div>
+                    </div>
+                    <p className="text-xs text-yellow-700 mt-2">
+                      Cette règle s'applique quand les utilisateurs avec forfait dépassent les heures couvertes par leur abonnement.
+                    </p>
+                  </Card>
+                )}
               </div>
 
               <div className="flex items-center gap-2">

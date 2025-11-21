@@ -1,4 +1,3 @@
-// BikeManagement.tsx
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bike, Battery, MapPin, Signal, DollarSign, AlertCircle, Search, Filter, Plus, Edit, Trash2, X, Check } from 'lucide-react';
@@ -83,7 +82,8 @@ export function BikeManagement() {
     maintenanceReason: '',
     maintenanceDetails: '',
     gpsDeviceId: '',
-    equipment: ['headlight', 'taillight', 'bell', 'lock']
+    equipment: ['headlight', 'taillight', 'bell', 'lock'],
+    pricingPlanId: 'none'
   });
 
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof BikeFormData, string>>>({});
@@ -317,7 +317,7 @@ export function BikeManagement() {
       
       await bikeService.createBike(bikeData);
     
-      if (!formData.pricingPlanId) {
+      if (formData.pricingPlanId === 'none') {
         toast.warning('Vélo créé sans plan tarifaire. Il ne sera pas visible dans l\'application client.');
       } else {
         toast.success(`Vélo "${formData.code}" créé avec succès`);
@@ -352,7 +352,7 @@ export function BikeManagement() {
       
       await bikeService.updateBike(selectedBike.id, bikeData);
       
-      if (!formData.pricingPlanId) {
+      if (formData.pricingPlanId === 'none') {
         toast.warning('Vélo modifié sans plan tarifaire. Il ne sera pas visible dans l\'application client.');
       } else {
         toast.success(`Vélo "${formData.code}" modifié avec succès`);
@@ -598,9 +598,9 @@ export function BikeManagement() {
                 <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2">
                   <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
                   <div className="text-xs text-red-700 space-y-1">
-                    {bike.battery < 20 && <p>⚠️ Batterie critique</p>}
-                    {bike.gpsSignal !== undefined && bike.gpsSignal < 50 && <p>⚠️ Signal GPS faible</p>}
-                    {bike.status === 'MAINTENANCE' && <p>⚠️ Maintenance requise</p>}
+                    {bike.battery < 20 && <p>Batterie critique</p>}
+                    {bike.gpsSignal !== undefined && bike.gpsSignal < 50 && <p>Signal GPS faible</p>}
+                    {bike.status === 'MAINTENANCE' && <p>Maintenance requise</p>}
                   </div>
                 </div>
               )}
@@ -708,8 +708,8 @@ export function BikeManagement() {
             <div>
               <Label>Plan Tarifaire (optionnel)</Label>
               <Select 
-                value={formData.pricingPlanId || ''} 
-                onValueChange={(value) => setFormData({ ...formData, pricingPlanId: value || undefined })}
+                value={formData.pricingPlanId || 'none'} 
+                onValueChange={(value) => setFormData({ ...formData, pricingPlanId: value === 'none' ? undefined : value })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Sélectionner un plan tarifaire" />
@@ -774,7 +774,7 @@ export function BikeManagement() {
 
       {/* Edit Bike Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" aria-describedby={undefined}>
+        <DialogContent className="max-w-2xl  max-h-[80vh] overflow-y-auto" aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle>{t('common.edit')} - {selectedBike?.code}</DialogTitle>
           </DialogHeader>
@@ -823,13 +823,14 @@ export function BikeManagement() {
                 <div>
                   <Label>Raison de la maintenance *</Label>
                   <Select 
-                    value={formData.maintenanceReason || ''} 
-                    onValueChange={(value: string) => setFormData({ ...formData, maintenanceReason: value })}
+                    value={formData.maintenanceReason || 'default-reason'} 
+                    onValueChange={(value: string) => setFormData({ ...formData, maintenanceReason: value === 'default-reason' ? '' : value })}
                   >
                     <SelectTrigger className={formErrors.maintenanceReason ? 'border-red-500' : ''}>
                       <SelectValue placeholder="Sélectionner une raison" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="default-reason">Sélectionner une raison</SelectItem>
                       <SelectItem value="Freins défectueux">Freins défectueux</SelectItem>
                       <SelectItem value="Batterie à remplacer">Batterie à remplacer</SelectItem>
                       <SelectItem value="Pneu crevé">Pneu crevé</SelectItem>
@@ -856,14 +857,14 @@ export function BikeManagement() {
             <div>
               <Label>Plan Tarifaire (optionnel)</Label>
               <Select 
-                value={formData.pricingPlanId || ''} 
-                onValueChange={(value) => setFormData({ ...formData, pricingPlanId: value || undefined })}
+                value={formData.pricingPlanId || 'none'} 
+                onValueChange={(value) => setFormData({ ...formData, pricingPlanId: value === 'none' ? undefined : value })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Sélectionner un plan tarifaire" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Aucun plan (vélo non visible dans l'app)</SelectItem>
+                  <SelectItem value="none">Aucun plan (vélo non visible dans l'app)</SelectItem>
                   {availablePlans.map((plan) => (
                     <SelectItem key={plan.id} value={plan.id!}>
                       {plan.name} - {plan.hourlyRate.toLocaleString()} FCFA/h

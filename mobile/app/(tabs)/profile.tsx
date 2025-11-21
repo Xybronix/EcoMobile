@@ -16,6 +16,9 @@ export default function ProfileScreen() {
       case 'edit-profile':
         router.navigate('/(modals)/edit-profile' as any);
         break;
+      case 'account-management':
+        router.navigate('/(modals)/account-management' as any);
+        break;
       case 'security':
         router.navigate('/(modals)/security' as any);
         break;

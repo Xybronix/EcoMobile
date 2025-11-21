@@ -35,6 +35,11 @@ export interface PricingPlan {
   appliedPromotions?: Promotion[];
   bikes: BikePosition[];
   bikeCount: number;
+  override?: {
+    id: string;
+    overTimeType: 'FIXED_PRICE' | 'PERCENTAGE_REDUCTION';
+    overTimeValue: number;
+  };
 }
 
 export interface PricingRule {
@@ -262,6 +267,25 @@ export class CompanyService {
     }
 
     return response.data;
+  }
+
+  async createPlanOverride(planId: string, overTimeType: string, overTimeValue: number): Promise<void> {
+    const response = await apiClient.post(`/admin/plans/${planId}/override`, {
+      overTimeType,
+      overTimeValue
+    });
+    
+    if (!response.success) {
+      throw new Error(response.error || 'Erreur lors de la création de l\'override');
+    }
+  }
+
+  async deletePlanOverride(planId: string): Promise<void> {
+    const response = await apiClient.delete(`/admin/plans/${planId}/override`);
+    
+    if (!response.success) {
+      throw new Error(response.error || 'Erreur lors de la suppression de l\'override');
+    }
   }
 }
 

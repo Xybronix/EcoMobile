@@ -1,38 +1,20 @@
-// services/incidentService.ts
+// services/reservationService.ts
 import { API_CONFIG, handleApiResponse, ApiError } from '@/lib/api/config';
 import { authService } from './authService';
 
-export interface Incident {
+export interface Reservation {
   id: string;
-  userId: string;
-  bikeId?: string;
-  bikeCode?: string;
-  type: string;
-  description: string;
-  status: 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED';
-  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
-  resolvedAt?: string;
-  refundAmount?: number;
-  adminNote?: string;
-  resolvedBy?: string;
+  bikeId: string;
+  planId: string;
+  packageType: string;
+  startDate: string;
+  endDate: string;
+  status: string;
   createdAt: string;
-  updatedAt: string;
-  bike?: {
-    id: string;
-    code: string;
-    model: string;
-  };
 }
 
-export interface CreateIncidentData {
-  type: string;
-  description: string;
-  bikeId?: string;
-  photos?: string[];
-}
-
-class IncidentService {
-  private baseUrl = `${API_CONFIG.BASE_URL}/incidents`;
+class ReservationService {
+  private baseUrl = `${API_CONFIG.BASE_URL}/reservations`;
 
   private async getAuthHeaders() {
     const token = await authService.getToken();
@@ -45,59 +27,45 @@ class IncidentService {
     };
   }
 
-  async getIncidents(page: number = 1, limit: number = 20): Promise<{
-    incidents: Incident[];
-    total: number;
-    page: number;
-    totalPages: number;
-  }> {
-    const headers = await this.getAuthHeaders();
-    
+  async getAvailablePlans(): Promise<any[]> {
     try {
-      const queryParams = new URLSearchParams();
-      queryParams.append('page', page.toString());
-      queryParams.append('limit', limit.toString());
-      
-      const response = await fetch(`${this.baseUrl}?${queryParams.toString()}`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/public/pricing`, {
         method: 'GET',
-        headers,
+        headers: API_CONFIG.HEADERS,
       });
 
       const result = await handleApiResponse(response);
-      return {
-        incidents: result.data?.incidents || result.data || [],
-        total: result.data?.pagination?.total || result.total || 0,
-        page: result.data?.pagination?.page || result.page || page,
-        totalPages: result.data?.pagination?.totalPages || Math.ceil((result.data?.pagination?.total || result.total || 0) / limit)
-      };
+      return result.data?.plans || [];
     } catch (error) {
-      if (error instanceof ApiError) {
-        throw new Error(this.getErrorMessage(error));
-      }
-      throw new Error('network_error');
+      console.error('Error loading plans:', error);
+      return [];
     }
   }
 
-  async getIncident(id: string): Promise<Incident> {
+  async checkAvailability(bikeId: string, date: string, time: string, packageType: string): Promise<boolean> {
     const headers = await this.getAuthHeaders();
     
     try {
-      const response = await fetch(`${this.baseUrl}/${id}`, {
-        method: 'GET',
+      const response = await fetch(`${this.baseUrl}/check-availability`, {
+        method: 'POST',
         headers,
+        body: JSON.stringify({ bikeId, date, time, packageType }),
       });
 
       const result = await handleApiResponse(response);
-      return result.data;
+      return result.data?.available || false;
     } catch (error) {
-      if (error instanceof ApiError) {
-        throw new Error(this.getErrorMessage(error));
-      }
-      throw new Error('network_error');
+      return false;
     }
   }
 
-  async createIncident(data: CreateIncidentData): Promise<Incident> {
+  async createReservation(data: {
+    bikeId: string;
+    planId: string;
+    packageType: string;
+    startDate: string;
+    startTime: string;
+  }): Promise<Reservation> {
     const headers = await this.getAuthHeaders();
     
     try {
@@ -117,7 +85,24 @@ class IncidentService {
     }
   }
 
-  async updateIncident(id: string, data: Partial<CreateIncidentData>): Promise<Incident> {
+  async getUserReservations(): Promise<Reservation[]> {
+    const headers = await this.getAuthHeaders();
+    
+    try {
+      const response = await fetch(this.baseUrl, {
+        method: 'GET',
+        headers,
+      });
+
+      const result = await handleApiResponse(response);
+      return result.data || [];
+    } catch (error) {
+      console.error('Error loading reservations:', error);
+      return [];
+    }
+  }
+
+  async updateReservation(id: string, data: any): Promise<Reservation> {
     const headers = await this.getAuthHeaders();
     
     try {
@@ -137,7 +122,7 @@ class IncidentService {
     }
   }
 
-  async deleteIncident(id: string): Promise<void> {
+  async cancelReservation(id: string): Promise<void> {
     const headers = await this.getAuthHeaders();
     
     try {
@@ -162,17 +147,15 @@ class IncidentService {
       case 401:
         return 'unauthorized';
       case 404:
-        return 'incident_not_found';
+        return 'reservation_not_found';
+      case 409:
+        return 'reservation_conflict';
       case 422:
         return 'validation_error';
-      case 429:
-        return 'too_many_requests';
-      case 500:
-        return 'server_error';
       default:
         return 'unknown_error';
     }
   }
 }
 
-export const incidentService = new IncidentService();
+export const reservationService = new ReservationService();

@@ -34,6 +34,13 @@ export interface Bike {
   qrCode: string;
   gpsDeviceId?: string;
   pricingPlan?: PricingPlan;
+  currentPricing?: {
+    hourlyRate: number;
+    originalHourlyRate?: number;
+    appliedPromotions?: Array<{
+      name: string;
+    }>;
+  };
   lastMaintenanceAt?: string;
   createdAt: string;
   updatedAt: string;
@@ -43,9 +50,9 @@ export interface PricingPlan {
   id: string;
   name: string;
   hourlyRate: number;
-  dailyRate: number;
-  weeklyRate: number;
-  monthlyRate: number;
+  dailyRate?: number;
+  weeklyRate?: number;
+  monthlyRate?: number;
   minimumHours: number;
   discount: number;
   isActive: boolean;

@@ -9,7 +9,7 @@ import { bikeService } from '@/services/bikeService';
 import type { Bike } from '@/services/bikeService';
 import { getGlobalStyles } from '@/styles/globalStyles';
 import { haptics } from '@/utils/haptics';
-import { Battery, MapPin, Navigation2, Unlock, Zap } from 'lucide-react-native';
+import { Battery, Calendar, MapPin, Navigation2, Unlock, Zap } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { Linking, ScrollView, TouchableOpacity, View } from 'react-native';
 import { useMobileAuth } from '@/lib/mobile-auth';
@@ -259,6 +259,21 @@ export function MobileBikeDetails({ bike: initialBike, onBack, onStartRide, onNa
                 <Unlock size={20} color="white" />
                 <Text style={styles.ml8} color="white" size="lg">
                   {t('map.unlock')}
+                </Text>
+              </Button>
+
+              <Button
+                onPress={() => {
+                  haptics.light();
+                  onNavigate?.('bike-reservation', bike);
+                }}
+                variant="outline"
+                fullWidth
+                style={{ height: 56 }}
+              >
+                <Calendar size={20} color="#16a34a" />
+                <Text style={styles.ml8} color="#16a34a" size="lg">
+                  Réserver ce vélo
                 </Text>
               </Button>
             </View>

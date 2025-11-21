@@ -1,5 +1,5 @@
 import { MobileBikeDetails } from '@/components/bike/MobileBikeDetails';
-import type { Bike } from '@/lib/mobile-types';
+import type { Bike } from '@/services/bikeService';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React from 'react';
 
@@ -26,6 +26,12 @@ export default function BikeDetailsScreen() {
         router.navigate({
           pathname: '/(modals)/bike-inspection',
           params: data
+        });
+        break;
+      case 'bike-reservation':
+        router.navigate({
+          pathname: '/(modals)/bike-reservation',
+          params: { bikeData: JSON.stringify(data) }
         });
         break;
       default:
