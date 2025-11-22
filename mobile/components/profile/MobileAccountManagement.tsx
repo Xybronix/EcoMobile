@@ -69,9 +69,16 @@ export function MobileAccountManagement({ onBack, onNavigate }: MobileAccountMan
 
       setWalletData(wallet);
       setDepositInfo(depositData);
-      setCurrentSubscription(subscription);
       setTransactions(userTransactions.transactions || []);
       setIncidents(userIncidents.incidents || []);
+
+      try {
+        const subscription = await walletService.getCurrentSubscription();
+        setCurrentSubscription(subscription);
+      } catch (subscriptionError) {
+        console.log('No active subscription found, this is normal for new users');
+        setCurrentSubscription(null);
+      }
       
     } catch (error) {
       console.error('Error loading account data:', error);
@@ -173,7 +180,7 @@ export function MobileAccountManagement({ onBack, onNavigate }: MobileAccountMan
   const renderOverview = () => (
     <View style={styles.gap16}>
       {/* Current Subscription */}
-      {currentSubscription && (
+      {currentSubscription ? (
         <Card style={[styles.p16, { backgroundColor: '#f0fdf4', borderColor: '#16a34a' }]}>
           <Text variant="body" color="#111827" style={styles.mb8}>
             Forfait Actuel
@@ -190,6 +197,27 @@ export function MobileAccountManagement({ onBack, onNavigate }: MobileAccountMan
             <Badge variant="default">
               Actif
             </Badge>
+          </View>
+        </Card>
+      ) : (
+        // Afficher une carte pour souscrire à un forfait si aucun n'est actif
+        <Card style={[styles.p16, { backgroundColor: '#f8fafc', borderColor: '#e2e8f0' }]}>
+          <Text variant="body" color="#111827" style={styles.mb8}>
+            Aucun forfait actif
+          </Text>
+          <View style={[styles.row, styles.spaceBetween, styles.alignCenter]}>
+            <View style={styles.flex1}>
+              <Text size="sm" color="#6b7280" style={styles.mb4}>
+                Vous n'avez pas de forfait actif. Souscrivez à un forfait pour bénéficier de tarifs avantageux.
+              </Text>
+            </View>
+            <Button
+              variant="primary"
+              size="sm"
+              onPress={() => onNavigate('subscription-plans')} // Assurez-vous que cette navigation existe
+            >
+              <Text>Souscrire</Text>
+            </Button>
           </View>
         </Card>
       )}

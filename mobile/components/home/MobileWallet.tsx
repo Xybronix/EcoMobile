@@ -23,7 +23,7 @@ export function MobileWallet({ onBack, onNavigate }: MobileWalletProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [walletBalance, setWalletBalance] = useState<WalletBalance | null>(null);
-  const [editingCashRequest, setEditingCashRequest] = useState(null);
+  const [editingCashRequest, setEditingCashRequest] = useState<string | null>(null);
   const [newCashAmount, setNewCashAmount] = useState('');
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -82,7 +82,7 @@ export function MobileWallet({ onBack, onNavigate }: MobileWalletProps) {
 
     try {
       const paymentMethodMap = {
-        'orange-money': 'ORANGE_MONEY',
+        'orange-money': 'ORANGE MONEY',
         'mobile-money': 'MOMO',
         'cash': 'EN ESPECES'
       };
@@ -95,7 +95,6 @@ export function MobileWallet({ onBack, onNavigate }: MobileWalletProps) {
 
       toast.success(t('wallet.depositInitiated'));
 
-      // Rafraîchir les données du portefeuille
       loadWalletData();
 
       setShowTopUpDialog(false);
@@ -185,8 +184,8 @@ export function MobileWallet({ onBack, onNavigate }: MobileWalletProps) {
   };
 
   const canModifyTransaction = (transaction: Transaction) => {
-    return transaction.type === 'deposit' && 
-          transaction.status === 'pending' && 
+    return transaction.type === 'DEPOSIT' && 
+          transaction.status === 'PENDING' && 
           transaction.paymentMethod === 'CASH' && 
           (transaction as any).canModify !== false;
   };
@@ -194,13 +193,13 @@ export function MobileWallet({ onBack, onNavigate }: MobileWalletProps) {
   const getCashStatusLabel = (transaction: Transaction) => {
     if (transaction.paymentMethod === 'CASH') {
       switch (transaction.status) {
-        case 'pending':
+        case 'PENDING':
           return 'En attente de validation';
-        case 'completed':
+        case 'COMPLETED':
           return 'Validée';
-        case 'failed':
+        case 'FAILED':
           return 'Rejetée';
-        case 'cancelled':
+        case 'CANCELLED':
           return 'Annulée';
         default:
           return getStatusLabel(transaction.status);
@@ -211,12 +210,9 @@ export function MobileWallet({ onBack, onNavigate }: MobileWalletProps) {
 
   const getPaymentIcon = (transaction: Transaction) => {
     switch (transaction.type) {
-      case 'deposit':
-      case 'refund':
-      case 'bonus':
-        return <ArrowUpRight size={20} color="#16a34a" />;
-      case 'withdrawal':
-      case 'ride_payment':
+      case 'DEPOSIT':
+      case 'REFUND':
+      case 'RIDE_PAYMENT':
         return <ArrowDownLeft size={20} color="#dc2626" />;
       default:
         return <ArrowUpRight size={20} color="#2563eb" />;
@@ -225,16 +221,12 @@ export function MobileWallet({ onBack, onNavigate }: MobileWalletProps) {
 
   const getPaymentTypeLabel = (type: Transaction['type']) => {
     switch (type) {
-      case 'deposit':
+      case 'DEPOSIT':
         return t('wallet.transaction.deposit');
-      case 'withdrawal':
-        return t('wallet.transaction.withdrawal');
-      case 'ride_payment':
+      case 'RIDE_PAYMENT':
         return t('wallet.transaction.ridePayment');
-      case 'refund':
+      case 'REFUND':
         return t('wallet.transaction.refund');
-      case 'bonus':
-        return t('wallet.transaction.bonus');
       default:
         return type;
     }
@@ -242,13 +234,13 @@ export function MobileWallet({ onBack, onNavigate }: MobileWalletProps) {
 
   const getStatusLabel = (status: Transaction['status']) => {
     switch (status) {
-      case 'completed':
+      case 'COMPLETED':
         return t('wallet.status.completed');
-      case 'pending':
+      case 'PENDING':
         return t('wallet.status.pending');
-      case 'failed':
+      case 'FAILED':
         return t('wallet.status.failed');
-      case 'cancelled':
+      case 'CANCELLED':
         return t('wallet.status.cancelled');
       default:
         return status;
@@ -257,13 +249,13 @@ export function MobileWallet({ onBack, onNavigate }: MobileWalletProps) {
 
   const getStatusStyle = (status: Transaction['status']) => {
     switch (status) {
-      case 'completed':
+      case 'COMPLETED':
         return styles.completedBadge;
-      case 'pending':
+      case 'PENDING':
         return styles.pendingBadge;
-      case 'failed':
+      case 'FAILED':
         return styles.failedBadge;
-      case 'cancelled':
+      case 'CANCELLED':
         return styles.cancelledBadge;
       default:
         return styles.pendingBadge;
@@ -390,6 +382,7 @@ export function MobileWallet({ onBack, onNavigate }: MobileWalletProps) {
                       <View style={styles.transactionInfo}>
                         <Text style={styles.transactionType}>
                           {getPaymentTypeLabel(transaction.type)}
+                          {transaction.paymentMethod === 'CASH' && ' (Espèces)'}
                         </Text>
                         <Text style={styles.transactionDate}>
                           {new Date(transaction.createdAt).toLocaleDateString(
@@ -402,6 +395,18 @@ export function MobileWallet({ onBack, onNavigate }: MobileWalletProps) {
                             }
                           )}
                         </Text>
+                        
+                        {/* Afficher le statut spécifique pour les paiements en espèces */}
+                        {transaction.paymentMethod === 'CASH' && (
+                          <Text style={[
+                            styles.transactionStatus,
+                            transaction.status === 'PENDING' && styles.pendingStatus,
+                            transaction.status === 'COMPLETED' && styles.completedStatus,
+                            transaction.status === 'FAILED' && styles.failedStatus,
+                          ]}>
+                            {getCashStatusLabel(transaction)}
+                          </Text>
+                        )}
                       </View>
 
                       <View style={styles.transactionAmount}>
@@ -414,19 +419,57 @@ export function MobileWallet({ onBack, onNavigate }: MobileWalletProps) {
                           {['withdrawal', 'ride_payment'].includes(transaction.type) ? '-' : '+'}
                           {transaction.amount} {transaction.currency}
                         </Text>
-                        <View style={[
-                          styles.statusBadge,
-                          getStatusStyle(transaction.status)
-                        ]}>
-                          <Text style={[
-                            styles.statusText,
-                            transaction.status === 'pending' && styles.pendingStatusText
-                          ]}>
-                            {getStatusLabel(transaction.status)}
-                          </Text>
-                        </View>
+                        
+                        {/* Actions pour les demandes en espèces en attente */}
+                        {canModifyTransaction(transaction) && (
+                          <View style={styles.cashActions}>
+                            <TouchableOpacity 
+                              style={styles.editButton}
+                              onPress={() => {
+                                setEditingCashRequest(transaction.id);
+                                setNewCashAmount(transaction.amount.toString());
+                              }}
+                            >
+                              <Text style={styles.editButtonText}>Modifier</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity 
+                              style={styles.cancelButton}
+                              onPress={() => handleCancelCashRequest(transaction.id)}
+                            >
+                              <Text style={styles.cancelButtonText}>Annuler</Text>
+                            </TouchableOpacity>
+                          </View>
+                        )}
                       </View>
                     </View>
+
+                    {/* Modal de modification pour les demandes en espèces */}
+                    {editingCashRequest === transaction.id && (
+                      <View style={styles.editModal}>
+                        <Text style={styles.editModalTitle}>Modifier le montant</Text>
+                        <TextInput
+                          style={styles.editInput}
+                          value={newCashAmount}
+                          onChangeText={setNewCashAmount}
+                          keyboardType="numeric"
+                          placeholder="Nouveau montant"
+                        />
+                        <View style={styles.editModalActions}>
+                          <TouchableOpacity 
+                            style={styles.editModalCancel}
+                            onPress={() => setEditingCashRequest(null)}
+                          >
+                            <Text style={styles.editModalCancelText}>Annuler</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity 
+                            style={styles.editModalConfirm}
+                            onPress={() => handleUpdateCashRequest(transaction.id)}
+                          >
+                            <Text style={styles.editModalConfirmText}>Confirmer</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    )}
 
                     {transaction.description && (
                       <Text style={styles.transactionDescription}>
@@ -527,6 +570,19 @@ export function MobileWallet({ onBack, onNavigate }: MobileWalletProps) {
                       {paymentMethod === 'mobile-money' && <View style={styles.radioDot} />}
                     </View>
                     <Text style={styles.radioLabel}>{t('wallet.mobileMoney')}</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.radioOption,
+                      paymentMethod === 'cash' && styles.radioOptionSelected
+                    ]}
+                    onPress={() => setPaymentMethod('cash')}
+                  >
+                    <View style={styles.radioCircle}>
+                      {paymentMethod === 'cash' && <View style={styles.radioDot} />}
+                    </View>
+                    <Text style={styles.radioLabel}>Paiement en espèces</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -903,19 +959,6 @@ const styles = StyleSheet.create({
     gap: 12,
     marginTop: 24,
   },
-  cancelButton: {
-    flex: 1,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#374151',
-  },
   confirmButton: {
     flex: 1,
     padding: 16,
@@ -930,5 +973,94 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
     color: 'white',
+  },
+  cashActions: {
+    flexDirection: 'row',
+    marginTop: 8,
+    gap: 8,
+  },
+  editButton: {
+    backgroundColor: '#3b82f6',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  cancelButton: {
+    backgroundColor: '#ef4444',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  editButtonText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  cancelButtonText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  editModal: {
+    marginTop: 12,
+    padding: 12,
+    backgroundColor: '#f8fafc',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  editModalTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 8,
+    color: '#374151',
+  },
+  editInput: {
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 6,
+    padding: 8,
+    marginBottom: 12,
+    backgroundColor: 'white',
+  },
+  editModalActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 8,
+  },
+  editModalCancel: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+  },
+  editModalConfirm: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    backgroundColor: '#10b981',
+  },
+  editModalCancelText: {
+    color: '#374151',
+    fontSize: 12,
+  },
+  editModalConfirmText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  transactionStatus: {
+    fontSize: 12,
+    marginTop: 4,
+  },
+  pendingStatus: {
+    color: '#d97706',
+  },
+  completedStatus: {
+    color: '#059669',
+  },
+  failedStatus: {
+    color: '#dc2626',
   },
 });

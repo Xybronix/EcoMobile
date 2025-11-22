@@ -140,6 +140,9 @@ export const createGlobalStyles = (colorScheme: 'light' | 'dark') => {
     flex1: {
       flex: 1,
     },
+    alignStart: {
+      alignItems: 'flex-start',
+    },
     alignCenter: {
       alignItems: 'center',
     },
