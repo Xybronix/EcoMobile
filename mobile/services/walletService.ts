@@ -266,8 +266,25 @@ class WalletService {
         headers,
       });
 
-      const data = await handleApiResponse(response);
-      return data.data || null;
+      if (!response.ok) {
+        if (response.status === 404) {
+          return null;
+        }
+        const data = await handleApiResponse(response);
+        return data.data || null;
+      }
+
+      const data = await response.json();
+      
+      if (data.data) {
+        return data.data;
+      } else if (data.success && data.data === null) {
+        return null;
+      } else if (data.success && !data.data) {
+        return null;
+      }
+      
+      return data || null;
     } catch (error) {
       console.error('Error getting current subscription:', error);
       return null;
