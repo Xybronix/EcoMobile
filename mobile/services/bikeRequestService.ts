@@ -79,7 +79,7 @@ export interface RequestStats {
 }
 
 class BikeRequestService {
-  private baseUrl = `${API_CONFIG.BASE_URL}`;
+  private baseUrl = `${API_CONFIG.BASE_URL}/bike-requests`;
 
   private async getAuthHeaders() {
     const token = await authService.getToken();
@@ -97,7 +97,7 @@ class BikeRequestService {
     const headers = await this.getAuthHeaders();
     
     try {
-      const response = await fetch(`${this.baseUrl}/bike-requests/unlock`, {
+      const response = await fetch(`${this.baseUrl}/unlock`, {
         method: 'POST',
         headers,
         body: JSON.stringify({ bikeId }),
@@ -118,7 +118,7 @@ class BikeRequestService {
     const headers = await this.getAuthHeaders();
     
     try {
-      const response = await fetch(`${this.baseUrl}/bike-requests/lock`, {
+      const response = await fetch(`${this.baseUrl}/lock`, {
         method: 'POST',
         headers,
         body: JSON.stringify({ bikeId, rideId, location }),
@@ -151,7 +151,7 @@ class BikeRequestService {
       queryParams.append('page', page.toString());
       queryParams.append('limit', limit.toString());
       
-      const response = await fetch(`${this.baseUrl}/bike-requests/unlock-requests/user?${queryParams.toString()}`, {
+      const response = await fetch(`${this.baseUrl}/unlock-requests/user?${queryParams.toString()}`, {
         method: 'GET',
         headers,
       });
@@ -183,7 +183,7 @@ class BikeRequestService {
       queryParams.append('page', page.toString());
       queryParams.append('limit', limit.toString());
       
-      const response = await fetch(`${this.baseUrl}/bike-requests/lock-requests/user?${queryParams.toString()}`, {
+      const response = await fetch(`${this.baseUrl}/lock-requests/user?${queryParams.toString()}`, {
         method: 'GET',
         headers,
       });
@@ -215,7 +215,7 @@ class BikeRequestService {
       queryParams.append('page', page.toString());
       queryParams.append('limit', limit.toString());
       
-      const response = await fetch(`${this.baseUrl}/bike-requests/user?${queryParams.toString()}`, {
+      const response = await fetch(`${this.baseUrl}/user?${queryParams.toString()}`, {
         method: 'GET',
         headers,
       });
@@ -235,7 +235,7 @@ class BikeRequestService {
     const headers = await this.getAuthHeaders();
     
     try {
-      const response = await fetch(`${this.baseUrl}/bike-requests/user/stats`, {
+      const response = await fetch(`${this.baseUrl}/user/stats`, {
         method: 'GET',
         headers,
       });
@@ -255,7 +255,7 @@ class BikeRequestService {
     const headers = await this.getAuthHeaders();
     
     try {
-      const response = await fetch(`${this.baseUrl}/bike-requests/${type}/${id}`, {
+      const response = await fetch(`${this.baseUrl}/${type}/${id}`, {
         method: 'GET',
         headers,
       });
