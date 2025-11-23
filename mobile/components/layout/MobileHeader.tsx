@@ -157,7 +157,7 @@ export function MobileHeader({
 
         {/* Page Title */}
         {title && (
-          <View style={[styles.flex1, styles.alignCenter]}>
+          <View style={[styles.alignCenter]}>
             <Text size="xl" weight="bold" color="white">
               {title}
             </Text>

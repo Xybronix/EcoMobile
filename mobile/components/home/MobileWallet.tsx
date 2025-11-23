@@ -1,11 +1,17 @@
 import { ArrowDownLeft, ArrowUpRight, Clock, CreditCard, Plus, Wallet } from 'lucide-react-native';
 import React, { useState, useEffect, useCallback } from 'react';
-import { ActivityIndicator, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, RefreshControl } from 'react-native';
+import { ActivityIndicator, Modal, ScrollView, TextInput, TouchableOpacity, View, RefreshControl } from 'react-native';
 import { toast } from 'sonner';
 import { useMobileAuth } from '@/lib/mobile-auth';
 import { useMobileI18n } from '@/lib/mobile-i18n';
 import { walletService, type Transaction, type WalletBalance } from '@/services/walletService';
 import { MobileHeader } from '@/components/layout/MobileHeader';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { getGlobalStyles } from '@/styles/globalStyles';
+import { Card } from '@/components/ui/Card';
+import { Text } from '@/components/ui/Text';
+import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/Badge';
 
 interface MobileWalletProps {
   onBack: () => void;
@@ -15,6 +21,9 @@ interface MobileWalletProps {
 export function MobileWallet({ onBack, onNavigate }: MobileWalletProps) {
   const { t, language } = useMobileI18n();
   const { user } = useMobileAuth();
+  const colorScheme = useColorScheme();
+  const styles = getGlobalStyles(colorScheme);
+  
   const [showTopUpDialog, setShowTopUpDialog] = useState(false);
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
   const [customAmount, setCustomAmount] = useState('');
@@ -81,22 +90,25 @@ export function MobileWallet({ onBack, onNavigate }: MobileWalletProps) {
     setIsProcessing(true);
 
     try {
+      if (paymentMethod === 'cash') {
+        await handleCashTopUp();
+        return;
+      }
+
       const paymentMethodMap = {
-        'orange-money': 'ORANGE MONEY',
+        'orange-money': 'ORANGE_MONEY',
         'mobile-money': 'MOMO',
-        'cash': 'EN ESPECES'
+        'cash': 'CASH'
       };
 
       const result = await walletService.initiateDeposit({
-        amount,
+        amount: Math.round(amount),
         paymentMethod: paymentMethodMap[paymentMethod],
         currency: 'XOF'
       });
 
       toast.success(t('wallet.depositInitiated'));
-
       loadWalletData();
-
       setShowTopUpDialog(false);
       setSelectedAmount(null);
       setCustomAmount('');
@@ -105,7 +117,7 @@ export function MobileWallet({ onBack, onNavigate }: MobileWalletProps) {
       const errorMessage = error instanceof Error ? error.message : 'unknown_error';
       
       if (errorMessage === 'invalid_amount') {
-        toast.error(t('wallet.invalidAmount'));
+        toast.error('Montant invalide. Veuillez vérifier le format.');
       } else if (errorMessage === 'network_error') {
         toast.error(t('common.networkError'));
       } else {
@@ -133,20 +145,24 @@ export function MobileWallet({ onBack, onNavigate }: MobileWalletProps) {
     
     try {
       const result = await walletService.requestCashDeposit({
-        amount,
+        amount: Math.round(amount),
         description: 'Demande de recharge en espèces'
       });
       
       toast.success('Demande de recharge en espèces créée avec succès. Un administrateur va valider votre demande.');
-      
-      // Rafraîchir les données du portefeuille
       loadWalletData();
       setShowTopUpDialog(false);
       setSelectedAmount(null);
       setCustomAmount('');
     } catch (error) {
       console.error('Error requesting cash deposit:', error);
-      toast.error('Erreur lors de la création de la demande de recharge');
+      const errorMessage = error instanceof Error ? error.message : 'unknown_error';
+      
+      if (errorMessage === 'invalid_amount') {
+        toast.error('Montant invalide pour la demande en espèces.');
+      } else {
+        toast.error('Erreur lors de la création de la demande de recharge');
+      }
     } finally {
       setIsProcessing(false);
     }
@@ -161,7 +177,7 @@ export function MobileWallet({ onBack, onNavigate }: MobileWalletProps) {
     }
     
     try {
-      await walletService.updateCashDepositRequest(transactionId, amount);
+      await walletService.updateCashDepositRequest(transactionId, Math.round(amount));
       toast.success('Demande de recharge modifiée avec succès');
       setEditingCashRequest(null);
       setNewCashAmount('');
@@ -247,18 +263,18 @@ export function MobileWallet({ onBack, onNavigate }: MobileWalletProps) {
     }
   };
 
-  const getStatusStyle = (status: Transaction['status']) => {
+  const getStatusBadgeVariant = (status: Transaction['status']) => {
     switch (status) {
       case 'COMPLETED':
-        return styles.completedBadge;
+        return 'default';
       case 'PENDING':
-        return styles.pendingBadge;
+        return 'secondary';
       case 'FAILED':
-        return styles.failedBadge;
+        return 'destructive';
       case 'CANCELLED':
-        return styles.cancelledBadge;
+        return 'outline';
       default:
-        return styles.pendingBadge;
+        return 'secondary';
     }
   };
 
@@ -273,9 +289,9 @@ export function MobileWallet({ onBack, onNavigate }: MobileWalletProps) {
           notificationCount={2}
           onNotifications={() => onNavigate?.('notifications')}
         />
-        <View style={styles.loadingContainer}>
+        <View style={[styles.containerCenter, styles.p24]}>
           <ActivityIndicator size="large" color="#16a34a" />
-          <Text style={styles.loadingText}>{t('common.loading')}</Text>
+          <Text style={[styles.mt16]}>{t('common.loading')}</Text>
         </View>
       </View>
     );
@@ -292,11 +308,11 @@ export function MobileWallet({ onBack, onNavigate }: MobileWalletProps) {
           notificationCount={2}
           onNotifications={() => onNavigate?.('notifications')}
         />
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{t('wallet.loadError')}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={() => loadWalletData()}>
-            <Text style={styles.retryButtonText}>{t('common.retry')}</Text>
-          </TouchableOpacity>
+        <View style={[styles.containerCenter, styles.p24]}>
+          <Text style={[styles.mb16, styles.textCenter]}>{t('wallet.loadError')}</Text>
+          <Button onPress={() => loadWalletData()}>
+            {t('common.retry')}
+          </Button>
         </View>
       </View>
     );
@@ -325,66 +341,67 @@ export function MobileWallet({ onBack, onNavigate }: MobileWalletProps) {
           />
         }
       >
-        <View style={styles.content}>
+        <View style={[styles.p16, styles.gap24]}>
           {/* Balance Card */}
-          <View style={styles.balanceCard}>
-            <View style={styles.balanceHeader}>
+          <Card style={[styles.p24, { backgroundColor: '#16a34a' }]}>
+            <View style={[styles.row, styles.alignCenter, styles.gap8, styles.mb16]}>
               <Wallet size={20} color="white" />
-              <Text style={styles.balanceLabel}>{t('wallet.balance')}</Text>
+              <Text style={{ color: 'white', opacity: 0.9 }}>{t('wallet.balance')}</Text>
             </View>
-            <Text style={styles.balanceAmount}>
+            <Text style={[styles.mb24, { color: 'white', fontSize: 36, fontWeight: 'bold' }]}>
               {(walletBalance?.balance || 0).toLocaleString()} 
-              <Text style={styles.currency}> {walletBalance?.currency || 'XOF'}</Text>
+              <Text style={{ fontSize: 20 }}> {walletBalance?.currency || 'XOF'}</Text>
             </Text>
-            <TouchableOpacity
-              style={styles.topUpButton}
+            <Button
+              variant="secondary"
               onPress={() => setShowTopUpDialog(true)}
+              style={{ backgroundColor: 'rgba(255, 255, 255, 0.2)', borderColor: 'rgba(255, 255, 255, 0.3)' }}
             >
               <Plus size={20} color="#16a34a" />
-              <Text style={styles.topUpButtonText}>{t('wallet.topUp')}</Text>
-            </TouchableOpacity>
-          </View>
+              <Text style={{ color: 'white', marginLeft: 8 }}>{t('wallet.topUp')}</Text>
+            </Button>
+          </Card>
 
           {/* Quick Actions */}
-          <View style={styles.quickActions}>
-            <TouchableOpacity style={styles.quickAction}>
-              <View style={styles.quickActionIcon}>
-                <CreditCard size={32} color="#2563eb" />
-              </View>
-              <Text style={styles.quickActionText}>{t('wallet.myCards')}</Text>
+          <View style={[styles.row, styles.gap12]}>
+            <TouchableOpacity style={[styles.flex1]}>
+              <Card style={[styles.p16, styles.alignCenter]}>
+                <CreditCard size={32} color="#2563eb" style={styles.mb8} />
+                <Text size="sm">{t('wallet.myCards')}</Text>
+              </Card>
             </TouchableOpacity>
             
-            <TouchableOpacity style={styles.quickAction}>
-              <View style={styles.quickActionIcon}>
-                <Clock size={32} color="#7c3aed" />
-              </View>
-              <Text style={styles.quickActionText}>{t('wallet.history')}</Text>
+            <TouchableOpacity style={[styles.flex1]}>
+              <Card style={[styles.p16, styles.alignCenter]}>
+                <Clock size={32} color="#7c3aed" style={styles.mb8} />
+                <Text size="sm">{t('wallet.history')}</Text>
+              </Card>
             </TouchableOpacity>
           </View>
 
           {/* Recent Transactions */}
-          <View style={styles.transactionsSection}>
-            <Text style={styles.sectionTitle}>{t('wallet.recentTransactions')}</Text>
+          <View>
+            <Text size="lg" weight="semibold" style={styles.mb16}>{t('wallet.recentTransactions')}</Text>
             
             {transactions.length === 0 ? (
-              <View style={styles.emptyState}>
-                <Text style={styles.emptyStateText}>{t('wallet.noTransactions')}</Text>
-              </View>
+              <Card style={[styles.p24, styles.alignCenter]}>
+                <Text size="sm" color="muted">{t('wallet.noTransactions')}</Text>
+              </Card>
             ) : (
-              <View style={styles.transactionsList}>
+              <View style={styles.gap12}>
                 {transactions.map((transaction) => (
-                  <View key={transaction.id} style={styles.transactionCard}>
-                    <View style={styles.transactionHeader}>
-                      <View style={styles.transactionIcon}>
+                  <Card key={transaction.id} style={styles.p16}>
+                    <View style={[styles.row, styles.alignStart, styles.gap12]}>
+                      <View style={[styles.w40, styles.h40, styles.rounded20, styles.alignCenter, styles.justifyCenter, { backgroundColor: '#f3f4f6' }]}>
                         {getPaymentIcon(transaction)}
                       </View>
                       
-                      <View style={styles.transactionInfo}>
-                        <Text style={styles.transactionType}>
+                      <View style={styles.flex1}>
+                        <Text weight="medium" style={styles.mb4}>
                           {getPaymentTypeLabel(transaction.type)}
                           {transaction.paymentMethod === 'CASH' && ' (Espèces)'}
                         </Text>
-                        <Text style={styles.transactionDate}>
+                        <Text size="sm" color="muted" style={styles.mb8}>
                           {new Date(transaction.createdAt).toLocaleDateString(
                             language === 'fr' ? 'fr-FR' : 'en-US',
                             {
@@ -396,87 +413,107 @@ export function MobileWallet({ onBack, onNavigate }: MobileWalletProps) {
                           )}
                         </Text>
                         
-                        {/* Afficher le statut spécifique pour les paiements en espèces */}
+                        {/* Statut spécifique pour les paiements en espèces */}
                         {transaction.paymentMethod === 'CASH' && (
-                          <Text style={[
-                            styles.transactionStatus,
-                            transaction.status === 'PENDING' && styles.pendingStatus,
-                            transaction.status === 'COMPLETED' && styles.completedStatus,
-                            transaction.status === 'FAILED' && styles.failedStatus,
+                          <Text size="sm" style={[
+                            transaction.status === 'PENDING' && { color: '#d97706' },
+                            transaction.status === 'COMPLETED' && { color: '#059669' },
+                            transaction.status === 'FAILED' && { color: '#dc2626' },
                           ]}>
                             {getCashStatusLabel(transaction)}
                           </Text>
                         )}
                       </View>
 
-                      <View style={styles.transactionAmount}>
-                        <Text style={[
-                          styles.amountText,
-                          ['withdrawal', 'ride_payment'].includes(transaction.type) 
-                            ? styles.negativeAmount 
-                            : styles.positiveAmount
-                        ]}>
-                          {['withdrawal', 'ride_payment'].includes(transaction.type) ? '-' : '+'}
+                      <View style={[styles.alignEnd]}>
+                        <Text 
+                          weight="semibold" 
+                          style={[
+                            styles.mb4,
+                            ['WITHDRAWAL', 'RIDE_PAYMENT'].includes(transaction.type) 
+                              ? { color: '#dc2626' } 
+                              : { color: '#16a34a' }
+                          ]}
+                        >
+                          {['WITHDRAWAL', 'RIDE_PAYMENT'].includes(transaction.type) ? '-' : '+'}
                           {transaction.amount} {transaction.currency}
                         </Text>
-                        
-                        {/* Actions pour les demandes en espèces en attente */}
-                        {canModifyTransaction(transaction) && (
-                          <View style={styles.cashActions}>
-                            <TouchableOpacity 
-                              style={styles.editButton}
-                              onPress={() => {
-                                setEditingCashRequest(transaction.id);
-                                setNewCashAmount(transaction.amount.toString());
-                              }}
-                            >
-                              <Text style={styles.editButtonText}>Modifier</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity 
-                              style={styles.cancelButton}
-                              onPress={() => handleCancelCashRequest(transaction.id)}
-                            >
-                              <Text style={styles.cancelButtonText}>Annuler</Text>
-                            </TouchableOpacity>
-                          </View>
-                        )}
+                        <Badge variant={getStatusBadgeVariant(transaction.status)}>
+                          {getStatusLabel(transaction.status)}
+                        </Badge>
                       </View>
                     </View>
 
+                    {/* Actions pour les demandes en espèces en attente */}
+                    {canModifyTransaction(transaction) && (
+                      <View style={[styles.flex1, styles.row, styles.gap8, styles.mt12]}>
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          style={{
+                            width: '50%'
+                          }}
+                          onPress={() => {
+                            setEditingCashRequest(transaction.id);
+                            setNewCashAmount(transaction.amount.toString());
+                          }}
+                        >
+                          Modifier
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          style={{
+                            width: '50%'
+                          }}
+                          onPress={() => handleCancelCashRequest(transaction.id)}
+                        >
+                          Annuler
+                        </Button>
+                      </View>
+                    )}
+
                     {/* Modal de modification pour les demandes en espèces */}
                     {editingCashRequest === transaction.id && (
-                      <View style={styles.editModal}>
-                        <Text style={styles.editModalTitle}>Modifier le montant</Text>
+                      <Card style={[styles.mt12, styles.p12, { backgroundColor: '#f8fafc' }]}>
+                        <Text weight="medium" style={styles.mb8}>Modifier le montant</Text>
                         <TextInput
-                          style={styles.editInput}
+                          style={[styles.input, styles.mb12]}
                           value={newCashAmount}
                           onChangeText={setNewCashAmount}
                           keyboardType="numeric"
                           placeholder="Nouveau montant"
                         />
-                        <View style={styles.editModalActions}>
-                          <TouchableOpacity 
-                            style={styles.editModalCancel}
+                        <View style={[styles.row, styles.gap8, styles.justifyEnd]}>
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            style={{
+                              width: '49%'
+                            }}
                             onPress={() => setEditingCashRequest(null)}
                           >
-                            <Text style={styles.editModalCancelText}>Annuler</Text>
-                          </TouchableOpacity>
-                          <TouchableOpacity 
-                            style={styles.editModalConfirm}
+                            Annuler
+                          </Button>
+                          <Button
+                            size="sm"
+                            style={{
+                              width: '49%'
+                            }}
                             onPress={() => handleUpdateCashRequest(transaction.id)}
                           >
-                            <Text style={styles.editModalConfirmText}>Confirmer</Text>
-                          </TouchableOpacity>
+                            Confirmer
+                          </Button>
                         </View>
-                      </View>
+                      </Card>
                     )}
 
                     {transaction.description && (
-                      <Text style={styles.transactionDescription}>
+                      <Text size="sm" color="muted" style={styles.mt8}>
                         {transaction.description}
                       </Text>
                     )}
-                  </View>
+                  </Card>
                 ))}
               </View>
             )}
@@ -491,46 +528,18 @@ export function MobileWallet({ onBack, onNavigate }: MobileWalletProps) {
         transparent={true}
         onRequestClose={() => setShowTopUpDialog(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>{t('wallet.topUp')}</Text>
-            <Text style={styles.modalDescription}>
+        <View style={[styles.containerCenter, { backgroundColor: 'rgba(0, 0, 0, 0.5)' }]}>
+          <Card style={[styles.m24, styles.p24, { maxWidth: 400, width: '90%' }]}>
+            <Text size="xl" weight="semibold" style={styles.mb8}>{t('wallet.topUp')}</Text>
+            <Text size="sm" color="muted" style={styles.mb24}>
               {t('wallet.selectAmountToTopUp')}
             </Text>
 
-            <View style={styles.modalBody}>
-              {/* Predefined Amounts */}
-              <View style={styles.amountsSection}>
-                <Text style={styles.sectionLabel}>{t('wallet.selectAmount')}</Text>
-                <View style={styles.amountsGrid}>
-                  {predefinedAmounts.map((amount) => (
-                    <TouchableOpacity
-                      key={amount}
-                      style={[
-                        styles.amountButton,
-                        selectedAmount === amount && styles.amountButtonSelected
-                      ]}
-                      onPress={() => {
-                        setSelectedAmount(amount);
-                        setCustomAmount('');
-                      }}
-                    >
-                      <Text style={[
-                        styles.amountButtonText,
-                        selectedAmount === amount && styles.amountButtonTextSelected
-                      ]}>
-                        {amount.toLocaleString()}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-
-              {/* Custom Amount */}
-              <View style={styles.customAmountSection}>
-                <Text style={styles.sectionLabel}>{t('wallet.customAmount')}</Text>
+            <View style={styles.gap24}>
+              <View>
+                <Text weight="medium" style={styles.mb8}>{t('wallet.customAmount')}</Text>
                 <TextInput
-                  style={styles.customAmountInput}
+                  style={styles.input}
                   value={customAmount}
                   onChangeText={(text) => {
                     setCustomAmount(text);
@@ -543,524 +552,136 @@ export function MobileWallet({ onBack, onNavigate }: MobileWalletProps) {
               </View>
 
               {/* Payment Method */}
-              <View style={styles.paymentMethodSection}>
-                <Text style={styles.sectionLabel}>{t('wallet.paymentMethod')}</Text>
-                <View style={styles.radioGroup}>
+              <View>
+                <Text weight="medium" style={styles.mb8}>{t('wallet.paymentMethod')}</Text>
+                <View style={styles.gap12}>
                   <TouchableOpacity
                     style={[
-                      styles.radioOption,
-                      paymentMethod === 'orange-money' && styles.radioOptionSelected
+                      styles.row,
+                      styles.alignCenter,
+                      styles.gap12,
+                      styles.p16,
+                      styles.rounded8,
+                      { 
+                        borderWidth: 1,
+                        borderColor: paymentMethod === 'orange-money' ? '#16a34a' : '#d1d5db',
+                        backgroundColor: paymentMethod === 'orange-money' ? '#f0fdf4' : 'transparent'
+                      }
                     ]}
                     onPress={() => setPaymentMethod('orange-money')}
                   >
-                    <View style={styles.radioCircle}>
-                      {paymentMethod === 'orange-money' && <View style={styles.radioDot} />}
+                    <View style={[
+                      styles.w20,
+                      styles.h20,
+                      styles.rounded8,
+                      styles.alignCenter,
+                      styles.justifyCenter,
+                      { 
+                        borderWidth: 2,
+                        borderColor: paymentMethod === 'orange-money' ? '#16a34a' : '#d1d5db'
+                      }
+                    ]}>
+                      {paymentMethod === 'orange-money' && (
+                        <View style={[styles.w8, styles.h8, styles.rounded4, { backgroundColor: '#16a34a' }]} />
+                      )}
                     </View>
-                    <Text style={styles.radioLabel}>{t('wallet.orangeMoney')}</Text>
+                    <Text>{t('wallet.orangeMoney')}</Text>
                   </TouchableOpacity>
                   
                   <TouchableOpacity
                     style={[
-                      styles.radioOption,
-                      paymentMethod === 'mobile-money' && styles.radioOptionSelected
+                      styles.row,
+                      styles.alignCenter,
+                      styles.gap12,
+                      styles.p16,
+                      styles.rounded8,
+                      { 
+                        borderWidth: 1,
+                        borderColor: paymentMethod === 'mobile-money' ? '#16a34a' : '#d1d5db',
+                        backgroundColor: paymentMethod === 'mobile-money' ? '#f0fdf4' : 'transparent'
+                      }
                     ]}
                     onPress={() => setPaymentMethod('mobile-money')}
                   >
-                    <View style={styles.radioCircle}>
-                      {paymentMethod === 'mobile-money' && <View style={styles.radioDot} />}
+                    <View style={[
+                      styles.w20,
+                      styles.h20,
+                      styles.rounded8,
+                      styles.alignCenter,
+                      styles.justifyCenter,
+                      { 
+                        borderWidth: 2,
+                        borderColor: paymentMethod === 'mobile-money' ? '#16a34a' : '#d1d5db'
+                      }
+                    ]}>
+                      {paymentMethod === 'mobile-money' && (
+                        <View style={[styles.w8, styles.h8, styles.rounded4, { backgroundColor: '#16a34a' }]} />
+                      )}
                     </View>
-                    <Text style={styles.radioLabel}>{t('wallet.mobileMoney')}</Text>
+                    <Text>{t('wallet.mobileMoney')}</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
                     style={[
-                      styles.radioOption,
-                      paymentMethod === 'cash' && styles.radioOptionSelected
+                      styles.row,
+                      styles.alignCenter,
+                      styles.gap12,
+                      styles.p16,
+                      styles.rounded8,
+                      { 
+                        borderWidth: 1,
+                        borderColor: paymentMethod === 'cash' ? '#16a34a' : '#d1d5db',
+                        backgroundColor: paymentMethod === 'cash' ? '#f0fdf4' : 'transparent'
+                      }
                     ]}
                     onPress={() => setPaymentMethod('cash')}
                   >
-                    <View style={styles.radioCircle}>
-                      {paymentMethod === 'cash' && <View style={styles.radioDot} />}
+                    <View style={[
+                      styles.w20,
+                      styles.h20,
+                      styles.rounded8,
+                      styles.alignCenter,
+                      styles.justifyCenter,
+                      { 
+                        borderWidth: 2,
+                        borderColor: paymentMethod === 'cash' ? '#16a34a' : '#d1d5db'
+                      }
+                    ]}>
+                      {paymentMethod === 'cash' && (
+                        <View style={[styles.w8, styles.h8, styles.rounded4, { backgroundColor: '#16a34a' }]} />
+                      )}
                     </View>
-                    <Text style={styles.radioLabel}>Paiement en espèces</Text>
+                    <Text>Paiement en espèces</Text>
                   </TouchableOpacity>
                 </View>
               </View>
             </View>
 
-            <View style={styles.modalFooter}>
-              <TouchableOpacity
-                style={styles.cancelButton}
+            <View style={[styles.row, styles.gap12, styles.mt24]}>
+              <Button
+                variant="secondary"
+                style={styles.flex1}
                 onPress={() => setShowTopUpDialog(false)}
                 disabled={isProcessing}
               >
-                <Text style={styles.cancelButtonText}>{t('common.cancel')}</Text>
-              </TouchableOpacity>
+                {t('common.cancel')}
+              </Button>
               
-              <TouchableOpacity
-                style={[
-                  styles.confirmButton,
-                  isProcessing && styles.confirmButtonDisabled
-                ]}
+              <Button
+                style={styles.flex1}
                 onPress={handleTopUp}
                 disabled={isProcessing}
               >
                 {isProcessing ? (
                   <ActivityIndicator color="white" />
                 ) : (
-                  <Text style={styles.confirmButtonText}>{t('wallet.confirm')}</Text>
+                  t('wallet.confirm')
                 )}
-              </TouchableOpacity>
+              </Button>
             </View>
-          </View>
+          </Card>
         </View>
       </Modal>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f9fafb',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  content: {
-    padding: 16,
-    paddingBottom: 32,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 16,
-  },
-  loadingText: {
-    fontSize: 16,
-    color: '#6b7280',
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-    gap: 16,
-  },
-  errorText: {
-    fontSize: 16,
-    color: '#dc2626',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  retryButton: {
-    backgroundColor: '#16a34a',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  retryButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  balanceCard: {
-    backgroundColor: '#16a34a',
-    borderRadius: 12,
-    padding: 24,
-    marginBottom: 24,
-  },
-  balanceHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 16,
-  },
-  balanceLabel: {
-    color: 'white',
-    fontSize: 14,
-    opacity: 0.9,
-  },
-  balanceAmount: {
-    color: 'white',
-    fontSize: 36,
-    fontWeight: 'bold',
-    marginBottom: 24,
-  },
-  currency: {
-    fontSize: 20,
-  },
-  topUpButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 8,
-    padding: 12,
-    gap: 8,
-  },
-  topUpButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  quickActions: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 24,
-  },
-  quickAction: {
-    flex: 1,
-    alignItems: 'center',
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  quickActionIcon: {
-    marginBottom: 8,
-  },
-  quickActionText: {
-    fontSize: 14,
-    color: '#111827',
-    textAlign: 'center',
-  },
-  transactionsSection: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 16,
-  },
-  emptyState: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 24,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  emptyStateText: {
-    fontSize: 14,
-    color: '#6b7280',
-    textAlign: 'center',
-  },
-  transactionsList: {
-    gap: 12,
-  },
-  transactionCard: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  transactionHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-    marginBottom: 8,
-  },
-  transactionIcon: {
-    width: 40,
-    height: 40,
-    backgroundColor: '#f3f4f6',
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  transactionInfo: {
-    flex: 1,
-  },
-  transactionType: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#111827',
-    marginBottom: 4,
-  },
-  transactionDate: {
-    fontSize: 14,
-    color: '#6b7280',
-  },
-  transactionAmount: {
-    alignItems: 'flex-end',
-  },
-  amountText: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  positiveAmount: {
-    color: '#16a34a',
-  },
-  negativeAmount: {
-    color: '#dc2626',
-  },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  completedBadge: {
-    backgroundColor: '#16a34a',
-  },
-  pendingBadge: {
-    backgroundColor: '#f3f4f6',
-  },
-  failedBadge: {
-    backgroundColor: '#dc2626',
-  },
-  cancelledBadge: {
-    backgroundColor: '#6b7280',
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: 'white',
-  },
-  pendingStatusText: {
-    color: '#6b7280',
-  },
-  transactionDescription: {
-    fontSize: 12,
-    color: '#6b7280',
-    marginTop: 4,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 16,
-  },
-  modalContent: {
-    backgroundColor: 'white',
-    borderRadius: 16,
-    padding: 24,
-    width: '100%',
-    maxWidth: 400,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 8,
-  },
-  modalDescription: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginBottom: 24,
-  },
-  modalBody: {
-    gap: 24,
-  },
-  amountsSection: {
-    gap: 8,
-  },
-  sectionLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#374151',
-    marginBottom: 8,
-  },
-  amountsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  amountButton: {
-    flex: 1,
-    minWidth: '30%',
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  amountButtonSelected: {
-    backgroundColor: '#16a34a',
-    borderColor: '#16a34a',
-  },
-  amountButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#374151',
-  },
-  amountButtonTextSelected: {
-    color: 'white',
-  },
-  customAmountSection: {
-    gap: 8,
-  },
-  customAmountInput: {
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    color: '#111827',
-  },
-  paymentMethodSection: {
-    gap: 8,
-  },
-  radioGroup: {
-    gap: 12,
-  },
-  radioOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
-    padding: 16,
-    gap: 12,
-  },
-  radioOptionSelected: {
-    borderColor: '#16a34a',
-    backgroundColor: '#f0fdf4',
-  },
-  radioCircle: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: '#d1d5db',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  radioDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: '#16a34a',
-  },
-  radioLabel: {
-    fontSize: 16,
-    color: '#111827',
-    flex: 1,
-  },
-  modalFooter: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 24,
-  },
-  confirmButton: {
-    flex: 1,
-    padding: 16,
-    backgroundColor: '#16a34a',
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  confirmButtonDisabled: {
-    opacity: 0.6,
-  },
-  confirmButtonText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: 'white',
-  },
-  cashActions: {
-    flexDirection: 'row',
-    marginTop: 8,
-    gap: 8,
-  },
-  editButton: {
-    backgroundColor: '#3b82f6',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-  },
-  cancelButton: {
-    backgroundColor: '#ef4444',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-  },
-  editButtonText: {
-    color: 'white',
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  cancelButtonText: {
-    color: 'white',
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  editModal: {
-    marginTop: 12,
-    padding: 12,
-    backgroundColor: '#f8fafc',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
-  editModalTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 8,
-    color: '#374151',
-  },
-  editInput: {
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 6,
-    padding: 8,
-    marginBottom: 12,
-    backgroundColor: 'white',
-  },
-  editModalActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 8,
-  },
-  editModalCancel: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-  },
-  editModalConfirm: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-    backgroundColor: '#10b981',
-  },
-  editModalCancelText: {
-    color: '#374151',
-    fontSize: 12,
-  },
-  editModalConfirmText: {
-    color: 'white',
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  transactionStatus: {
-    fontSize: 12,
-    marginTop: 4,
-  },
-  pendingStatus: {
-    color: '#d97706',
-  },
-  completedStatus: {
-    color: '#059669',
-  },
-  failedStatus: {
-    color: '#dc2626',
-  },
-});
