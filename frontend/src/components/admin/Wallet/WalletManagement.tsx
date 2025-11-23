@@ -529,7 +529,13 @@ export function WalletManagement() {
                         <Eye className="w-4 h-4" />
                       </Button>
                       
-                      <Button
+                      <ProtectedAccess 
+                        mode="component" 
+                        resource="wallet" 
+                        action="update" 
+                        showFallback={false}
+                        fallback={
+                          <Button
                             variant="default"
                             size="sm"
                             onClick={() => openActionDialog('validate', transaction)}
@@ -541,7 +547,15 @@ export function WalletManagement() {
                               <CheckCircle className="w-4 h-4" />
                             )}
                           </Button>
-                          
+                        }
+                      />
+
+                      <ProtectedAccess 
+                        mode="component" 
+                        resource="wallet" 
+                        action="update" 
+                        showFallback={false}
+                        fallback={
                           <Button
                             variant="destructive"
                             size="sm"
@@ -554,6 +568,8 @@ export function WalletManagement() {
                               <XCircle className="w-4 h-4" />
                             )}
                           </Button>
+                        }
+                      />
                     </div>
                   </TableCell>
                 </TableRow>
