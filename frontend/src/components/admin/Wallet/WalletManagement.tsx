@@ -550,6 +550,19 @@ export function WalletManagement() {
                         }
                       />
 
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={() => openActionDialog('validate', transaction)}
+                        disabled={actionLoading === transaction.id}
+                      >
+                        {actionLoading === transaction.id ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        ) : (
+                          <CheckCircle className="w-4 h-4" />
+                        )}
+                      </Button>
+
                       <ProtectedAccess 
                         mode="component" 
                         resource="wallet" 
@@ -570,6 +583,19 @@ export function WalletManagement() {
                           </Button>
                         }
                       />
+
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => openActionDialog('reject', transaction)}
+                        disabled={actionLoading === transaction.id}
+                      >
+                        {actionLoading === transaction.id ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        ) : (
+                          <XCircle className="w-4 h-4" />
+                        )}
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>
