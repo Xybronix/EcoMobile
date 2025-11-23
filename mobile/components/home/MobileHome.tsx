@@ -495,7 +495,7 @@ export function MobileHome({ onNavigate }: MobileHomeProps) {
                   <View style={[styles.card, styles.p16]}>
                     <View style={[styles.row, styles.spaceBetween, styles.alignCenter, styles.mb8]}>
                       <Text variant="body" color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
-                        {ride.bike?.name || `Trajet ${ride.id?.slice(-4) || '0000'}`}
+                        {ride.bike?.code || `Trajet ${ride.id?.slice(-4) || '0000'}`}
                       </Text>
                       <Text variant="body" color="#16a34a">
                         {(ride.cost || 0).toFixed(0)} {walletBalance.currency}

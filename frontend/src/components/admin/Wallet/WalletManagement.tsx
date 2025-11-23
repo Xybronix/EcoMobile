@@ -529,9 +529,7 @@ export function WalletManagement() {
                         <Eye className="w-4 h-4" />
                       </Button>
                       
-                      {canPerformAction(transaction) && (
-                        <>
-                          <Button
+                      <Button
                             variant="default"
                             size="sm"
                             onClick={() => openActionDialog('validate', transaction)}
@@ -556,8 +554,6 @@ export function WalletManagement() {
                               <XCircle className="w-4 h-4" />
                             )}
                           </Button>
-                        </>
-                      )}
                     </div>
                   </TableCell>
                 </TableRow>
