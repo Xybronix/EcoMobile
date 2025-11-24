@@ -46,7 +46,7 @@ class SubscriptionService {
 
   async getAvailablePlans(): Promise<Plan[]> {
     try {
-      const response = await fetch(`${API_CONFIG.BASE_URL}/public/pricing-plans`, {
+      const response = await fetch(`${this.baseUrl}/plans`, {
         method: 'GET',
         headers: API_CONFIG.HEADERS,
       });

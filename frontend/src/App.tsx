@@ -30,6 +30,7 @@ import { ActivityLogs } from './components/admin/Logs/ActivityLogs';
 import { AdminProfile } from './components/admin/Profile/AdminProfile';
 import { AdminNotifications } from './components/admin/Profile/AdminNotifications';
 import { AdminChat } from './components/admin/Profile/AdminChat';
+import { SecurityMonitoringProvider } from './components/admin/Security/SecurityMonitoringProvider';
 
 import { Toaster } from './components/ui/sonner';
 
@@ -91,6 +92,9 @@ export default function App() {
               <Route path="profile" element={<AdminProfile />} />
               <Route path="notifications" element={<AdminNotifications />} />
               <Route path="chat" element={<ProtectedAccess mode="route" resource="chat" action="read"><AdminChat /></ProtectedAccess>} />
+
+              {/* Security */}
+              <Route path="monitoring" element={<ProtectedAccess mode="route" resource="monitoring" action="read"><SecurityMonitoringProvider children={undefined} /></ProtectedAccess>} />
             </Route>
             
             <Route path="*" element={<Navigate to="/" replace />} />

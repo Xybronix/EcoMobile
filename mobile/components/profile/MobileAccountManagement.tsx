@@ -677,7 +677,8 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
           { 
             backgroundColor: colorScheme === 'light' ? 'white' : '#1f2937',
             borderBottomWidth: 1,
-            borderBottomColor: colorScheme === 'light' ? '#e5e7eb' : '#374151'
+            borderBottomColor: colorScheme === 'light' ? '#e5e7eb' : '#374151',
+            maxHeight: 70,
           }
         ]}
         contentContainerStyle={styles.gap16}
