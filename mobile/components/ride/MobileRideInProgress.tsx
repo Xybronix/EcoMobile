@@ -77,9 +77,15 @@ export function MobileRideInProgress({
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const currentCost = bike.pricingPlan 
-    ? Math.ceil((duration / 3600) * bike.pricingPlan.hourlyRate)
-    : Math.ceil((duration / 60) * 0.5 + 1);
+  const currentCost = (() => {
+    if (currentRide?.subscription) {
+      return 0;
+    }
+    
+    return bike.pricingPlan 
+      ? Math.ceil((duration / 3600) * bike.pricingPlan.hourlyRate)
+      : Math.ceil((duration / 60) * 0.5 + 1);
+  })();
 
   const handlePauseResume = () => {
     setIsPaused(!isPaused);

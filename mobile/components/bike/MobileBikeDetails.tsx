@@ -7,6 +7,8 @@ import { toast } from '@/components/ui/Toast';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { bikeService } from '@/services/bikeService';
 import type { Bike } from '@/services/bikeService';
+import { bikeRequestService } from '@/services/bikeRequestService';
+import { walletService } from '@/services/walletService';
 import { getGlobalStyles } from '@/styles/globalStyles';
 import { haptics } from '@/utils/haptics';
 import { Battery, Calendar, MapPin, Navigation2, Unlock, Zap } from 'lucide-react-native';
@@ -49,30 +51,50 @@ export function MobileBikeDetails({ bike: initialBike, onBack, onStartRide, onNa
     }
   };
 
-  const handleUnlock = () => {
+  const handleUnlock = async () => {
     const hourlyRate = bike.currentPricing?.hourlyRate || 200;
     const requiredBalance = hourlyRate * 0.5; // 30 minutes minimum
 
-    if (!user || user.wallet.balance < requiredBalance) {
-      haptics.error();
-      toast.error(
-        language === 'fr'
-          ? 'Solde insuffisant. Veuillez recharger votre compte.'
-          : 'Insufficient balance. Please top up your account.'
-      );
+    if (!user) {
+      toast.error('Vous devez être connecté');
       return;
     }
 
-    haptics.light();
-    if (onNavigate) {
-      onNavigate('bike-inspection', {
-        bikeId: bike.id,
-        bikeName: bike.code,
-        bikeEquipment: bike.equipment,
-        inspectionType: 'pickup'
-      });
-    } else {
-      setShowUnlockDialog(true);
+    try {
+      // Vérifier la caution
+      const depositInfo = await walletService.getDepositInfo();
+      if (!depositInfo.canUseService) {
+        haptics.error();
+        toast.error(`Caution insuffisante. Minimum requis: ${depositInfo.requiredDeposit} FCFA`);
+        onNavigate?.('recharge-deposit');
+        return;
+      }
+
+      // Vérifier l'abonnement actif
+      const currentSubscription = await walletService.getCurrentSubscription();
+      if (currentSubscription) {
+        // Utilisateur a un abonnement actif - afficher le prix mais ne rien déduire
+        toast.info(`Prix affiché: ${requiredBalance} XOF (inclus dans votre forfait ${currentSubscription.planName})`);
+      } else if (user.wallet.balance < requiredBalance) {
+        // Pas d'abonnement et solde insuffisant
+        haptics.error();
+        toast.error('Solde insuffisant. Veuillez recharger votre compte.');
+        return;
+      }
+
+      // Créer une demande de déverrouillage au lieu de déverrouiller directement
+      haptics.light();
+      
+      const unlockRequest = await bikeRequestService.createUnlockRequest(bike.id);
+      
+      toast.success('Demande de déverrouillage envoyée. Un administrateur va valider votre demande.');
+      
+      // Naviguer vers l'écran de suivi des demandes
+      onNavigate?.('account-management', { activeTab: 'requests' });
+      
+    } catch (error: any) {
+      haptics.error();
+      toast.error(error.message || 'Erreur lors de la demande');
     }
   };
 

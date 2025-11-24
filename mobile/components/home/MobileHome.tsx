@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-// components/mobile/MobileHome.tsx
 import { Button } from '@/components/ui/Button';
 import { Text } from '@/components/ui/Text';
 import { useColorScheme } from '@/hooks/use-color-scheme';

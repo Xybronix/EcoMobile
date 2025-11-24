@@ -1,5 +1,4 @@
 /* eslint-disable react/no-unescaped-entities */
-// components/MobileAccountManagement.tsx
 import { Label } from '@/components/ui/Label';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -285,11 +284,11 @@ export function MobileAccountManagement({ onBack, onNavigate }: MobileAccountMan
       )}
 
       {/* Quick Actions */}
-      <View style={[styles.row, styles.gap12]}>
+      <View style={[styles.column, styles.gap12]}>
         <Button
           variant="outline"
           onPress={() => onNavigate('wallet-topup')}
-          style={styles.flex1}
+          style={[styles.flex1, styles.row]}
         >
           <CreditCard size={16} color={colorScheme === 'light' ? '#111827' : '#f9fafb'} />
           <Text style={styles.ml8} color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
@@ -637,6 +636,7 @@ export function MobileAccountManagement({ onBack, onNavigate }: MobileAccountMan
           styles.row,
           styles.px16,
           styles.py8,
+          styles.spaceBetween,
           { 
             backgroundColor: colorScheme === 'light' ? 'white' : '#1f2937',
             borderBottomWidth: 1,
@@ -654,7 +654,6 @@ export function MobileAccountManagement({ onBack, onNavigate }: MobileAccountMan
                 haptics.light();
               }}
               style={[
-                styles.flex1,
                 styles.alignCenter,
                 styles.py8,
                 {

@@ -1,10 +1,12 @@
 // services/reservationService.ts
 import { API_CONFIG, handleApiResponse, ApiError } from '@/lib/api/config';
 import { authService } from './authService';
+import { Bike } from '@/services/bikeService';
 
 export interface Reservation {
   id: string;
   bikeId: string;
+  bike: Bike;
   planId: string;
   packageType: string;
   startDate: string;
@@ -99,6 +101,26 @@ class ReservationService {
     } catch (error) {
       console.error('Error loading reservations:', error);
       return [];
+    }
+  }
+
+  async getActiveReservation(): Promise<any | null> {
+    const headers = await this.getAuthHeaders();
+    
+    try {
+      const response = await fetch(`${this.baseUrl}/active`, {
+        method: 'GET',
+        headers,
+      });
+
+      if (response.status === 404) {
+        return null;
+      }
+
+      const result = await handleApiResponse(response);
+      return result.data;
+    } catch (error) {
+      return null;
     }
   }
 

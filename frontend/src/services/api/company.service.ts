@@ -120,7 +120,15 @@ export class CompanyService {
       throw new Error(response.error || 'Erreur lors de la récupération de la configuration de prix');
     }
 
-    return response.data;
+    const plansWithOverrides = response.data.plans?.map(plan => ({
+      ...plan,
+      override: plan.override || undefined
+    })) || [];
+
+    return {
+      ...response.data,
+      plans: plansWithOverrides
+    };
   }
 
   async updatePricing(pricing: Partial<PricingConfig>): Promise<void> {
@@ -267,6 +275,16 @@ export class CompanyService {
     }
 
     return response.data;
+  }
+
+  async createPlan(planData: Partial<PricingPlan>): Promise<{ data: PricingPlan }> {
+    const response = await apiClient.post<PricingPlan>('/admin/plans', planData);
+    
+    if (!response.success || !response.data) {
+      throw new Error(response.error || 'Erreur lors de la création du plan');
+    }
+
+    return { data: response.data };
   }
 
   async createPlanOverride(planId: string, overTimeType: string, overTimeValue: number): Promise<void> {
