@@ -20,6 +20,9 @@ export default function HomeScreen() {
       case 'profile':
         router.navigate('/(tabs)/profile');
         break;
+      case 'account-management':
+        router.navigate('/(modals)/account-management');
+        break;
       case 'wallet':
         router.push('/(modals)/wallet');
         break;

@@ -9,7 +9,7 @@ import { userService } from '@/services/userService';
 import { WalletBalance, walletService } from '@/services/walletService';
 import { getGlobalStyles } from '@/styles/globalStyles';
 import { haptics } from '@/utils/haptics';
-import { ChevronRight, Clock, MapPin, TrendingUp, Wallet, Zap } from 'lucide-react-native';
+import { ChevronRight, Clock, MapPin, TrendingUp, Wallet, Zap, User as UserIcon, Settings } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { ScrollView, TouchableOpacity, View } from 'react-native';
 import { useMobileAuth } from '../../lib/mobile-auth';
@@ -543,6 +543,39 @@ export function MobileHome({ onNavigate }: MobileHomeProps) {
             </View>
           )}
         </View>
+
+        {/* Quick Access to Account */}
+        <TouchableOpacity
+          onPress={() => {
+            haptics.light();
+            onNavigate('account-management');
+          }}
+          style={[styles.card, styles.p16, styles.row, styles.spaceBetween, styles.alignCenter]}
+        >
+          <View style={[styles.row, styles.alignCenter, styles.gap12]}>
+            <View 
+              style={[
+                styles.w48,
+                styles.h48,
+                styles.rounded24,
+                styles.alignCenter,
+                styles.justifyCenter,
+                { backgroundColor: colorScheme === 'light' ? '#eff6ff' : '#1e3a8a' }
+              ]}
+            >
+              <UserIcon size={20} color="#3b82f6" />
+            </View>
+            <View>
+              <Text variant="body" color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
+                Gestion de compte
+              </Text>
+              <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
+                Forfaits, transactions, signalements
+              </Text>
+            </View>
+          </View>
+          <ChevronRight size={20} color={colorScheme === 'light' ? '#9ca3af' : '#6b7280'} />
+        </TouchableOpacity>
       </ScrollView>
     </View>
   );

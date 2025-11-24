@@ -1,11 +1,13 @@
-import { AlertTriangle, Clock, DollarSign, MapPin, Pause, Play, StopCircle } from 'lucide-react-native';
+import { AlertTriangle, Clock, DollarSign, MapPin, Pause, Play, StopCircle, Lock } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
-import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator } from 'react-native';
 import { toast } from 'sonner';
 import { useMobileAuth } from '@/lib/mobile-auth';
 import { useMobileI18n } from '@/lib/mobile-i18n';
 import { rideService } from '@/services/rideService';
-import type { Bike, Ride, Location } from '@/lib/mobile-types';
+import { bikeRequestService } from '@/services/bikeRequestService';
+import { walletService } from '@/services/walletService';
+import type { Bike, Ride } from '@/lib/mobile-types';
 import { MobileHeader } from '@/components/layout/MobileHeader';
 
 interface MobileRideInProgressProps {
@@ -24,16 +26,22 @@ export function MobileRideInProgress({
   const { t } = useMobileI18n();
   const { user, refreshUser } = useMobileAuth();
   const [isPaused, setIsPaused] = useState(false);
-  const [duration, setDuration] = useState(0); // in seconds
-  const [distance, setDistance] = useState(0); // in km
+  const [duration, setDuration] = useState(0);
+  const [distance, setDistance] = useState(0);
   const [showEndDialog, setShowEndDialog] = useState(false);
   const [currentRide, setCurrentRide] = useState<Ride | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingRide, setIsLoadingRide] = useState(true);
+  const [currentSubscription, setCurrentSubscription] = useState<any>(null);
+  const [priceInfo, setPriceInfo] = useState<{
+    currentCost: number;
+    willBeCharged: boolean;
+    message: string;
+  } | null>(null);
 
-  // Load current active ride
   useEffect(() => {
     loadActiveRide();
+    loadUserSubscription();
   }, []);
 
   const loadActiveRide = async () => {
@@ -42,11 +50,9 @@ export function MobileRideInProgress({
       const activeRide = await rideService.getActiveRide();
       if (activeRide) {
         setCurrentRide(activeRide);
-        // Calculate duration from start time
         const startTime = new Date(activeRide.startTime);
         const now = new Date();
         setDuration(Math.floor((now.getTime() - startTime.getTime()) / 1000));
-        // Set distance from ride data if available
         if (activeRide.distance) {
           setDistance(activeRide.distance);
         }
@@ -59,33 +65,99 @@ export function MobileRideInProgress({
     }
   };
 
-  // Timer effect
+  const loadUserSubscription = async () => {
+    try {
+      const subscription = await walletService.getCurrentSubscription();
+      setCurrentSubscription(subscription);
+    } catch (error) {
+      console.log('No active subscription');
+    }
+  };
+
   useEffect(() => {
     if (!isPaused && currentRide) {
       const timer = setInterval(() => {
         setDuration((prev) => prev + 1);
         setDistance((prev) => prev + 0.01);
+        
+        // Recalculer le prix en temps réel
+        updatePriceInfo();
       }, 1000);
 
       return () => clearInterval(timer);
     }
-  }, [isPaused, currentRide]);
+  }, [isPaused, currentRide, duration, currentSubscription]);
+
+  const updatePriceInfo = () => {
+    if (!currentRide) return;
+
+    const hourlyRate = bike.pricingPlan?.hourlyRate || 200;
+    const durationHours = duration / 3600;
+    let calculatedCost = Math.ceil(durationHours * hourlyRate);
+
+    if (currentSubscription) {
+      // Avec abonnement - vérifier si on est en overtime
+      const isOvertime = checkIfOvertime(currentRide.startTime, currentSubscription.packageType);
+      
+      if (isOvertime) {
+        // Appliquer la logique d'overtime avec réduction
+        const overrideInfo = getOvertimePrice(calculatedCost, currentSubscription);
+        setPriceInfo({
+          currentCost: overrideInfo.finalCost,
+          willBeCharged: overrideInfo.finalCost > 0,
+          message: overrideInfo.message
+        });
+      } else {
+        // Dans les heures du forfait - gratuit
+        setPriceInfo({
+          currentCost: calculatedCost,
+          willBeCharged: false,
+          message: `Inclus dans votre forfait ${currentSubscription.planName}`
+        });
+      }
+    } else {
+      // Sans abonnement - prix normal
+      setPriceInfo({
+        currentCost: calculatedCost,
+        willBeCharged: true,
+        message: 'Tarif normal - sera déduit de votre portefeuille'
+      });
+    }
+  };
+
+  const checkIfOvertime = (startTime: string, packageType: string): boolean => {
+    const rideStart = new Date(startTime);
+    const hour = rideStart.getHours();
+    
+    switch (packageType.toLowerCase()) {
+      case 'daily':
+      case 'journalier':
+        return hour < 8 || hour >= 19; // Forfait journalier: 8h-19h
+      case 'morning':
+        return hour < 6 || hour >= 12; // Forfait matinal: 6h-12h
+      case 'evening':
+        return hour < 19 || hour >= 22; // Forfait soirée: 19h-22h
+      default:
+        return false;
+    }
+  };
+
+  const getOvertimePrice = (originalCost: number, subscription: any) => {
+    // Simulation de la logique d'override - à adapter selon votre backend
+    const reductionPercentage = 50; // 50% de réduction pour les abonnés en overtime
+    const finalCost = Math.round(originalCost * (1 - reductionPercentage / 100));
+    
+    return {
+      finalCost,
+      message: `Overtime avec forfait: ${reductionPercentage}% de réduction appliquée`
+    };
+  };
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
-
-  const currentCost = (() => {
-    if (currentRide?.subscription) {
-      return 0;
-    }
-    
-    return bike.pricingPlan 
-      ? Math.ceil((duration / 3600) * bike.pricingPlan.hourlyRate)
-      : Math.ceil((duration / 60) * 0.5 + 1);
-  })();
 
   const handlePauseResume = () => {
     setIsPaused(!isPaused);
@@ -96,49 +168,36 @@ export function MobileRideInProgress({
     );
   };
 
-  const handleEndRide = () => {
-    if (onNavigate) {
-      onNavigate('bike-inspection', {
-        bikeId: bike.id,
-        bikeName: bike.code,
-        inspectionType: 'return'
-      });
-    } else {
-      setShowEndDialog(true);
-    }
-  };
-
-  const confirmEndRide = async () => {
+  const handleEndRide = async () => {
     if (!currentRide) return;
-    
-    setIsLoading(true);
+
+    // Créer une demande de verrouillage au lieu de terminer directement
     try {
-      const endLocation: Location = {
+      const currentLocation = {
         latitude: bike.latitude || 0,
-        longitude: bike.longitude || 0,
-        address: bike.locationName || t('ride.unknownLocation')
+        longitude: bike.longitude || 0
       };
 
-      const completedRide = await rideService.endRide(currentRide.id, endLocation);
+      const lockRequest = await bikeRequestService.createLockRequest(
+        bike.id, 
+        currentRide.id, 
+        currentLocation
+      );
       
-      await refreshUser();
+      toast.success('Demande de verrouillage envoyée. Un administrateur va valider la fin de votre trajet.');
       
-      toast.success(`${t('ride.completedMessage')} ${ completedRide.cost || 0, user?.wallet?.currency || 'XAF' }`);
+      // Naviguer vers le suivi des demandes
+      onNavigate?.('account-management', { activeTab: 'requests' });
       
-      setShowEndDialog(false);
-      onEndRide();
     } catch (error: any) {
-      toast.error(t(error.message) || t('common.error'));
-    } finally {
-      setIsLoading(false);
+      toast.error(error.message || 'Erreur lors de la demande de verrouillage');
     }
   };
 
   const handleReportIssue = () => {
     if (onNavigate) {
-      onNavigate('report-issue', {
+      onNavigate('create-incident', {
         bikeId: bike.id,
-        bikeName: bike.code,
         rideId: currentRide?.id
       });
     } else {
@@ -151,7 +210,7 @@ export function MobileRideInProgress({
       <View style={styles.container}>
         <MobileHeader title={t('ride.inProgress')} />
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#5D5CDE" />
+          <ActivityIndicator size="large" color="#16a34a" />
           <Text style={styles.loadingText}>{t('ride.loading')}</Text>
         </View>
       </View>
@@ -218,6 +277,18 @@ export function MobileRideInProgress({
               </View>
             </View>
 
+            {/* Subscription Status */}
+            {currentSubscription && (
+              <View style={[styles.card, { backgroundColor: '#eff6ff', borderColor: '#3b82f6' }]}>
+                <Text style={[styles.cardLabel, { color: '#1e40af' }]}>
+                  Forfait actif: {currentSubscription.planName}
+                </Text>
+                <Text style={[styles.bikeModel, { color: '#3b82f6' }]}>
+                  {priceInfo?.message || 'Forfait appliqué'}
+                </Text>
+              </View>
+            )}
+
             {/* Stats */}
             <View style={styles.statsGrid}>
               <View style={styles.statCard}>
@@ -233,13 +304,18 @@ export function MobileRideInProgress({
               </View>
 
               <View style={styles.statCard}>
-                <DollarSign size={24} color="#16a34a" />
+                <DollarSign size={24} color={priceInfo?.willBeCharged ? "#f59e0b" : "#16a34a"} />
                 <Text style={styles.statLabel}>{t('ride.currentCost')}</Text>
-                <Text style={styles.statValue}>
-                  {currentCost} <Text style={styles.currencySmall}>
+                <Text style={[styles.statValue, { color: priceInfo?.willBeCharged ? "#f59e0b" : "#16a34a" }]}>
+                  {priceInfo?.currentCost || 0} <Text style={styles.currencySmall}>
                     {user?.wallet?.currency || 'XAF'}
                   </Text>
                 </Text>
+                {priceInfo && (
+                  <Text style={[styles.statLabel, { color: priceInfo.willBeCharged ? "#f59e0b" : "#16a34a", marginTop: 4 }]}>
+                    {priceInfo.willBeCharged ? 'À payer' : 'Inclus'}
+                  </Text>
+                )}
               </View>
             </View>
 
@@ -258,18 +334,29 @@ export function MobileRideInProgress({
                   {t('ride.rate')}
                 </Text>
                 <Text style={styles.costValue}>
-                  {bike.pricingPlan?.hourlyRate || '0.5'} {user?.wallet?.currency || 'XAF'}/
-                  {bike.pricingPlan ? t('common.hour') : t('common.minute')}
+                  {bike.pricingPlan?.hourlyRate || 200} {user?.wallet?.currency || 'XAF'}/h
                 </Text>
               </View>
-              <View style={[styles.costRow, styles.totalRow]}>
-                <Text style={styles.totalLabel}>
-                  {t('ride.estimatedTotal')}
-                </Text>
-                <Text style={styles.totalValue}>
-                  {currentCost} {user?.wallet?.currency || 'XAF'}
-                </Text>
-              </View>
+              {priceInfo?.willBeCharged && (
+                <View style={[styles.costRow, styles.totalRow]}>
+                  <Text style={styles.totalLabel}>
+                    À déduire du portefeuille
+                  </Text>
+                  <Text style={styles.totalValue}>
+                    {priceInfo.currentCost} {user?.wallet?.currency || 'XAF'}
+                  </Text>
+                </View>
+              )}
+              {!priceInfo?.willBeCharged && currentSubscription && (
+                <View style={[styles.costRow, { backgroundColor: '#f0fdf4' }]}>
+                  <Text style={[styles.totalLabel, { color: '#16a34a' }]}>
+                    Inclus dans le forfait
+                  </Text>
+                  <Text style={[styles.totalValue, { color: '#16a34a' }]}>
+                    0 {user?.wallet?.currency || 'XAF'}
+                  </Text>
+                </View>
+              )}
             </View>
 
             {/* Action Buttons */}
@@ -300,9 +387,9 @@ export function MobileRideInProgress({
                 style={styles.endButton}
                 disabled={isLoading}
               >
-                <StopCircle size={20} color="white" />
+                <Lock size={20} color="white" />
                 <Text style={styles.endButtonText}>
-                  {isLoading ? t('common.loading') : t('ride.endRide')}
+                  {isLoading ? t('common.loading') : 'Demander le verrouillage'}
                 </Text>
               </TouchableOpacity>
 
@@ -317,6 +404,13 @@ export function MobileRideInProgress({
               </TouchableOpacity>
             </View>
 
+            {/* Info about admin validation */}
+            <View style={[styles.safetyCard, { backgroundColor: '#eff6ff' }]}>
+              <Text style={[styles.safetyText, { color: '#1e40af' }]}>
+                Le verrouillage nécessite une validation par un administrateur pour vérifier que le vélo est correctement positionné.
+              </Text>
+            </View>
+
             {/* Safety Info */}
             <View style={styles.safetyCard}>
               <Text style={styles.safetyText}>
@@ -326,56 +420,11 @@ export function MobileRideInProgress({
           </View>
         </ScrollView>
       </View>
-
-      {/* End Ride Confirmation Dialog */}
-      <Modal
-        visible={showEndDialog}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setShowEndDialog(false)}
-      >
-        <View style={styles.dialogOverlay}>
-          <View style={styles.dialogContent}>
-            <Text style={styles.dialogTitle}>
-              {t('ride.confirmEnd')}
-            </Text>
-            <View style={styles.dialogDescription}>
-              <Text style={styles.dialogSummary}>{t('ride.summaryTitle')}</Text>
-              <View style={styles.rideSummary}>
-                <Text style={styles.summaryItem}>• {t('ride.duration')}: {formatTime(duration)}</Text>
-                <Text style={styles.summaryItem}>• {t('ride.distance')}: {distance.toFixed(2)} km</Text>
-                <Text style={styles.summaryItem}>• {t('ride.cost')}: {currentCost} {user?.wallet?.currency || 'XAF'}</Text>
-              </View>
-              <Text style={styles.dialogWarning}>
-                {t('ride.chargeWarning')}
-              </Text>
-            </View>
-            <View style={styles.dialogActions}>
-              <TouchableOpacity
-                style={styles.dialogCancel}
-                onPress={() => setShowEndDialog(false)}
-                disabled={isLoading}
-              >
-                <Text style={styles.dialogCancelText}>{t('common.cancel')}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.dialogConfirm, isLoading && { opacity: 0.5 }]}
-                onPress={confirmEndRide}
-                disabled={isLoading}
-              >
-                <Text style={styles.dialogConfirmText}>
-                  {isLoading ? t('common.loading') : t('ride.endRide')}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 }
 
-// Les styles restent identiques...
+// Styles identiques à l'original...
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -524,6 +573,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 8,
+    paddingHorizontal: 4,
   },
   totalRow: {
     borderTopWidth: 1,
@@ -605,76 +655,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6b7280',
     textAlign: 'center',
-  },
-  dialogOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 16,
-  },
-  dialogContent: {
-    backgroundColor: 'white',
-    borderRadius: 16,
-    padding: 24,
-    width: '100%',
-    maxWidth: 400,
-  },
-  dialogTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 8,
-  },
-  dialogDescription: {
-    marginBottom: 24,
-  },
-  dialogSummary: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#374151',
-    marginBottom: 8,
-  },
-  rideSummary: {
-    marginBottom: 12,
-  },
-  summaryItem: {
-    fontSize: 13,
-    color: '#6b7280',
-    marginBottom: 2,
-  },
-  dialogWarning: {
-    fontSize: 13,
-    color: '#6b7280',
-    fontStyle: 'italic',
-  },
-  dialogActions: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  dialogCancel: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
-    padding: 12,
-    alignItems: 'center',
-  },
-  dialogCancelText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#374151',
-  },
-  dialogConfirm: {
-    flex: 1,
-    backgroundColor: '#dc2626',
-    borderRadius: 8,
-    padding: 12,
-    alignItems: 'center',
-  },
-  dialogConfirmText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: 'white',
   },
 });

@@ -34,6 +34,13 @@ export default function BikeDetailsScreen() {
           params: { bikeData: JSON.stringify(data) }
         });
         break;
+      
+      case 'account-management':
+        router.navigate({
+          pathname: '/(modals)/account-management',
+          params: data || {}
+        });
+        break;
       default:
         console.log(`Navigation to ${screen} not implemented`);
     }

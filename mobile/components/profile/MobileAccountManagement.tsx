@@ -1,8 +1,7 @@
 /* eslint-disable react/no-unescaped-entities */
-import { Label } from '@/components/ui/Label';
-import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { Label } from '@/components/ui/Label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
 import { Text } from '@/components/ui/Text';
 import { toast } from '@/components/ui/Toast';
@@ -12,7 +11,7 @@ import { haptics } from '@/utils/haptics';
 import { walletService } from '@/services/walletService';
 import { incidentService } from '@/services/incidentService';
 import { bikeRequestService } from '@/services/bikeRequestService';
-import { Wallet, CreditCard, Clock, Shield, AlertTriangle, ArrowLeft, Lock, Unlock } from 'lucide-react-native';
+import { Wallet, CreditCard, Clock, Shield, AlertTriangle, ArrowLeft, Lock, Unlock, FileText } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { View, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
 import { useMobileI18n } from '@/lib/mobile-i18n';
@@ -21,15 +20,16 @@ import { useMobileAuth } from '@/lib/mobile-auth';
 interface MobileAccountManagementProps {
   onBack: () => void;
   onNavigate: (screen: string, data?: any) => void;
+  initialTab?: string;
 }
 
-export function MobileAccountManagement({ onBack, onNavigate }: MobileAccountManagementProps) {
+export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'overview' }: MobileAccountManagementProps) {
   const { t, language } = useMobileI18n();
   const { user } = useMobileAuth();
   const colorScheme = useColorScheme();
   const styles = getGlobalStyles(colorScheme);
   
-  const [activeTab, setActiveTab] = useState<'overview' | 'transactions' | 'requests' | 'incidents'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'transactions' | 'requests' | 'incidents'>(initialTab as any);
   const [isLoading, setIsLoading] = useState(false);
   const [walletData, setWalletData] = useState<any>(null);
   const [transactions, setTransactions] = useState<any[]>([]);
@@ -47,7 +47,6 @@ export function MobileAccountManagement({ onBack, onNavigate }: MobileAccountMan
     loadAccountData();
   }, []);
 
-  // Charger les données spécifiques aux onglets quand ils deviennent actifs
   useEffect(() => {
     if (activeTab === 'requests') {
       loadRequests();
@@ -58,10 +57,9 @@ export function MobileAccountManagement({ onBack, onNavigate }: MobileAccountMan
     try {
       setIsLoading(true);
       
-      const [wallet, depositData, subscription, userTransactions, userIncidents] = await Promise.all([
+      const [wallet, depositData, userTransactions, userIncidents] = await Promise.all([
         walletService.getBalance(),
         walletService.getDepositInfo(),
-        walletService.getCurrentSubscription(),
         walletService.getTransactions(1, 50),
         incidentService.getIncidents(1, 50)
       ]);
@@ -75,7 +73,7 @@ export function MobileAccountManagement({ onBack, onNavigate }: MobileAccountMan
         const subscription = await walletService.getCurrentSubscription();
         setCurrentSubscription(subscription);
       } catch (subscriptionError) {
-        console.log('No active subscription found, this is normal for new users');
+        console.log('No active subscription found');
         setCurrentSubscription(null);
       }
       
@@ -95,7 +93,7 @@ export function MobileAccountManagement({ onBack, onNavigate }: MobileAccountMan
       ]);
       
       setUnlockRequests(unlockReqs.data || []);
-      setLockRequests(lockReqs.data  || []);
+      setLockRequests(lockReqs.data || []);
     } catch (error) {
       console.error('Error loading requests:', error);
       toast.error('Erreur lors du chargement des demandes');
@@ -134,7 +132,8 @@ export function MobileAccountManagement({ onBack, onNavigate }: MobileAccountMan
       'RIDE_PAYMENT': 'Paiement trajet',
       'REFUND': 'Remboursement',
       'DEPOSIT_RECHARGE': 'Recharge caution',
-      'DAMAGE_CHARGE': 'Frais de dégâts'
+      'DAMAGE_CHARGE': 'Frais de dégâts',
+      'SUBSCRIPTION_PAYMENT': 'Paiement forfait'
     };
     return typeMap[type] || type;
   };
@@ -149,6 +148,7 @@ export function MobileAccountManagement({ onBack, onNavigate }: MobileAccountMan
       'lock': 'Problème de cadenas',
       'electronics': 'Problème électronique',
       'physical_damage': 'Dégât physique',
+      'theft': 'Vol ou tentative',
       'other': 'Autre problème'
     };
     return typeMap[type] || type;
@@ -192,14 +192,23 @@ export function MobileAccountManagement({ onBack, onNavigate }: MobileAccountMan
               <Text size="sm" color="#6b7280">
                 Expire le {new Date(currentSubscription.endDate).toLocaleDateString()}
               </Text>
+              {currentSubscription.bikeCode && (
+                <Text size="sm" color="#16a34a" style={styles.mt4}>
+                  Vélo réservé: {currentSubscription.bikeCode}
+                </Text>
+              )}
             </View>
-            <Badge variant="default">
-              Actif
-            </Badge>
+            <View style={styles.alignEnd}>
+              <Text size="sm" color="#16a34a" weight="bold">
+                {currentSubscription.remainingDays} jours
+              </Text>
+              <Text size="xs" color="#6b7280">
+                restants
+              </Text>
+            </View>
           </View>
         </Card>
       ) : (
-        // Afficher une carte pour souscrire à un forfait si aucun n'est actif
         <Card style={[styles.p16, { backgroundColor: '#f8fafc', borderColor: '#e2e8f0' }]}>
           <Text variant="body" color="#111827" style={styles.mb8}>
             Aucun forfait actif
@@ -207,13 +216,13 @@ export function MobileAccountManagement({ onBack, onNavigate }: MobileAccountMan
           <View style={[styles.row, styles.spaceBetween, styles.alignCenter]}>
             <View style={styles.flex1}>
               <Text size="sm" color="#6b7280" style={styles.mb4}>
-                Vous n'avez pas de forfait actif. Souscrivez à un forfait pour bénéficier de tarifs avantageux.
+                Souscrivez à un forfait pour bénéficier de tarifs avantageux et d'une utilisation illimitée.
               </Text>
             </View>
             <Button
               variant="primary"
               size="sm"
-              onPress={() => onNavigate('subscription-plans')} // Assurez-vous que cette navigation existe
+              onPress={() => onNavigate('subscription-plans')}
             >
               <Text>Souscrire</Text>
             </Button>
@@ -250,8 +259,13 @@ export function MobileAccountManagement({ onBack, onNavigate }: MobileAccountMan
           <View style={[styles.row, styles.gap12]}>
             <AlertTriangle size={20} color="#f59e0b" />
             <View style={styles.flex1}>
-              <Text size="sm" color="#92400e">
-                Caution insuffisante. Vous devez recharger votre caution à {depositInfo.requiredDeposit} XOF minimum pour utiliser les vélos.
+              <Text size="sm" color="#92400e" weight="bold">
+                🚫 Service bloqué - Caution insuffisante
+              </Text>
+              <Text size="sm" color="#92400e" style={styles.mt4}>
+                Minimum requis: {depositInfo.requiredDeposit} XOF
+                {'\n'}Montant actuel: {depositInfo.currentDeposit} XOF
+                {'\n'}Manquant: {depositInfo.requiredDeposit - depositInfo.currentDeposit} XOF
               </Text>
               <Button
                 variant="outline"
@@ -272,8 +286,8 @@ export function MobileAccountManagement({ onBack, onNavigate }: MobileAccountMan
           <View style={[styles.row, styles.gap12]}>
             <AlertTriangle size={20} color="#dc2626" />
             <View style={styles.flex1}>
-              <Text size="sm" color="#991b1b">
-                Solde négatif : -{depositInfo.negativeBalance} XOF
+              <Text size="sm" color="#991b1b" weight="bold">
+                ⚠️ Solde négatif : -{depositInfo.negativeBalance} XOF
               </Text>
               <Text size="xs" color="#991b1b" style={styles.mt4}>
                 Rechargez votre wallet et votre caution pour continuer à utiliser les services.
@@ -285,34 +299,36 @@ export function MobileAccountManagement({ onBack, onNavigate }: MobileAccountMan
 
       {/* Quick Actions */}
       <View style={[styles.column, styles.gap12]}>
-        <Button
-          variant="outline"
-          onPress={() => onNavigate('wallet-topup')}
-          style={[styles.flex1, styles.row]}
-        >
-          <CreditCard size={16} color={colorScheme === 'light' ? '#111827' : '#f9fafb'} />
-          <Text style={styles.ml8} color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
-            Recharger
-          </Text>
-        </Button>
-        <Button
-          variant="outline"
-          onPress={() => onNavigate('recharge-deposit')}
-          style={styles.flex1}
-        >
-          <Shield size={16} color={colorScheme === 'light' ? '#111827' : '#f9fafb'} />
-          <Text style={styles.ml8} color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
-            Caution
-          </Text>
-        </Button>
+        <View style={[styles.row, styles.gap12]}>
+          <Button
+            variant="outline"
+            onPress={() => onNavigate('wallet-topup')}
+            style={[styles.flex1, styles.row]}
+          >
+            <CreditCard size={16} color={colorScheme === 'light' ? '#111827' : '#f9fafb'} />
+            <Text style={styles.ml8} color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
+              Recharger
+            </Text>
+          </Button>
+          <Button
+            variant="outline"
+            onPress={() => onNavigate('recharge-deposit')}
+            style={[styles.flex1, styles.row]}
+          >
+            <Shield size={16} color={colorScheme === 'light' ? '#111827' : '#f9fafb'} />
+            <Text style={styles.ml8} color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
+              Caution
+            </Text>
+          </Button>
+        </View>
         <Button
           variant="outline"
           onPress={() => onNavigate('create-incident')}
-          style={styles.flex1}
+          style={[styles.row]}
         >
           <AlertTriangle size={16} color={colorScheme === 'light' ? '#111827' : '#f9fafb'} />
           <Text style={styles.ml8} color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
-            Signaler
+            Signaler un problème
           </Text>
         </Button>
       </View>
@@ -333,8 +349,11 @@ export function MobileAccountManagement({ onBack, onNavigate }: MobileAccountMan
               <SelectContent>
                 <SelectItem value="all">Tous</SelectItem>
                 <SelectItem value="DEPOSIT">Dépôts</SelectItem>
-                <SelectItem value="RIDE_PAYMENT">Paiements</SelectItem>
+                <SelectItem value="RIDE_PAYMENT">Paiements trajets</SelectItem>
                 <SelectItem value="REFUND">Remboursements</SelectItem>
+                <SelectItem value="DEPOSIT_RECHARGE">Recharge caution</SelectItem>
+                <SelectItem value="DAMAGE_CHARGE">Frais dégâts</SelectItem>
+                <SelectItem value="SUBSCRIPTION_PAYMENT">Forfaits</SelectItem>
               </SelectContent>
             </Select>
           </View>
@@ -365,33 +384,44 @@ export function MobileAccountManagement({ onBack, onNavigate }: MobileAccountMan
                   {getTransactionTypeText(transaction.type)}
                 </Text>
                 <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
-                  {new Date(transaction.createdAt).toLocaleDateString()}
+                  {new Date(transaction.createdAt).toLocaleString()}
                 </Text>
+                {transaction.metadata?.appliedRule && (
+                  <Text size="xs" color="#16a34a" style={styles.mt4}>
+                    {transaction.metadata.appliedRule}
+                  </Text>
+                )}
               </View>
               <View style={styles.alignEnd}>
                 <Text 
                   variant="body" 
-                  color={transaction.type === 'RIDE_PAYMENT' || transaction.type === 'DAMAGE_CHARGE' ? '#dc2626' : '#16a34a'}
+                  color={['RIDE_PAYMENT', 'DAMAGE_CHARGE', 'SUBSCRIPTION_PAYMENT'].includes(transaction.type) ? '#dc2626' : '#16a34a'}
                   weight="bold"
                 >
-                  {transaction.type === 'RIDE_PAYMENT' || transaction.type === 'DAMAGE_CHARGE' ? '-' : '+'}
+                  {['RIDE_PAYMENT', 'DAMAGE_CHARGE', 'SUBSCRIPTION_PAYMENT'].includes(transaction.type) ? '-' : '+'}
                   {transaction.amount} XOF
                 </Text>
-                <Badge 
-                  variant="secondary"
-                  style={{ backgroundColor: getStatusColor(transaction.status) + '20' }}
+                <Text 
+                  size="xs" 
+                  color={getStatusColor(transaction.status)}
+                  style={{ marginTop: 4 }}
                 >
-                  <Text size="xs" color={getStatusColor(transaction.status)}>
-                    {getStatusText(transaction.status)}
-                  </Text>
-                </Badge>
+                  {getStatusText(transaction.status)}
+                </Text>
               </View>
             </View>
+            
+            {transaction.metadata?.discountApplied > 0 && (
+              <Text size="xs" color="#16a34a" style={styles.mb4}>
+                💰 Économie: {transaction.metadata.discountApplied} XOF grâce à votre forfait
+              </Text>
+            )}
           </Card>
         ))}
         
         {filteredTransactions.length === 0 && (
           <Card style={[styles.p32, styles.alignCenter]}>
+            <FileText size={32} color={colorScheme === 'light' ? '#9ca3af' : '#6b7280'} style={styles.mb8} />
             <Text color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
               Aucune transaction trouvée
             </Text>
@@ -411,7 +441,7 @@ export function MobileAccountManagement({ onBack, onNavigate }: MobileAccountMan
       {unlockRequests.length > 0 && (
         <View style={styles.gap12}>
           <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={styles.mb4}>
-            Déverrouillages ({unlockRequests.length})
+            🔓 Déverrouillages ({unlockRequests.length})
           </Text>
           {unlockRequests.map((request) => (
             <Card key={request.id} style={styles.p16}>
@@ -427,19 +457,23 @@ export function MobileAccountManagement({ onBack, onNavigate }: MobileAccountMan
                     </Text>
                     {request.adminNote && (
                       <Text size="xs" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={styles.mt4}>
-                        Note: {request.adminNote}
+                        Note admin: {request.adminNote}
+                      </Text>
+                    )}
+                    {request.rejectionReason && (
+                      <Text size="xs" color="#dc2626" style={styles.mt4}>
+                        Rejeté: {request.rejectionReason}
                       </Text>
                     )}
                   </View>
                 </View>
-                <Badge 
-                  variant="secondary"
-                  style={{ backgroundColor: getStatusColor(request.status) + '20' }}
+                <Text 
+                  size="xs" 
+                  color={getStatusColor(request.status)}
+                  weight="bold"
                 >
-                  <Text size="xs" color={getStatusColor(request.status)}>
-                    {getStatusText(request.status)}
-                  </Text>
-                </Badge>
+                  {getStatusText(request.status)}
+                </Text>
               </View>
             </Card>
           ))}
@@ -450,7 +484,7 @@ export function MobileAccountManagement({ onBack, onNavigate }: MobileAccountMan
       {lockRequests.length > 0 && (
         <View style={styles.gap12}>
           <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={styles.mb4}>
-            Verrouillages ({lockRequests.length})
+            🔒 Verrouillages ({lockRequests.length})
           </Text>
           {lockRequests.map((request) => (
             <Card key={request.id} style={styles.p16}>
@@ -466,19 +500,23 @@ export function MobileAccountManagement({ onBack, onNavigate }: MobileAccountMan
                     </Text>
                     {request.adminNote && (
                       <Text size="xs" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={styles.mt4}>
-                        Note: {request.adminNote}
+                        Note admin: {request.adminNote}
+                      </Text>
+                    )}
+                    {request.ride && (
+                      <Text size="xs" color="#16a34a" style={styles.mt4}>
+                        Trajet: {Math.round((request.ride.duration || 0) / 60)} min - {request.ride.cost || 0} XOF
                       </Text>
                     )}
                   </View>
                 </View>
-                <Badge 
-                  variant="secondary"
-                  style={{ backgroundColor: getStatusColor(request.status) + '20' }}
+                <Text 
+                  size="xs" 
+                  color={getStatusColor(request.status)}
+                  weight="bold"
                 >
-                  <Text size="xs" color={getStatusColor(request.status)}>
-                    {getStatusText(request.status)}
-                  </Text>
-                </Badge>
+                  {getStatusText(request.status)}
+                </Text>
               </View>
             </Card>
           ))}
@@ -507,7 +545,7 @@ export function MobileAccountManagement({ onBack, onNavigate }: MobileAccountMan
           size="sm"
           onPress={() => onNavigate('create-incident')}
         >
-          <Text>Nouveau signalement</Text>
+          <Text>Nouveau</Text>
         </Button>
       </View>
       
@@ -522,14 +560,13 @@ export function MobileAccountManagement({ onBack, onNavigate }: MobileAccountMan
                 {incident.bike?.code || 'Vélo non spécifié'} - {new Date(incident.createdAt).toLocaleDateString()}
               </Text>
             </View>
-            <Badge 
-              variant="secondary"
-              style={{ backgroundColor: getStatusColor(incident.status) + '20' }}
+            <Text 
+              size="xs" 
+              color={getStatusColor(incident.status)}
+              weight="bold"
             >
-              <Text size="xs" color={getStatusColor(incident.status)}>
-                {getStatusText(incident.status)}
-              </Text>
-            </Badge>
+              {getStatusText(incident.status)}
+            </Text>
           </View>
           
           <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={styles.mb8}>
@@ -539,7 +576,7 @@ export function MobileAccountManagement({ onBack, onNavigate }: MobileAccountMan
           {incident.refundAmount > 0 && (
             <View style={[styles.row, styles.alignCenter, styles.gap4, styles.mb8]}>
               <Text size="sm" color="#16a34a" weight="bold">
-                Remboursement: {incident.refundAmount} XOF
+                💰 Remboursement: {incident.refundAmount} XOF
               </Text>
             </View>
           )}
@@ -547,7 +584,7 @@ export function MobileAccountManagement({ onBack, onNavigate }: MobileAccountMan
           {incident.adminNote && (
             <View style={[styles.p12, styles.rounded8, { backgroundColor: colorScheme === 'light' ? '#f9fafb' : '#374151' }]}>
               <Text size="xs" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
-                Note admin: {incident.adminNote}
+                📝 Note admin: {incident.adminNote}
               </Text>
             </View>
           )}
@@ -631,18 +668,19 @@ export function MobileAccountManagement({ onBack, onNavigate }: MobileAccountMan
       </View>
 
       {/* Tabs */}
-      <View 
+      <ScrollView 
+        horizontal
+        showsHorizontalScrollIndicator={false}
         style={[
-          styles.row,
           styles.px16,
           styles.py8,
-          styles.spaceBetween,
           { 
             backgroundColor: colorScheme === 'light' ? 'white' : '#1f2937',
             borderBottomWidth: 1,
             borderBottomColor: colorScheme === 'light' ? '#e5e7eb' : '#374151'
           }
         ]}
+        contentContainerStyle={styles.gap16}
       >
         {tabs.map((tab) => {
           const Icon = tab.icon;
@@ -656,9 +694,12 @@ export function MobileAccountManagement({ onBack, onNavigate }: MobileAccountMan
               style={[
                 styles.alignCenter,
                 styles.py8,
+                styles.px12,
+                styles.rounded8,
                 {
-                  borderBottomWidth: activeTab === tab.key ? 2 : 0,
-                  borderBottomColor: '#16a34a'
+                  backgroundColor: activeTab === tab.key ? '#16a34a20' : 'transparent',
+                  borderWidth: activeTab === tab.key ? 1 : 0,
+                  borderColor: '#16a34a'
                 }
               ]}
             >
@@ -676,7 +717,7 @@ export function MobileAccountManagement({ onBack, onNavigate }: MobileAccountMan
             </TouchableOpacity>
           );
         })}
-      </View>
+      </ScrollView>
 
       {/* Content */}
       <ScrollView 
