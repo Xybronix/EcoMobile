@@ -1,32 +1,33 @@
 import { API_CONFIG, handleApiResponse, ApiError } from '@/lib/api/config';
 import { authService } from './authService';
 
-export interface SubscriptionPlan {
+export interface Plan {
   id: string;
   name: string;
-  description: string;
-  type: 'HOURLY' | 'DAILY' | 'WEEKLY' | 'MONTHLY';
+  type: string;
   hourlyRate: number;
   dailyRate: number;
   weeklyRate: number;
   monthlyRate: number;
   discount: number;
   features: string[];
-  isActive: boolean;
-  conditions?: any;
+  isPopular?: boolean;
 }
 
-export interface Subscription {
-  id: string;
-  userId: string;
+export interface SubscriptionRequest {
   planId: string;
-  plan?: SubscriptionPlan;
-  type: 'HOURLY' | 'DAILY' | 'WEEKLY' | 'MONTHLY';
-  isActive: boolean;
+  packageType: 'daily' | 'weekly' | 'monthly';
+  startDate: Date;
+}
+
+export interface ActiveSubscription {
+  id: string;
+  planName: string;
+  packageType: string;
   startDate: string;
   endDate: string;
-  createdAt: string;
-  updatedAt: string;
+  status: string;
+  remainingDays: number;
 }
 
 class SubscriptionService {
@@ -43,29 +44,29 @@ class SubscriptionService {
     };
   }
 
-  async getAvailablePlans(): Promise<SubscriptionPlan[]> {
+  async getAvailablePlans(): Promise<Plan[]> {
     try {
-      const response = await fetch(`${this.baseUrl}/plans`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/public/pricing-plans`, {
         method: 'GET',
         headers: API_CONFIG.HEADERS,
       });
 
       const result = await handleApiResponse(response);
-      return result.data || [];
+      return result.data?.plans || [];
     } catch (error) {
-      console.error('Error loading subscription plans:', error);
+      console.error('Error loading plans:', error);
       return [];
     }
   }
 
-  async createSubscription(planId: string, type: 'HOURLY' | 'DAILY' | 'WEEKLY' | 'MONTHLY'): Promise<Subscription> {
+  async subscribe(data: SubscriptionRequest): Promise<ActiveSubscription> {
     const headers = await this.getAuthHeaders();
     
     try {
       const response = await fetch(this.baseUrl, {
         method: 'POST',
         headers,
-        body: JSON.stringify({ planId, type }),
+        body: JSON.stringify(data),
       });
 
       const result = await handleApiResponse(response);
@@ -78,7 +79,7 @@ class SubscriptionService {
     }
   }
 
-  async getCurrentSubscription(): Promise<Subscription | null> {
+  async getCurrentSubscription(): Promise<ActiveSubscription | null> {
     const headers = await this.getAuthHeaders();
     
     try {
@@ -87,28 +88,14 @@ class SubscriptionService {
         headers,
       });
 
+      if (response.status === 404) {
+        return null;
+      }
+
       const result = await handleApiResponse(response);
-      return result.data || null;
+      return result.data;
     } catch (error) {
-      console.error('Error getting current subscription:', error);
       return null;
-    }
-  }
-
-  async getUserSubscriptions(): Promise<Subscription[]> {
-    const headers = await this.getAuthHeaders();
-    
-    try {
-      const response = await fetch(this.baseUrl, {
-        method: 'GET',
-        headers,
-      });
-
-      const result = await handleApiResponse(response);
-      return result.data || [];
-    } catch (error) {
-      console.error('Error loading user subscriptions:', error);
-      return [];
     }
   }
 
@@ -116,37 +103,12 @@ class SubscriptionService {
     const headers = await this.getAuthHeaders();
     
     try {
-      const response = await fetch(`${this.baseUrl}/${subscriptionId}`, {
-        method: 'DELETE',
+      const response = await fetch(`${this.baseUrl}/${subscriptionId}/cancel`, {
+        method: 'POST',
         headers,
       });
 
       await handleApiResponse(response);
-    } catch (error) {
-      if (error instanceof ApiError) {
-        throw new Error(this.getErrorMessage(error));
-      }
-      throw new Error('network_error');
-    }
-  }
-
-  async calculatePrice(planId: string, type: 'HOURLY' | 'DAILY' | 'WEEKLY' | 'MONTHLY'): Promise<{
-    basePrice: number;
-    discount: number;
-    finalPrice: number;
-    savings: number;
-  }> {
-    const headers = await this.getAuthHeaders();
-    
-    try {
-      const response = await fetch(`${this.baseUrl}/calculate-price`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ planId, type }),
-      });
-
-      const result = await handleApiResponse(response);
-      return result.data;
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(this.getErrorMessage(error));
@@ -163,10 +125,8 @@ class SubscriptionService {
         return 'unauthorized';
       case 402:
         return 'insufficient_funds';
-      case 404:
-        return 'plan_not_found';
       case 409:
-        return 'active_subscription_exists';
+        return 'subscription_conflict';
       case 422:
         return 'validation_error';
       default:

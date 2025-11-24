@@ -100,7 +100,15 @@ export function PricingConfig() {
     const loadPricing = async () => {
       try {
         const data = await companyService.getPricing();
-        setPricingConfig(data);
+        const plansWithOverrides = data.plans?.map(plan => ({
+          ...plan,
+          override: plan.override ?? undefined
+        })) || [];
+        
+        setPricingConfig({
+          ...data,
+          plans: plansWithOverrides
+        });
       } catch (error) {
         toast.error('Erreur lors du chargement de la configuration tarifaire');
         console.error(error);
@@ -209,59 +217,76 @@ export function PricingConfig() {
     }; 
 
     try {
-      const updatedPlans = isAddingNewPlan 
-        ? [...(pricingConfig?.plans || []), { 
-            // Create a full PricingPlan shape for new plans (include bikes and bikeCount)
-            ...planData, 
-            id: Date.now().toString(),
-            bikes: [],
-            bikeCount: 0
-          }]
-        : (pricingConfig?.plans || []).map(plan => 
-            plan.id === (selectedPlan?.id ?? '') 
-              // Preserve existing plan fields (like bikes, bikeCount) and override with edited values
-              ? { ...plan, ...editedPlan, id: selectedPlan!.id }
-              : plan
-          );
-
-      const newConfig = {
-        ...pricingConfig,
-        plans: updatedPlans
-      };
-
-      await companyService.updatePricing(newConfig);
-
-      const planId = isAddingNewPlan 
-        ? updatedPlans[updatedPlans.length - 1].id 
-        : selectedPlan!.id;
-
-      if (editedPlan.hasOverride && planId) {
-        if (editedPlan.overTimeValue > 0) {
-          await companyService.createPlanOverride(
-            planId, 
-            editedPlan.overTimeType, 
-            editedPlan.overTimeValue
-          );
-        }
-      } else if (!editedPlan.hasOverride && planId) {
-        try {
-          await companyService.deletePlanOverride(planId);
-        } catch (error) {
-          // Ignorer l'erreur si l'override n'existe pas
-        }
-      }
-      setPricingConfig(newConfig as PricingConfigType);
+      let planId: string | undefined;
       
-      toast.success(isAddingNewPlan ? 
-        `Nouveau plan "${editedPlan.name}" créé avec succès` : 
-        `Plan "${editedPlan.name}" mis à jour avec succès`
-      );
+      if (isAddingNewPlan) {
+        const newPlanResponse = await companyService.createPlan(planData);
+        const newPlan = newPlanResponse.data;
+        planId = newPlan.id;
+
+        const updatedPlans = [...(pricingConfig?.plans || []), newPlan];
+        const newConfig = {
+          ...pricingConfig,
+          plans: updatedPlans
+        };
+        setPricingConfig(newConfig as PricingConfigType);
+        
+        toast.success(`Nouveau plan "${editedPlan.name}" créé avec succès`);
+      } else {
+        const updatedPlans = (pricingConfig?.plans || []).map(plan => 
+          plan.id === (selectedPlan?.id ?? '') 
+            ? { ...plan, ...editedPlan, id: selectedPlan!.id }
+            : plan
+        );
+
+        const newConfig = {
+          ...pricingConfig,
+          plans: updatedPlans
+        };
+
+        await companyService.updatePricing(newConfig);
+        
+        const freshData = await companyService.getPricing();
+        setPricingConfig(freshData);
+        
+        const updatedPlan = freshData.plans?.find(p => p.name === editedPlan.name);
+        planId = updatedPlan?.id;
+
+        if (!planId) {
+          planId = selectedPlan?.id;
+        }
+        
+        toast.success(`Plan "${editedPlan.name}" mis à jour avec succès`);
+      }
+
+      if (planId) {
+        if (editedPlan.hasOverride && editedPlan.overTimeValue > 0) {
+          try {
+            await companyService.createPlanOverride(
+              planId, 
+              editedPlan.overTimeType, 
+              editedPlan.overTimeValue
+            );
+          } catch (error: any) {
+            toast.error('Erreur lors de la création de la tarification spéciale');
+          }
+        } else {
+          try {
+            await companyService.deletePlanOverride(planId);
+          } catch (error: any) {
+          }
+        }
+        
+        const finalData = await companyService.getPricing();
+        setPricingConfig(finalData);
+      }
       
       setIsEditingPlan(false);
       setIsAddingNewPlan(false);
       setSelectedPlan(null);
     } catch (error: any) {
       toast.error(error.message || 'Erreur lors de la sauvegarde');
+      console.error('Erreur sauvegarde plan:', error);
     }
   };
 
@@ -446,6 +471,10 @@ export function PricingConfig() {
 
   const handleEditPlan = (plan: PricingPlan) => {
     setSelectedPlan(plan);
+
+    const hasOverride = !!plan.override;
+    const override = plan.override;
+
     setEditedPlan({
       name: plan.name,
       hourlyRate: plan.hourlyRate,
@@ -457,8 +486,8 @@ export function PricingConfig() {
       isActive: plan.isActive,
       conditions: plan.conditions || [],
       hasOverride: false,
-      overTimeType: 'PERCENTAGE_REDUCTION' as 'FIXED_PRICE' | 'PERCENTAGE_REDUCTION',
-      overTimeValue: 0
+      overTimeType: override?.overTimeType || 'PERCENTAGE_REDUCTION',
+      overTimeValue: override?.overTimeValue || 0
     });
     setFormErrors({});
     setIsEditingPlan(true);
@@ -694,6 +723,9 @@ export function PricingConfig() {
                       <h3>{plan.name}</h3>
                       {!plan.isActive && (
                         <Badge variant="secondary" className="text-xs">Inactif</Badge>
+                      )}
+                      {plan.override && (
+                        <Badge variant="outline" className="text-xs bg-yellow-50 text-yellow-700 border-yellow-200">Overtime</Badge>
                       )}
                     </div>
                     {plan.discount > 0 && (
@@ -1000,7 +1032,7 @@ export function PricingConfig() {
           setIsEditingPlan(false);
           setIsAddingNewPlan(false);
         }}>
-          <DialogContent className="max-w-2xl" aria-describedby={undefined}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto" aria-describedby={undefined}>
             <DialogHeader>
               <DialogTitle>
                 {isAddingNewPlan ? 'Nouveau Plan Tarifaire' : `Modifier le Plan: ${selectedPlan?.name}`}
@@ -1081,13 +1113,18 @@ export function PricingConfig() {
                 <div className="flex items-center gap-2">
                   <Switch
                     checked={editedPlan.hasOverride}
-                    onCheckedChange={(checked: any) => setEditedPlan({ 
+                    onCheckedChange={(checked: boolean) => setEditedPlan({ 
                       ...editedPlan, 
                       hasOverride: checked,
                       overTimeValue: checked ? editedPlan.overTimeValue : 0
                     })}
                   />
                   <Label>Tarification spéciale hors forfait</Label>
+                  {editedPlan.hasOverride && (
+                    <Badge variant="outline" className="ml-2">
+                      {editedPlan.overTimeValue > 0 ? 'Configuré' : 'À configurer'}
+                    </Badge>
+                  )}
                 </div>
 
                 {editedPlan.hasOverride && (
@@ -1128,11 +1165,22 @@ export function PricingConfig() {
                           })}
                           min="0"
                           max={editedPlan.overTimeType === 'PERCENTAGE_REDUCTION' ? "100" : undefined}
+                          placeholder={
+                            editedPlan.overTimeType === 'FIXED_PRICE' 
+                              ? 'Ex: 500' 
+                              : 'Ex: 10'
+                          }
                         />
                       </div>
                     </div>
                     <p className="text-xs text-yellow-700 mt-2">
                       Cette règle s'applique quand les utilisateurs avec forfait dépassent les heures couvertes par leur abonnement.
+                      {editedPlan.overTimeValue > 0 && (
+                        <span className="font-medium ml-1">
+                          Configuration actuelle: {editedPlan.overTimeValue}
+                          {editedPlan.overTimeType === 'FIXED_PRICE' ? ' FCFA' : '%'}
+                        </span>
+                      )}
                     </p>
                   </Card>
                 )}
@@ -1570,6 +1618,43 @@ export function PricingConfig() {
                     </Badge>
                   </div>
                 </div>
+
+                {/* Section Override */}
+                {selectedPlanForDetails.override && (
+                  <Card className="p-4 mt-4 bg-yellow-50 border-yellow-200">
+                    <h4 className="text-lg font-medium text-yellow-800 mb-3">
+                      Tarification Spéciale Hors Forfait
+                    </h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm text-yellow-700">Type de tarification</p>
+                        <p className="font-medium">
+                          {selectedPlanForDetails.override.overTimeType === 'FIXED_PRICE' 
+                            ? 'Prix fixe' 
+                            : 'Réduction en pourcentage'
+                          }
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-yellow-700">
+                          {selectedPlanForDetails.override.overTimeType === 'FIXED_PRICE' 
+                            ? 'Prix fixe' 
+                            : 'Pourcentage de réduction'
+                          }
+                        </p>
+                        <p className="font-medium">
+                          {selectedPlanForDetails.override.overTimeType === 'FIXED_PRICE' 
+                            ? `${formatPrice(selectedPlanForDetails.override.overTimeValue)} FCFA`
+                            : `${selectedPlanForDetails.override.overTimeValue}%`
+                          }
+                        </p>
+                      </div>
+                    </div>
+                    <p className="text-xs text-yellow-600 mt-2">
+                      Cette tarification s'applique quand les utilisateurs dépassent les heures couvertes par leur forfait.
+                    </p>
+                  </Card>
+                )}
               </Card>
 
               {/* Vélos associés */}
