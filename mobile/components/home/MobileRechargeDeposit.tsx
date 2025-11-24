@@ -31,23 +31,35 @@ export function MobileRechargeDeposit({ onBack, onSuccess }: MobileRechargeDepos
   const [isProcessing, setIsProcessing] = useState(false);
   const [depositInfo, setDepositInfo] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [walletBalance, setWalletBalance] = useState<number>(0); // Nouvel état pour le solde
+  const [isLoadingWallet, setIsLoadingWallet] = useState(true); // État de chargement du wallet
 
   const predefinedAmounts = [5000, 10000, 15000, 20000];
 
   useEffect(() => {
-    loadDepositInfo();
+    loadData();
   }, []);
 
-  const loadDepositInfo = async () => {
+  const loadData = async () => {
     try {
       setIsLoading(true);
-      const info = await walletService.getDepositInfo();
+      setIsLoadingWallet(true);
+      
+      // Charger les informations de dépôt et le solde en parallèle
+      const [info, balance] = await Promise.all([
+        walletService.getDepositInfo(),
+        walletService.getBalance()
+      ]);
+      
       setDepositInfo(info);
+      setWalletBalance(balance.balance || 0);
+      
     } catch (error) {
-      console.error('Error loading deposit info:', error);
+      console.error('Error loading data:', error);
       toast.error('Erreur lors du chargement');
     } finally {
       setIsLoading(false);
+      setIsLoadingWallet(false);
     }
   };
 
@@ -64,7 +76,8 @@ export function MobileRechargeDeposit({ onBack, onSuccess }: MobileRechargeDepos
       return;
     }
 
-    if (!user?.wallet || user.wallet.balance < amount) {
+    // Utiliser walletBalance au lieu de user?.wallet?.balance
+    if (walletBalance < amount) {
       haptics.error();
       toast.error('Solde wallet insuffisant. Rechargez d\'abord votre portefeuille.');
       return;
@@ -78,8 +91,9 @@ export function MobileRechargeDeposit({ onBack, onSuccess }: MobileRechargeDepos
       haptics.success();
       toast.success(`Caution rechargée de ${amount} FCFA`);
       
-      // Rafraîchir les données utilisateur
+      // Rafraîchir les données utilisateur et le solde
       await refreshUser();
+      await loadData(); // Recharger les données pour mettre à jour le solde
       
       onSuccess?.();
       onBack();
@@ -183,15 +197,21 @@ export function MobileRechargeDeposit({ onBack, onSuccess }: MobileRechargeDepos
             <Wallet size={20} color="#16a34a" />
             <View style={styles.flex1}>
               <Text size="sm" color="#6b7280">Solde wallet disponible</Text>
-              <Text variant="body" color="#16a34a" weight="bold">
-                {user?.wallet?.balance || 0} XOF
-              </Text>
+              {isLoadingWallet ? (
+                <Text variant="body" color="#16a34a" weight="bold">
+                  Chargement...
+                </Text>
+              ) : (
+                <Text variant="body" color="#16a34a" weight="bold">
+                  {walletBalance.toLocaleString()} XOF
+                </Text>
+              )}
             </View>
           </View>
         </Card>
 
         {/* Warning if insufficient wallet balance */}
-        {user?.wallet && user.wallet.balance < remainingAmount && (
+        {walletBalance < remainingAmount && (
           <Card style={[styles.p16, { backgroundColor: '#fef3c7', borderColor: '#f59e0b' }]}>
             <View style={[styles.row, styles.gap12]}>
               <AlertTriangle size={20} color="#f59e0b" />
@@ -258,11 +278,11 @@ export function MobileRechargeDeposit({ onBack, onSuccess }: MobileRechargeDepos
         <View style={styles.gap12}>
           <Button 
             onPress={handleRecharge}
-            disabled={isProcessing || (!selectedAmount && !customAmount) || (user?.wallet && user.wallet.balance < (selectedAmount || parseInt(customAmount) || 0))}
+            disabled={isProcessing || (!selectedAmount && !customAmount) || walletBalance < (selectedAmount || parseInt(customAmount) || 0)}
             fullWidth
             style={{ 
               backgroundColor: '#16a34a',
-              opacity: (isProcessing || (!selectedAmount && !customAmount) || (user?.wallet && user.wallet.balance < (selectedAmount || parseInt(customAmount) || 0))) ? 0.6 : 1
+              opacity: (isProcessing || (!selectedAmount && !customAmount) || walletBalance < (selectedAmount || parseInt(customAmount) || 0)) ? 0.6 : 1
             }}
           >
             <Shield size={16} color="white" />
@@ -271,7 +291,7 @@ export function MobileRechargeDeposit({ onBack, onSuccess }: MobileRechargeDepos
             </Text>
           </Button>
 
-          {(!user?.wallet || user.wallet.balance < (selectedAmount || parseInt(customAmount) || 0)) && (
+          {(walletBalance < (selectedAmount || parseInt(customAmount) || 0)) && (
             <Button 
               variant="outline"
               onPress={() => onBack()} // Devrait naviguer vers la recharge du wallet
