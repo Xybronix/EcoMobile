@@ -5,6 +5,7 @@ import { Text } from '@/components/ui/Text';
 import { toast } from '@/components/ui/Toast';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { subscriptionService } from '@/services/subscriptionService';
+import { walletService } from '@/services/walletService';
 import { getGlobalStyles } from '@/styles/globalStyles';
 import { haptics } from '@/utils/haptics';
 import { ArrowLeft, Check, Clock, CreditCard, Star, Zap } from 'lucide-react-native';
@@ -39,11 +40,13 @@ export function MobileSubscriptionPlans({ onBack, onNavigate }: MobileSubscripti
   const [plans, setPlans] = useState<Plan[]>([]);
   const [selectedPlan, setSelectedPlan] = useState<string>('');
   const [selectedPackage, setSelectedPackage] = useState<'daily' | 'weekly' | 'monthly'>('daily');
+  const [walletData, setWalletData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     loadPlans();
+    loadWalletData();
   }, []);
 
   const loadPlans = async () => {
@@ -59,6 +62,15 @@ export function MobileSubscriptionPlans({ onBack, onNavigate }: MobileSubscripti
       toast.error('Erreur lors du chargement des plans');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadWalletData = async () => {
+    try {
+      const wallet = await walletService.getBalance();
+      setWalletData(wallet);
+    } catch (error) {
+      console.error('Error loading wallet data:', error);
     }
   };
 
@@ -103,7 +115,9 @@ export function MobileSubscriptionPlans({ onBack, onNavigate }: MobileSubscripti
     const price = getPrice();
     
     // Vérifier le solde
-    if (user.wallet.balance < price) {
+    const currentBalance = walletData?.balance || 0;
+
+    if (currentBalance < price) {
       haptics.error();
       Alert.alert(
         'Solde insuffisant',
@@ -318,7 +332,7 @@ export function MobileSubscriptionPlans({ onBack, onNavigate }: MobileSubscripti
             
             <View style={[styles.row, styles.spaceBetween, styles.mb4]}>
               <Text size="sm" color="#6b7280">Solde actuel :</Text>
-              <Text size="sm" color="#111827">{user?.wallet?.balance || 0} XOF</Text>
+              <Text size="sm" color="#111827">{walletData?.balance || 0} XOF</Text>
             </View>
             
             <View style={[styles.row, styles.spaceBetween, { paddingTop: 8, borderTopWidth: 1, borderTopColor: '#d1fae5' }]}>
