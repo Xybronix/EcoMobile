@@ -1,3 +1,4 @@
+/* eslint-disable react/no-unescaped-entities */
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
@@ -9,7 +10,8 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { getGlobalStyles } from '@/styles/globalStyles';
 import { haptics } from '@/utils/haptics';
 import { reservationService } from '@/services/reservationService';
-import { Calendar, Clock, ArrowLeft, Check, X } from 'lucide-react-native';
+import { subscriptionService } from '@/services/subscriptionService';
+import { Calendar, Clock, ArrowLeft, Check, X, Crown, AlertTriangle } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { ScrollView, TouchableOpacity, View } from 'react-native';
 import { useMobileI18n } from '@/lib/mobile-i18n';
@@ -18,6 +20,36 @@ interface MobileBikeReservationProps {
   bike: any;
   onBack: () => void;
   onReservationComplete: () => void;
+}
+
+interface SubscriptionInfo {
+  id: string;
+  planName: string;
+  packageType: string;
+  startDate: string;
+  endDate: string;
+  status: string;
+  remainingDays: number;
+}
+
+interface PlanWithSubscriptionInfo {
+  id: string;
+  name: string;
+  type: string;
+  hourlyRate: number;
+  dailyRate: number;
+  weeklyRate: number;
+  monthlyRate: number;
+  discount: number;
+  features: string[];
+  isPopular?: boolean;
+  isCoveredBySubscription?: boolean;
+  subscriptionCoverage?: {
+    coveredDays: number;
+    remainingDays: number;
+    extraCost?: number;
+    message?: string;
+  };
 }
 
 export function MobileBikeReservation({ bike, onBack, onReservationComplete }: MobileBikeReservationProps) {
@@ -30,26 +62,129 @@ export function MobileBikeReservation({ bike, onBack, onReservationComplete }: M
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [availablePlans, setAvailablePlans] = useState<any[]>([]);
+  const [availablePlans, setAvailablePlans] = useState<PlanWithSubscriptionInfo[]>([]);
   const [conflictMessage, setConflictMessage] = useState('');
+  const [currentSubscription, setCurrentSubscription] = useState<SubscriptionInfo | null>(null);
+  const [reservationDuration, setReservationDuration] = useState(1);
 
   useEffect(() => {
-    loadAvailablePlans();
+    loadUserData();
   }, []);
 
   useEffect(() => {
-    if (selectedDate && selectedTime) {
+    if (selectedDate && selectedTime && selectedPackage) {
       checkAvailability();
+      updatePlansWithSubscriptionInfo();
     }
-  }, [selectedDate, selectedTime, selectedPackage]);
+  }, [selectedDate, selectedTime, selectedPackage, currentSubscription]);
 
-  const loadAvailablePlans = async () => {
+  const loadUserData = async () => {
     try {
-      // Charger les plans disponibles depuis l'API
+      // Charger l'abonnement actif
+      const subscription = await subscriptionService.getCurrentSubscription();
+      setCurrentSubscription(subscription);
+      
+      // Charger les plans disponibles
       const plans = await reservationService.getAvailablePlans();
       setAvailablePlans(plans);
     } catch (error) {
-      console.error('Error loading plans:', error);
+      console.error('Error loading user data:', error);
+    }
+  };
+
+  const updatePlansWithSubscriptionInfo = () => {
+    if (!selectedDate || !selectedPackage || !currentSubscription) return;
+
+    const updatedPlans = availablePlans.map(plan => {
+      const subscriptionInfo = calculateSubscriptionCoverage(plan, selectedPackage);
+      return {
+        ...plan,
+        isCoveredBySubscription: subscriptionInfo.isCovered,
+        subscriptionCoverage: subscriptionInfo
+      };
+    });
+
+    setAvailablePlans(updatedPlans);
+  };
+
+  const calculateSubscriptionCoverage = (plan: any, packageType: string) => {
+    if (!currentSubscription) {
+      return { isCovered: false, coveredDays: 0, remainingDays: 0 };
+    }
+
+    const reservationStartDate = new Date(`${selectedDate}T${selectedTime}`);
+    const subscriptionEndDate = new Date(currentSubscription.endDate);
+    
+    // Calculer la durée de la réservation en jours
+    let reservationDays = 1;
+    switch (packageType) {
+      case 'daily':
+        reservationDays = 1;
+        break;
+      case 'weekly':
+        reservationDays = 7;
+        break;
+      case 'monthly':
+        reservationDays = 30;
+        break;
+      default:
+        reservationDays = 1;
+    }
+
+    const reservationEndDate = new Date(reservationStartDate);
+    reservationEndDate.setDate(reservationEndDate.getDate() + reservationDays);
+
+    // Vérifier si la réservation commence pendant l'abonnement
+    const startsDuringSubscription = reservationStartDate <= subscriptionEndDate;
+
+    if (!startsDuringSubscription) {
+      return {
+        isCovered: false,
+        coveredDays: 0,
+        remainingDays: 0,
+        message: 'La réservation commence après la fin de votre abonnement'
+      };
+    }
+
+    // Calculer le nombre de jours couverts par l'abonnement
+    const coverageEndDate = new Date(Math.min(reservationEndDate.getTime(), subscriptionEndDate.getTime()));
+    const coveredDays = Math.ceil((coverageEndDate.getTime() - reservationStartDate.getTime()) / (1000 * 60 * 60 * 24));
+
+    const isFullyCovered = coveredDays >= reservationDays;
+    const remainingDays = Math.max(0, reservationDays - coveredDays);
+
+    let message = '';
+    let extraCost = 0;
+
+    if (isFullyCovered) {
+      message = 'Entièrement inclus dans votre abonnement';
+    } else {
+      // Calculer le coût supplémentaire pour les jours non couverts
+      const dailyRate = getDailyRate(plan, packageType);
+      extraCost = remainingDays * dailyRate;
+      
+      message = `${coveredDays} jour(s) inclus, ${remainingDays} jour(s) à ${extraCost.toLocaleString()} XOF`;
+    }
+
+    return {
+      isCovered: isFullyCovered,
+      coveredDays,
+      remainingDays,
+      extraCost,
+      message
+    };
+  };
+
+  const getDailyRate = (plan: any, packageType: string) => {
+    switch (packageType) {
+      case 'daily':
+        return plan.dailyRate;
+      case 'weekly':
+        return plan.weeklyRate / 7;
+      case 'monthly':
+        return plan.monthlyRate / 30;
+      default:
+        return plan.dailyRate;
     }
   };
 
@@ -123,12 +258,32 @@ export function MobileBikeReservation({ bike, onBack, onReservationComplete }: M
   const getPrice = () => {
     if (!selectedPlanData || !selectedPackage) return 0;
     
+    // Si couvert par l'abonnement, prix = 0 ou coût supplémentaire
+    if (selectedPlanData.isCoveredBySubscription) {
+      return 0;
+    } else if (selectedPlanData.subscriptionCoverage?.extraCost) {
+      return selectedPlanData.subscriptionCoverage.extraCost;
+    }
+    
+    // Prix normal
     switch (selectedPackage) {
       case 'hourly': return selectedPlanData.hourlyRate;
       case 'daily': return selectedPlanData.dailyRate;
       case 'weekly': return selectedPlanData.weeklyRate;
       case 'monthly': return selectedPlanData.monthlyRate;
       default: return 0;
+    }
+  };
+
+  const getPriceMessage = () => {
+    if (!selectedPlanData) return '';
+    
+    if (selectedPlanData.isCoveredBySubscription) {
+      return 'Inclus dans votre abonnement';
+    } else if (selectedPlanData.subscriptionCoverage?.extraCost) {
+      return `Partiellement inclus (${selectedPlanData.subscriptionCoverage.message})`;
+    } else {
+      return 'Hors abonnement';
     }
   };
 
@@ -173,21 +328,115 @@ export function MobileBikeReservation({ bike, onBack, onReservationComplete }: M
         contentContainerStyle={[styles.p16, styles.gap16]}
         showsVerticalScrollIndicator={false}
       >
+        {/* Subscription Status */}
+        {currentSubscription && (
+          <Card style={[styles.p16, { backgroundColor: '#eff6ff', borderColor: '#3b82f6' }]}>
+            <View style={[styles.row, styles.gap12]}>
+              <Crown size={20} color="#3b82f6" />
+              <View style={styles.flex1}>
+                <Text variant="body" color="#1e40af" weight="bold">
+                  Abonnement actif: {currentSubscription.planName}
+                </Text>
+                <Text size="sm" color="#1e40af">
+                  Valide jusqu'au {new Date(currentSubscription.endDate).toLocaleDateString()} 
+                  ({currentSubscription.remainingDays} jour(s) restant(s))
+                </Text>
+              </View>
+            </View>
+          </Card>
+        )}
+
         {/* Plan Selection */}
         <Card style={styles.p16}>
           <Label style={styles.mb8}>Plan Tarifaire *</Label>
-          <Select value={selectedPlan} onValueChange={setSelectedPlan}>
-            <SelectTrigger placeholder="Sélectionner un plan">
-              <SelectValue placeholder="Sélectionner un plan" />
-            </SelectTrigger>
-            <SelectContent>
-              {availablePlans.map((plan) => (
-                <SelectItem key={plan.id} value={plan.id}>
-                  <Text>{plan.name}</Text>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <View style={styles.gap8}>
+            {availablePlans.map((plan) => (
+              <TouchableOpacity
+                key={plan.id}
+                onPress={() => {
+                  setSelectedPlan(plan.id);
+                  haptics.light();
+                }}
+                style={[
+                  styles.p16,
+                  styles.rounded8,
+                  {
+                    backgroundColor: selectedPlan === plan.id 
+                      ? '#16a34a20' 
+                      : (colorScheme === 'light' ? '#f9fafb' : '#374151'),
+                    borderWidth: selectedPlan === plan.id ? 2 : 1,
+                    borderColor: selectedPlan === plan.id 
+                      ? '#16a34a' 
+                      : (colorScheme === 'light' ? '#e5e7eb' : '#4b5563')
+                  }
+                ]}
+              >
+                <View style={[styles.row, styles.spaceBetween, styles.alignCenter]}>
+                  <View style={styles.flex1}>
+                    <View style={[styles.row, styles.alignCenter, styles.gap8, styles.mb4]}>
+                      <Text 
+                        variant="body" 
+                        color={selectedPlan === plan.id ? '#16a34a' : (colorScheme === 'light' ? '#111827' : '#f9fafb')}
+                        weight="bold"
+                      >
+                        {plan.name}
+                      </Text>
+                      {plan.isCoveredBySubscription && (
+                        <View style={[styles.row, styles.alignCenter, styles.gap4]}>
+                          <Crown size={16} color="#3b82f6" />
+                          <Text size="xs" color="#3b82f6">
+                            Inclus
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                    
+                    {/* Subscription Coverage Info */}
+                    {plan.subscriptionCoverage && !plan.isCoveredBySubscription && (
+                      <View style={[styles.row, styles.alignCenter, styles.gap4, styles.mb4]}>
+                        <AlertTriangle size={14} color="#f59e0b" />
+                        <Text size="xs" color="#f59e0b">
+                          {plan.subscriptionCoverage.message}
+                        </Text>
+                      </View>
+                    )}
+
+                    {/* Pricing */}
+                    <View style={[styles.row, styles.gap12]}>
+                      <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
+                        Journalier: {plan.dailyRate.toLocaleString()} XOF
+                      </Text>
+                      <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
+                        Mensuel: {plan.monthlyRate.toLocaleString()} XOF
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* Price based on subscription */}
+                  <View style={styles.alignEnd}>
+                    {plan.isCoveredBySubscription ? (
+                      <Text size="lg" color="#3b82f6" weight="bold">
+                        Gratuit
+                      </Text>
+                    ) : plan.subscriptionCoverage?.extraCost ? (
+                      <View style={styles.alignEnd}>
+                        <Text size="sm" color="#f59e0b" style={styles.textRight}>
+                          {plan.subscriptionCoverage.extraCost.toLocaleString()} XOF
+                        </Text>
+                        <Text size="xs" color="#6b7280" style={styles.textRight}>
+                          supplémentaire
+                        </Text>
+                      </View>
+                    ) : (
+                      <Text size="lg" color="#16a34a" weight="bold">
+                        {plan.dailyRate.toLocaleString()} XOF
+                      </Text>
+                    )}
+                  </View>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
         </Card>
 
         {/* Package Type */}
@@ -301,7 +550,10 @@ export function MobileBikeReservation({ bike, onBack, onReservationComplete }: M
 
         {/* Price Summary */}
         {selectedPlanData && selectedPackageData && (
-          <Card style={[styles.p16, { backgroundColor: '#f0fdf4', borderColor: '#16a34a' }]}>
+          <Card style={[styles.p16, { 
+            backgroundColor: selectedPlanData.isCoveredBySubscription ? '#eff6ff' : '#f0fdf4', 
+            borderColor: selectedPlanData.isCoveredBySubscription ? '#3b82f6' : '#16a34a' 
+          }]}>
             <Text variant="body" color="#111827" style={styles.mb8}>
               Résumé de la réservation
             </Text>
@@ -317,10 +569,18 @@ export function MobileBikeReservation({ bike, onBack, onReservationComplete }: M
               <Text size="sm" color="#6b7280">Date/Heure :</Text>
               <Text size="sm" color="#111827">{selectedDate} à {selectedTime}</Text>
             </View>
-            <View style={[styles.row, styles.spaceBetween, { paddingTop: 8, borderTopWidth: 1, borderTopColor: '#d1fae5' }]}>
+            {selectedPlanData.subscriptionCoverage && (
+              <View style={[styles.row, styles.spaceBetween, styles.mb4]}>
+                <Text size="sm" color="#6b7280">Couverture :</Text>
+                <Text size="sm" color={selectedPlanData.isCoveredBySubscription ? "#3b82f6" : "#f59e0b"}>
+                  {getPriceMessage()}
+                </Text>
+              </View>
+            )}
+            <View style={[styles.row, styles.spaceBetween, { paddingTop: 8, borderTopWidth: 1, borderTopColor: selectedPlanData.isCoveredBySubscription ? '#dbeafe' : '#d1fae5' }]}>
               <Text variant="body" color="#111827">Prix :</Text>
-              <Text variant="body" color="#16a34a" weight="bold">
-                {getPrice()} XOF
+              <Text variant="body" color={selectedPlanData.isCoveredBySubscription ? "#3b82f6" : "#16a34a"} weight="bold">
+                {getPrice() === 0 ? 'Gratuit' : `${getPrice().toLocaleString()} XOF`}
               </Text>
             </View>
           </Card>
@@ -332,7 +592,7 @@ export function MobileBikeReservation({ bike, onBack, onReservationComplete }: M
           disabled={isSubmitting || !selectedPlan || !selectedPackage || !selectedDate || !selectedTime || !!conflictMessage}
           fullWidth
           style={{ 
-            backgroundColor: '#16a34a',
+            backgroundColor: selectedPlanData?.isCoveredBySubscription ? '#3b82f6' : '#16a34a',
             opacity: (isSubmitting || !selectedPlan || !selectedPackage || !selectedDate || !selectedTime || !!conflictMessage) ? 0.6 : 1
           }}
         >

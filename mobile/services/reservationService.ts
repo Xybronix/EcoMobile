@@ -162,6 +162,35 @@ class ReservationService {
     }
   }
 
+  async calculateReservationWithSubscription(
+    bikeId: string, 
+    planId: string, 
+    packageType: string, 
+    startDate: string
+  ): Promise<{
+    basePrice: number;
+    subscriptionCoverage: number;
+    finalPrice: number;
+    coveredDays: number;
+    message: string;
+  }> {
+    const headers = await this.getAuthHeaders();
+    
+    try {
+      const response = await fetch(`${this.baseUrl}/calculate-with-subscription`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ bikeId, planId, packageType, startDate }),
+      });
+
+      const result = await handleApiResponse(response);
+      return result.data;
+    } catch (error) {
+      console.error('Error calculating reservation with subscription:', error);
+      throw new Error('calculation_error');
+    }
+  }
+
   private getErrorMessage(error: ApiError): string {
     switch (error.status) {
       case 400:
