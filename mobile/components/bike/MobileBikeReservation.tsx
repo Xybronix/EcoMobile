@@ -1,4 +1,5 @@
 /* eslint-disable react/no-unescaped-entities */
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
@@ -66,6 +67,9 @@ export function MobileBikeReservation({ bike, onBack, onReservationComplete }: M
   const [conflictMessage, setConflictMessage] = useState('');
   const [currentSubscription, setCurrentSubscription] = useState<SubscriptionInfo | null>(null);
   const [reservationDuration, setReservationDuration] = useState(1);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [selectedDateTime, setSelectedDateTime] = useState(new Date());
+  const [showTimePicker, setShowTimePicker] = useState(false);
 
   useEffect(() => {
     loadUserData();
@@ -495,6 +499,7 @@ export function MobileBikeReservation({ bike, onBack, onReservationComplete }: M
         <Card style={styles.p16}>
           <Label style={styles.mb8}>Date de début *</Label>
           <TouchableOpacity
+            onPress={() => setShowDatePicker(true)}
             style={[
               styles.row,
               styles.alignCenter,
@@ -509,31 +514,68 @@ export function MobileBikeReservation({ bike, onBack, onReservationComplete }: M
             ]}
           >
             <Calendar size={20} color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} />
-            <Input
-              value={selectedDate}
-              onChangeText={setSelectedDate}
-              placeholder="YYYY-MM-DD"
-              style={[{ flex: 1, borderWidth: 0, backgroundColor: 'transparent' }]}
-            />
+            <Text color={selectedDate ? (colorScheme === 'light' ? '#111827' : '#f9fafb') : '#6b7280'}>
+              {selectedDate ? new Date(selectedDate).toLocaleDateString('fr-FR') : 'Sélectionner une date'}
+            </Text>
           </TouchableOpacity>
+
+          {showDatePicker && (
+            <DateTimePicker
+              value={selectedDateTime}
+              mode="date"
+              display="default"
+              onChange={(event, date) => {
+                setShowDatePicker(false);
+                if (date) {
+                  setSelectedDateTime(date);
+                  const formattedDate = date.toISOString().split('T')[0];
+                  setSelectedDate(formattedDate);
+                }
+              }}
+              minimumDate={new Date()}
+            />
+          )}
         </Card>
 
         {/* Time Selection */}
         <Card style={styles.p16}>
           <Label style={styles.mb8}>Heure de début *</Label>
-          <Select value={selectedTime} onValueChange={setSelectedTime}>
-            <SelectTrigger>
-              <Clock size={20} color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} />
-              <SelectValue placeholder="Sélectionner l'heure" />
-            </SelectTrigger>
-            <SelectContent>
-              {timeSlots.map((slot) => (
-                <SelectItem key={slot.value} value={slot.value}>
-                  <Text>{slot.label}</Text>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <TouchableOpacity
+            onPress={() => setShowTimePicker(true)}
+            style={[
+              styles.row,
+              styles.alignCenter,
+              styles.gap12,
+              styles.p12,
+              styles.rounded8,
+              { 
+                backgroundColor: colorScheme === 'light' ? '#f9fafb' : '#374151',
+                borderWidth: 1,
+                borderColor: colorScheme === 'light' ? '#e5e7eb' : '#4b5563'
+              }
+            ]}
+          >
+            <Clock size={20} color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} />
+            <Text color={selectedTime ? (colorScheme === 'light' ? '#111827' : '#f9fafb') : '#6b7280'}>
+              {selectedTime || "Sélectionner l'heure"}
+            </Text>
+          </TouchableOpacity>
+
+          {showTimePicker && (
+            <DateTimePicker
+              value={selectedDateTime}
+              mode="time"
+              display="default"
+              onChange={(event, date) => {
+                setShowTimePicker(false);
+                if (date) {
+                  setSelectedDateTime(date);
+                  const formattedTime = date.toTimeString().split(' ')[0].substring(0, 5);
+                  setSelectedTime(formattedTime);
+                }
+              }}
+            />
+          )}
         </Card>
 
         {/* Conflict Warning */}
