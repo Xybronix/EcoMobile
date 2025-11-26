@@ -100,7 +100,7 @@ class BikeRequestService {
       const response = await fetch(`${this.baseUrl}/unlock`, {
         method: 'POST',
         headers,
-        body: JSON.stringify({ bikeId }),
+        body: JSON.stringify({ bikeId: bikeId }),
       });
 
       const result = await handleApiResponse(response);
