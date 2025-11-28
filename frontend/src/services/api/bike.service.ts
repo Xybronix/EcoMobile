@@ -38,6 +38,41 @@ export interface BikePosition {
   updatedAt: string;
 }
 
+export interface GpsData {
+  deviceId: string;
+  latitude: number;
+  longitude: number;
+  batteryLevel: number;
+  gpsSignal: number;
+  gsmSignal: number;
+  speed: number;
+  direction: number;
+  isOnline: boolean;
+  lastUpdate: string;
+  deviceStatus: 'online' | 'offline' | 'maintenance' | 'error';
+  mileage?: number;
+  temperature?: number;
+}
+
+export interface BikeTrackPoint {
+  timestamp: string;
+  latitude: number;
+  longitude: number;
+  speed: number;
+  direction: number;
+  batteryLevel: number;
+}
+
+export interface BikeMileageData {
+  startMileage: number;
+  endMileage: number;
+  totalMileage: number;
+  period: {
+    startTime: string;
+    endTime: string;
+  };
+}
+
 export interface BikeStats {
   totalDistance: number;
   totalTrips: number;
