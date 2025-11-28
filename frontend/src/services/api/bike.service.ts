@@ -13,8 +13,9 @@ export interface BikePosition {
   battery: number;
   gpsSignal: number;
   gsmSignal: number;
-  lat: number;
-  lon: number;
+  direction?: number;
+  latitude: number | null;
+  longitude: number | null;
   coordinates?: {
     lat: number;
     lng: number;
@@ -22,7 +23,9 @@ export interface BikePosition {
   zone: string;
   location?: string;
   speed?: number;
+  isOnline?: boolean;
   lastUpdate: string;
+  deviceStatus?: 'online' | 'offline' | 'maintenance' | 'error';
   totalTrips?: number;
   maintenanceReason?: string;
   maintenanceDetails?: string;
@@ -242,6 +245,54 @@ export class BikeService {
       console.error('Erreur reverse geocoding:', error);
       return '';
     }
+  }
+
+  async getRealtimePositions(): Promise<BikePosition[]> {
+    const response = await apiClient.get<BikePosition[]>('/bikes/realtime-positions');
+    
+    if (!response.success || !response.data) {
+      throw new Error(response.error || 'Erreur lors de la récupération des positions temps réel');
+    }
+
+    return response.data;
+  }
+
+  async syncGpsData(): Promise<{ synced: number; failed: number; bikes: any[] }> {
+    const response = await apiClient.post<{ synced: number; failed: number; bikes: any[] }>('/bikes/sync-gps');
+    
+    if (!response.success || !response.data) {
+      throw new Error(response.error || 'Erreur lors de la synchronisation GPS');
+    }
+
+    return response.data;
+  }
+
+  async getBikeTrack(id: string, startTime: string, endTime: string): Promise<any[]> {
+    const response = await apiClient.get<any[]>(`/bikes/${id}/track`, { startTime, endTime });
+    
+    if (!response.success || !response.data) {
+      throw new Error(response.error || 'Erreur lors de la récupération du trajet GPS');
+    }
+
+    return response.data;
+  }
+
+  async getBikeMileage(id: string, startTime: string, endTime: string): Promise<{
+    startMileage: number;
+    endMileage: number;
+    totalMileage: number;
+  }> {
+    const response = await apiClient.get<{
+      startMileage: number;
+      endMileage: number;
+      totalMileage: number;
+    }>(`/bikes/${id}/mileage`, { startTime, endTime });
+    
+    if (!response.success || !response.data) {
+      throw new Error(response.error || 'Erreur lors de la récupération du kilométrage');
+    }
+
+    return response.data;
   }
 }
 
