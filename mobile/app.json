@@ -48,6 +48,14 @@
     "plugins": [
       "expo-router",
       [
+        "expo-build-properties",
+        {
+          "android": {
+            "buildType": "apk"
+          }
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "image": "./assets/icon.png",
