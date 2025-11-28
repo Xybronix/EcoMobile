@@ -39,7 +39,8 @@
         "android.permission.WRITE_EXTERNAL_STORAGE",
         "android.permission.RECORD_AUDIO"
       ],
-      "package": "com.anonymous.EcoMobile"
+      "package": "com.xybronix.EcoMobile",
+      "versionCode": 1
     },
     "web": {
       "output": "static",
