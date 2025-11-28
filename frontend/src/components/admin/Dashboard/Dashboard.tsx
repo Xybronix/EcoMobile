@@ -6,6 +6,7 @@ import { useTranslation } from '../../../lib/i18n';
 import { useState, useEffect } from 'react';
 import { adminService } from '../../../services/api/admin.service';
 import { ridesService } from '../../../services/api/ride.service';
+import { bikeService } from '../../../services/api/bike.service';
 import { toast } from 'sonner';
 
 export function Dashboard() {
@@ -24,13 +25,21 @@ export function Dashboard() {
       setIsLoading(true);
       
       // Load all data in parallel
-      const [dashboardResponse, tripsResponse, incidentsResponse] = await Promise.all([
+      const [dashboardResponse, tripsResponse, incidentsResponse, realtimePositions] = await Promise.all([
         adminService.getDashboardStats(),
         ridesService.getAllRides({ limit: 10, status: 'IN_PROGRESS' }),
-        adminService.getIncidents({ limit: 5, status: 'OPEN' })
+        adminService.getIncidents({ limit: 5, status: 'OPEN' }),
+        bikeService.getRealtimePositions()
       ]);
 
-      setDashboardData(dashboardResponse);
+      setDashboardData({
+        ...dashboardResponse,
+        gpsData: {
+          total: realtimePositions.length,
+          online: realtimePositions.filter(bike => bike.isOnline).length,
+          offline: realtimePositions.filter(bike => !bike.isOnline).length
+        }
+      });
 
       if (tripsResponse && tripsResponse.rides) {
         setRecentTrips(tripsResponse.rides);
