@@ -132,35 +132,44 @@ export function BikeManagement() {
           }
         }
 
-        const now = new Date().toISOString();
         return {
           id: bike.id,
           name: bike.code,
-          imei: bike.gpsDeviceId || bike.id,
           code: bike.code,
+          qrCode: bike.qrCode,
+          gpsDeviceId: bike.gpsDeviceId,
+          imei: bike.gpsDeviceId || bike.id,
           model: bike.model || 'EcoMobile Pro X1',
           brand: 'EcoMobile',
           status,
-          battery: bike.batteryLevel || 0,
-          gpsSignal: bike.gpsSignal || undefined,
-          gsmSignal: bike.gsmSignal || undefined,
-          lat: bike.latitude || 0,
-          lon: bike.longitude || 0,
-          coordinates: {
-            lat: bike.latitude || 0,
-            lng: bike.longitude || 0
-          },
-          zone: bike.locationName || 'Position non définie',
-          location: bike.locationName || 'Position non définie',
-          speed: bike.speed || undefined,
-          lastUpdate: bike.updatedAt || new Date().toISOString(),
-          qrCode: bike.qrCode,
-          equipment: bike.equipment || [],
+          isActive: bike.isActive ?? true,
+          latitude: bike.latitude || 0,
+          longitude: bike.longitude || 0,
           locationName: bike.locationName,
+          battery: bike.battery || 0,
+          gpsSignal: bike.gpsSignal,
+          gsmSignal: bike.gsmSignal,
+          speed: bike.speed,
+          direction: bike.direction,
+          isOnline: bike.isOnline,
+          lastUpdate: bike.updatedAt || new Date().toISOString(),
+          deviceStatus: bike.deviceStatus,
+          equipment: bike.equipment || [],
           maintenanceReason: bike.maintenanceReason,
           maintenanceDetails: bike.maintenanceDetails,
-          createdAt: bike.createdAt || now,
-          updatedAt: bike.updatedAt || now
+          pricingPlan: bike.pricingPlan,
+          distance: bike.distance,
+          totalTrips: bike.totalTrips,
+          createdAt: bike.createdAt || new Date().toISOString(),
+          updatedAt: bike.updatedAt || new Date().toISOString(),
+          syncError: bike.syncError,
+          syncStatus: bike.syncStatus,
+          zone: bike.locationName || 'Position non définie',
+          location: bike.locationName,
+          coordinates: bike.latitude && bike.longitude ? {
+            lat: bike.latitude,
+            lng: bike.longitude
+          } : undefined,
         };
       });
 
