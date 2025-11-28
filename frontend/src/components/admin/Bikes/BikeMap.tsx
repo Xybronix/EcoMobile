@@ -38,7 +38,7 @@ export function BikeMap() {
   const [hoveredBike, setHoveredBike] = useState<BikeMarker | null>(null);
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [mapCenter, setMapCenter] = useState({ lat: 4.0511, lng: 9.7679 }); // Douala par défaut
+  const [mapCenter, setMapCenter] = useState({ lat: 4.0511, lng: 9.7679 });
   const [mapZoom, setMapZoom] = useState(13);
   const mapRef = useRef<HTMLDivElement>(null);
   const [hoverPosition, setHoverPosition] = useState({ x: 0, y: 0 });
@@ -85,8 +85,8 @@ export function BikeMap() {
         // Centrer la carte sur les vélos avec GPS
         const gpsEnabledBikes = positions.filter(bike => bike.latitude && bike.longitude);
         if (gpsEnabledBikes.length > 0) {
-          const avgLat = gpsEnabledBikes.reduce((sum, bike) => sum + (bike.latitude || 0), 0) / gpsEnabledBikes.length;
-          const avgLng = gpsEnabledBikes.reduce((sum, bike) => sum + (bike.longitude || 0), 0) / gpsEnabledBikes.length;
+          const avgLat = gpsEnabledBikes.reduce((sum, bike) => sum + bike.latitude!, 0) / gpsEnabledBikes.length;
+          const avgLng = gpsEnabledBikes.reduce((sum, bike) => sum + bike.longitude!, 0) / gpsEnabledBikes.length;
           setMapCenter({ lat: avgLat, lng: avgLng });
         }
       }
