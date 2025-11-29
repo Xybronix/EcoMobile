@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/Tabs';
@@ -39,7 +40,6 @@ export function MobileRideHistory({ onRideDetails, onNavigate }: MobileRideHisto
     totalPages: 0
   });
 
-  // Load rides and stats
   useEffect(() => {
     loadRides(true);
     loadStats();
@@ -89,7 +89,6 @@ export function MobileRideHistory({ onRideDetails, onNavigate }: MobileRideHisto
       setStats(rideStats);
     } catch (err) {
       console.error('Failed to load stats:', err);
-      // Don't show error for stats, just log it
     }
   };
 

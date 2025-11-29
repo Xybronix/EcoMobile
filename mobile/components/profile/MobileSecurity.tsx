@@ -15,7 +15,7 @@ interface MobileSecurityProps {
 }
 
 export function MobileSecurity({ onNavigate }: MobileSecurityProps) {
-  const { language } = useMobileI18n();
+  const { t } = useMobileI18n();
   const colorScheme = useColorScheme();
   const styles = getGlobalStyles(colorScheme);
   
@@ -33,29 +33,17 @@ export function MobileSecurity({ onNavigate }: MobileSecurityProps) {
 
   const handlePasswordChange = async () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
-      toast.error(
-        language === 'fr'
-          ? 'Veuillez remplir tous les champs'
-          : 'Please fill in all fields'
-      );
+      toast.error(t('security.fillAllFields'));
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      toast.error(
-        language === 'fr'
-          ? 'Les mots de passe ne correspondent pas'
-          : 'Passwords do not match'
-      );
+      toast.error(t('security.passwordsNoMatch'));
       return;
     }
 
     if (newPassword.length < 8) {
-      toast.error(
-        language === 'fr'
-          ? 'Le mot de passe doit contenir au moins 8 caractères'
-          : 'Password must be at least 8 characters'
-      );
+      toast.error(t('security.passwordMinLength'));
       return;
     }
 
@@ -65,11 +53,7 @@ export function MobileSecurity({ onNavigate }: MobileSecurityProps) {
       await userService.updatePassword(currentPassword, newPassword);
       
       haptics.success();
-      toast.success(
-        language === 'fr'
-          ? 'Mot de passe modifié avec succès'
-          : 'Password changed successfully'
-      );
+      toast.success(t('security.passwordChangeSuccess'));
       setShowPasswordForm(false);
       setCurrentPassword('');
       setNewPassword('');
@@ -77,30 +61,20 @@ export function MobileSecurity({ onNavigate }: MobileSecurityProps) {
     } catch (error: any) {
       haptics.error();
       
-      let errorMessage = language === 'fr'
-        ? 'Erreur lors du changement de mot de passe'
-        : 'Error changing password';
+      let errorMessage = t('security.passwordChangeError');
       
       switch (error.message) {
         case 'invalid_credentials':
-          errorMessage = language === 'fr'
-            ? 'Mot de passe actuel incorrect'
-            : 'Current password is incorrect';
+          errorMessage = t('security.incorrectPassword');
           break;
         case 'same_password':
-          errorMessage = language === 'fr'
-            ? 'Le nouveau mot de passe doit être différent de l\'ancien'
-            : 'New password must be different from current password';
+          errorMessage = t('security.samePassword');
           break;
         case 'network_error':
-          errorMessage = language === 'fr'
-            ? 'Erreur de connexion'
-            : 'Network error';
+          errorMessage = t('error.networkError');
           break;
         case 'server_error':
-          errorMessage = language === 'fr'
-            ? 'Erreur serveur'
-            : 'Server error';
+          errorMessage = t('error.serverError');
           break;
       }
       
@@ -117,36 +91,22 @@ export function MobileSecurity({ onNavigate }: MobileSecurityProps) {
       await userService.deleteAccount();
       
       haptics.success();
-      toast.success(
-        language === 'fr'
-          ? 'Compte supprimé avec succès'
-          : 'Account deleted successfully'
-      );
+      toast.success(t('security.deleteSuccess'));
       setShowDeleteDialog(false);
-      
-      // La déconnexion est gérée automatiquement par le service
     } catch (error: any) {
       haptics.error();
       
-      let errorMessage = language === 'fr'
-        ? 'Erreur lors de la suppression du compte'
-        : 'Error deleting account';
+      let errorMessage = t('security.deleteError');
       
       switch (error.message) {
         case 'unauthorized':
-          errorMessage = language === 'fr'
-            ? 'Non autorisé'
-            : 'Unauthorized';
+          errorMessage = t('error.invalidCredentials');
           break;
         case 'network_error':
-          errorMessage = language === 'fr'
-            ? 'Erreur de connexion'
-            : 'Network error';
+          errorMessage = t('error.networkError');
           break;
         case 'server_error':
-          errorMessage = language === 'fr'
-            ? 'Erreur serveur'
-            : 'Server error';
+          errorMessage = t('error.serverError');
           break;
       }
       
@@ -185,7 +145,7 @@ export function MobileSecurity({ onNavigate }: MobileSecurityProps) {
           <ArrowLeft size={24} color={colorScheme === 'light' ? '#111827' : '#f9fafb'} />
         </TouchableOpacity>
         <Text variant="subtitle" color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
-          {language === 'fr' ? 'Sécurité' : 'Security'}
+          {t('security.title')}
         </Text>
       </View>
 
@@ -203,7 +163,7 @@ export function MobileSecurity({ onNavigate }: MobileSecurityProps) {
               color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}
               style={styles.px8}
             >
-              {language === 'fr' ? 'Mot de passe' : 'Password'}
+              {t('security.password')}
             </Text>
             <View style={[styles.card, styles.rounded12]}>
               {!showPasswordForm ? (
@@ -223,15 +183,13 @@ export function MobileSecurity({ onNavigate }: MobileSecurityProps) {
                         variant="body" 
                         color={colorScheme === 'light' ? '#111827' : '#f9fafb'}
                       >
-                        {language === 'fr' ? 'Modifier le mot de passe' : 'Change password'}
+                        {t('security.changePassword')}
                       </Text>
                       <Text 
                         size="sm" 
                         color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}
                       >
-                        {language === 'fr'
-                          ? 'Dernière modification il y a 30 jours'
-                          : 'Last changed 30 days ago'}
+                        {t('security.lastChanged')}
                       </Text>
                     </View>
                   </View>
@@ -252,7 +210,7 @@ export function MobileSecurity({ onNavigate }: MobileSecurityProps) {
                       color={colorScheme === 'light' ? '#374151' : '#f9fafb'}
                       style={styles.textCenter}
                     >
-                      {language === 'fr' ? 'Modifier' : 'Change'}
+                      {t('common.change')}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -264,14 +222,14 @@ export function MobileSecurity({ onNavigate }: MobileSecurityProps) {
                         variant="body" 
                         color={colorScheme === 'light' ? '#111827' : '#f9fafb'}
                       >
-                        {language === 'fr' ? 'Mot de passe actuel' : 'Current password'}
+                        {t('security.currentPassword')}
                       </Text>
                       <View style={{ position: 'relative' }}>
                         <Input
                           value={currentPassword}
                           onChangeText={setCurrentPassword}
                           secureTextEntry={!showCurrentPassword}
-                          placeholder={language === 'fr' ? 'Mot de passe actuel' : 'Current password'}
+                          placeholder={t('security.currentPassword')}
                           style={{ paddingRight: 48 }}
                         />
                         <TouchableOpacity
@@ -291,14 +249,14 @@ export function MobileSecurity({ onNavigate }: MobileSecurityProps) {
                         variant="body" 
                         color={colorScheme === 'light' ? '#111827' : '#f9fafb'}
                       >
-                        {language === 'fr' ? 'Nouveau mot de passe' : 'New password'}
+                        {t('security.newPassword')}
                       </Text>
                       <View style={{ position: 'relative' }}>
                         <Input
                           value={newPassword}
                           onChangeText={setNewPassword}
                           secureTextEntry={!showNewPassword}
-                          placeholder={language === 'fr' ? 'Nouveau mot de passe' : 'New password'}
+                          placeholder={t('security.newPassword')}
                           style={{ paddingRight: 48 }}
                         />
                         <TouchableOpacity
@@ -318,14 +276,14 @@ export function MobileSecurity({ onNavigate }: MobileSecurityProps) {
                         variant="body" 
                         color={colorScheme === 'light' ? '#111827' : '#f9fafb'}
                       >
-                        {language === 'fr' ? 'Confirmer le mot de passe' : 'Confirm password'}
+                        {t('security.confirmPassword')}
                       </Text>
                       <View style={{ position: 'relative' }}>
                         <Input
                           value={confirmPassword}
                           onChangeText={setConfirmPassword}
                           secureTextEntry={!showConfirmPassword}
-                          placeholder={language === 'fr' ? 'Confirmer le mot de passe' : 'Confirm password'}
+                          placeholder={t('security.confirmPassword')}
                           style={{ paddingRight: 48 }}
                         />
                         <TouchableOpacity
@@ -360,7 +318,7 @@ export function MobileSecurity({ onNavigate }: MobileSecurityProps) {
                           color={colorScheme === 'light' ? '#374151' : '#f9fafb'}
                           weight="medium"
                         >
-                          {language === 'fr' ? 'Annuler' : 'Cancel'}
+                          {t('profile.edit.cancel')}
                         </Text>
                       </TouchableOpacity>
                       <TouchableOpacity
@@ -382,7 +340,7 @@ export function MobileSecurity({ onNavigate }: MobileSecurityProps) {
                             color="white"
                             weight="medium"
                           >
-                            {language === 'fr' ? 'Enregistrer' : 'Save'}
+                            {t('profile.edit.save')}
                           </Text>
                         )}
                       </TouchableOpacity>
@@ -400,7 +358,7 @@ export function MobileSecurity({ onNavigate }: MobileSecurityProps) {
               color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}
               style={styles.px8}
             >
-              {language === 'fr' ? 'Méthodes d\'authentification' : 'Authentication methods'}
+              {t('security.authenticationMethods')}
             </Text>
             <View style={[styles.card, styles.rounded12]}>
               <View style={[
@@ -426,20 +384,19 @@ export function MobileSecurity({ onNavigate }: MobileSecurityProps) {
                       variant="body" 
                       color={colorScheme === 'light' ? '#111827' : '#f9fafb'}
                     >
-                      {language === 'fr' ? 'Authentification à deux facteurs' : 'Two-factor authentication'}
+                      {t('security.twoFactorAuth')}
                     </Text>
                     <Text 
                       size="sm" 
                       color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}
                     >
-                      {language === 'fr' ? 'Protection supplémentaire' : 'Extra security'}
+                      {t('security.twoFactorDescription')}
                     </Text>
                   </View>
                 </View>
                 <TouchableOpacity
                   onPress={() => {
                     haptics.light();
-                    // TODO: Implémenter l'authentification à deux facteurs
                     setTwoFactorAuth(!twoFactorAuth);
                   }}
                   style={[
@@ -498,20 +455,19 @@ export function MobileSecurity({ onNavigate }: MobileSecurityProps) {
                       variant="body" 
                       color={colorScheme === 'light' ? '#111827' : '#f9fafb'}
                     >
-                      {language === 'fr' ? 'Authentification biométrique' : 'Biometric authentication'}
+                      {t('security.biometricAuth')}
                     </Text>
                     <Text 
                       size="sm" 
                       color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}
                     >
-                      {language === 'fr' ? 'Empreinte digitale / Face ID' : 'Fingerprint / Face ID'}
+                      {t('security.biometricDescription')}
                     </Text>
                   </View>
                 </View>
                 <TouchableOpacity
                   onPress={() => {
                     haptics.light();
-                    // TODO: Implémenter l'authentification biométrique
                     setBiometricAuth(!biometricAuth);
                   }}
                   style={[
@@ -550,7 +506,7 @@ export function MobileSecurity({ onNavigate }: MobileSecurityProps) {
               color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}
               style={styles.px8}
             >
-              {language === 'fr' ? 'Zone de danger' : 'Danger zone'}
+              {t('security.dangerZone')}
             </Text>
             <View style={[
               styles.card, 
@@ -576,15 +532,13 @@ export function MobileSecurity({ onNavigate }: MobileSecurityProps) {
                       variant="body" 
                       color={colorScheme === 'light' ? '#111827' : '#f9fafb'}
                     >
-                      {language === 'fr' ? 'Supprimer le compte' : 'Delete account'}
+                      {t('security.deleteAccount')}
                     </Text>
                     <Text 
                       size="sm" 
                       color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}
                     >
-                      {language === 'fr'
-                        ? 'Cette action est irréversible. Toutes vos données seront définitivement supprimées.'
-                        : 'This action is irreversible. All your data will be permanently deleted.'}
+                      {t('security.deleteWarning')}
                     </Text>
                   </View>
                 </View>
@@ -604,7 +558,7 @@ export function MobileSecurity({ onNavigate }: MobileSecurityProps) {
                     color="#dc2626"
                     weight="medium"
                   >
-                    {language === 'fr' ? 'Supprimer mon compte' : 'Delete my account'}
+                    {t('security.deleteAccount')}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -638,16 +592,14 @@ export function MobileSecurity({ onNavigate }: MobileSecurityProps) {
               color={colorScheme === 'light' ? '#111827' : '#f9fafb'}
               style={styles.mb8}
             >
-              {language === 'fr' ? 'Supprimer le compte ?' : 'Delete account?'}
+              {t('security.deleteConfirmTitle')}
             </Text>
             <Text 
               size="sm" 
               color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}
               style={styles.mb24}
             >
-              {language === 'fr'
-                ? 'Cette action est irréversible. Êtes-vous absolument sûr de vouloir supprimer votre compte et toutes vos données ?'
-                : 'This action is irreversible. Are you absolutely sure you want to delete your account and all your data?'}
+              {t('security.deleteConfirmDescription')}
             </Text>
             <View style={[styles.row, styles.gap12]}>
               <TouchableOpacity
@@ -666,7 +618,7 @@ export function MobileSecurity({ onNavigate }: MobileSecurityProps) {
                   color={colorScheme === 'light' ? '#374151' : '#f9fafb'}
                   weight="medium"
                 >
-                  {language === 'fr' ? 'Annuler' : 'Cancel'}
+                  {t('profile.edit.cancel')}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -689,7 +641,7 @@ export function MobileSecurity({ onNavigate }: MobileSecurityProps) {
                     color="white"
                     weight="medium"
                   >
-                    {language === 'fr' ? 'Supprimer définitivement' : 'Delete permanently'}
+                    {t('security.deletePermanently')}
                   </Text>
                 )}
               </TouchableOpacity>

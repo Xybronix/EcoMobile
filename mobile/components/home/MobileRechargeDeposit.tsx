@@ -1,4 +1,4 @@
-/* eslint-disable react/no-unescaped-entities */
+/* eslint-disable react-hooks/exhaustive-deps */
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
@@ -21,8 +21,8 @@ interface MobileRechargeDepositProps {
 }
 
 export function MobileRechargeDeposit({ onBack, onSuccess }: MobileRechargeDepositProps) {
-  const { t, language } = useMobileI18n();
-  const { user, refreshUser } = useMobileAuth();
+  const { t } = useMobileI18n();
+  const { refreshUser } = useMobileAuth();
   const colorScheme = useColorScheme();
   const styles = getGlobalStyles(colorScheme);
   
@@ -31,8 +31,8 @@ export function MobileRechargeDeposit({ onBack, onSuccess }: MobileRechargeDepos
   const [isProcessing, setIsProcessing] = useState(false);
   const [depositInfo, setDepositInfo] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [walletBalance, setWalletBalance] = useState<number>(0); // Nouvel état pour le solde
-  const [isLoadingWallet, setIsLoadingWallet] = useState(true); // État de chargement du wallet
+  const [walletBalance, setWalletBalance] = useState<number>(0);
+  const [isLoadingWallet, setIsLoadingWallet] = useState(true);
 
   const predefinedAmounts = [5000, 10000, 15000, 20000];
 
@@ -45,7 +45,6 @@ export function MobileRechargeDeposit({ onBack, onSuccess }: MobileRechargeDepos
       setIsLoading(true);
       setIsLoadingWallet(true);
       
-      // Charger les informations de dépôt et le solde en parallèle
       const [info, balance] = await Promise.all([
         walletService.getDepositInfo(),
         walletService.getBalance()
@@ -56,7 +55,7 @@ export function MobileRechargeDeposit({ onBack, onSuccess }: MobileRechargeDepos
       
     } catch (error) {
       console.error('Error loading data:', error);
-      toast.error('Erreur lors du chargement');
+      toast.error(t('common.error'));
     } finally {
       setIsLoading(false);
       setIsLoadingWallet(false);
@@ -67,19 +66,18 @@ export function MobileRechargeDeposit({ onBack, onSuccess }: MobileRechargeDepos
     const amount = selectedAmount || parseInt(customAmount);
 
     if (!amount || amount <= 0) {
-      toast.error('Veuillez sélectionner un montant valide');
+      toast.error(t('wallet.selectValidAmount'));
       return;
     }
 
     if (amount < 1000) {
-      toast.error('Le montant minimum est de 1000 FCFA');
+      toast.error(t('wallet.minimumAmount'));
       return;
     }
 
-    // Utiliser walletBalance au lieu de user?.wallet?.balance
     if (walletBalance < amount) {
       haptics.error();
-      toast.error('Solde wallet insuffisant. Rechargez d\'abord votre portefeuille.');
+      toast.error(t('wallet.insufficientBalance'));
       return;
     }
 
@@ -89,18 +87,17 @@ export function MobileRechargeDeposit({ onBack, onSuccess }: MobileRechargeDepos
       await walletService.rechargeDeposit(amount);
       
       haptics.success();
-      toast.success(`Caution rechargée de ${amount} FCFA`);
+      toast.success(t('wallet.depositInitiated'));
       
-      // Rafraîchir les données utilisateur et le solde
       await refreshUser();
-      await loadData(); // Recharger les données pour mettre à jour le solde
+      await loadData();
       
       onSuccess?.();
       onBack();
       
     } catch (error: any) {
       haptics.error();
-      toast.error(error.message || 'Erreur lors de la recharge de la caution');
+      toast.error(error.message || t('wallet.depositError'));
     } finally {
       setIsProcessing(false);
     }
@@ -110,7 +107,7 @@ export function MobileRechargeDeposit({ onBack, onSuccess }: MobileRechargeDepos
     return (
       <View style={styles.container}>
         <View style={[styles.containerCenter, styles.p24]}>
-          <Text>Chargement...</Text>
+          <Text>{t('common.loading')}</Text>
         </View>
       </View>
     );
@@ -146,7 +143,7 @@ export function MobileRechargeDeposit({ onBack, onSuccess }: MobileRechargeDepos
           <ArrowLeft size={20} color={colorScheme === 'light' ? '#111827' : '#f9fafb'} />
         </TouchableOpacity>
         <Text variant="subtitle" color="#16a34a">
-          Recharger la caution
+          {t('wallet.rechargeDeposit')}
         </Text>
       </View>
 
@@ -169,23 +166,23 @@ export function MobileRechargeDeposit({ onBack, onSuccess }: MobileRechargeDepos
               color={needsToRecharge ? '#dc2626' : '#16a34a'} 
             />
             <Text variant="body" color={needsToRecharge ? '#dc2626' : '#16a34a'}>
-              {needsToRecharge ? 'Caution insuffisante' : 'Caution suffisante'}
+              {needsToRecharge ? t('wallet.depositInsufficient') : t('wallet.depositSufficient')}
             </Text>
           </View>
           
           <View style={[styles.row, styles.spaceBetween, styles.mb4]}>
-            <Text size="sm" color="#6b7280">Caution actuelle :</Text>
+            <Text size="sm" color="#6b7280">{t('wallet.currentDeposit')}</Text>
             <Text size="sm" color="#111827">{depositInfo?.currentDeposit || 0} XOF</Text>
           </View>
           
           <View style={[styles.row, styles.spaceBetween, styles.mb4]}>
-            <Text size="sm" color="#6b7280">Caution requise :</Text>
+            <Text size="sm" color="#6b7280">{t('wallet.requiredDeposit')}</Text>
             <Text size="sm" color="#111827">{depositInfo?.requiredDeposit || 20000} XOF</Text>
           </View>
           
           {remainingAmount > 0 && (
             <View style={[styles.row, styles.spaceBetween, { paddingTop: 8, borderTopWidth: 1, borderTopColor: '#e5e7eb' }]}>
-              <Text size="sm" color="#dc2626" weight="bold">Montant manquant :</Text>
+              <Text size="sm" color="#dc2626" weight="bold">{t('wallet.missingAmount')}</Text>
               <Text size="sm" color="#dc2626" weight="bold">{remainingAmount} XOF</Text>
             </View>
           )}
@@ -196,10 +193,10 @@ export function MobileRechargeDeposit({ onBack, onSuccess }: MobileRechargeDepos
           <View style={[styles.row, styles.alignCenter, styles.gap12]}>
             <Wallet size={20} color="#16a34a" />
             <View style={styles.flex1}>
-              <Text size="sm" color="#6b7280">Solde wallet disponible</Text>
+              <Text size="sm" color="#6b7280">{t('wallet.availableBalance')}</Text>
               {isLoadingWallet ? (
                 <Text variant="body" color="#16a34a" weight="bold">
-                  Chargement...
+                  {t('common.loading')}
                 </Text>
               ) : (
                 <Text variant="body" color="#16a34a" weight="bold">
@@ -216,8 +213,7 @@ export function MobileRechargeDeposit({ onBack, onSuccess }: MobileRechargeDepos
             <View style={[styles.row, styles.gap12]}>
               <AlertTriangle size={20} color="#f59e0b" />
               <Text size="sm" color="#92400e">
-                Votre solde wallet est insuffisant pour recharger la caution complètement. 
-                Rechargez d'abord votre portefeuille.
+                {t('wallet.insufficientBalance')}
               </Text>
             </View>
           </Card>
@@ -225,7 +221,7 @@ export function MobileRechargeDeposit({ onBack, onSuccess }: MobileRechargeDepos
 
         {/* Quick Amounts */}
         <Card style={styles.p16}>
-          <Label style={styles.mb12}>Montants rapides</Label>
+          <Label style={styles.mb12}>{t('wallet.quickAmounts')}</Label>
           <View style={[styles.row, { flexWrap: 'wrap' }, styles.gap8]}>
             {predefinedAmounts.map((amount) => (
               <TouchableOpacity
@@ -261,14 +257,14 @@ export function MobileRechargeDeposit({ onBack, onSuccess }: MobileRechargeDepos
 
         {/* Custom Amount */}
         <Card style={styles.p16}>
-          <Label style={styles.mb8}>Montant personnalisé</Label>
+          <Label style={styles.mb8}>{t('wallet.customAmount')}</Label>
           <Input
             value={customAmount}
             onChangeText={(text) => {
               setCustomAmount(text);
               setSelectedAmount(null);
             }}
-            placeholder="Saisir un montant"
+            placeholder={t('wallet.enterAmount')}
             keyboardType="numeric"
             style={{ fontSize: 16 }}
           />
@@ -287,19 +283,19 @@ export function MobileRechargeDeposit({ onBack, onSuccess }: MobileRechargeDepos
           >
             <Shield size={16} color="white" />
             <Text style={styles.ml8} color="white">
-              {isProcessing ? 'Recharge...' : `Recharger ${selectedAmount || customAmount || 0} XOF`}
+              {isProcessing ? t('wallet.recharging') : `${t('wallet.rechargeAmount')} ${(selectedAmount || customAmount || 0).toLocaleString()} XOF`}
             </Text>
           </Button>
 
           {(walletBalance < (selectedAmount || parseInt(customAmount) || 0)) && (
             <Button 
               variant="outline"
-              onPress={() => onBack()} // Devrait naviguer vers la recharge du wallet
+              onPress={() => onBack()}
               fullWidth
             >
               <Wallet size={16} color="#16a34a" />
               <Text style={styles.ml8} color="#16a34a">
-                Recharger le portefeuille d'abord
+                {t('wallet.topUpWalletFirst')}
               </Text>
             </Button>
           )}

@@ -1,4 +1,5 @@
-/* eslint-disable react/no-unescaped-entities */
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Label } from '@/components/ui/Label';
@@ -15,7 +16,6 @@ import { AlertTriangle, ArrowLeft, Camera, Save, X, Clock } from 'lucide-react-n
 import React, { useEffect, useState } from 'react';
 import { ScrollView, TouchableOpacity, View } from 'react-native';
 import { useMobileI18n } from '@/lib/mobile-i18n';
-import { useMobileAuth } from '@/lib/mobile-auth';
 
 interface MobileCreateIncidentProps {
   onBack: () => void;
@@ -25,8 +25,7 @@ interface MobileCreateIncidentProps {
 }
 
 export function MobileCreateIncident({ onBack, incidentId, rideId, bikeId }: MobileCreateIncidentProps) {
-  const { t, language } = useMobileI18n();
-  const { user } = useMobileAuth();
+  const { t } = useMobileI18n();
   const colorScheme = useColorScheme();
   const styles = getGlobalStyles(colorScheme);
   
@@ -40,16 +39,16 @@ export function MobileCreateIncident({ onBack, incidentId, rideId, bikeId }: Mob
   const [isLoadingBikes, setIsLoadingBikes] = useState(true);
 
   const incidentTypes = [
-    { value: 'brakes', label: 'Problème de freins', severity: 'critical' },
-    { value: 'battery', label: 'Problème de batterie', severity: 'high' },
-    { value: 'tire', label: 'Problème de pneu', severity: 'high' },
-    { value: 'chain', label: 'Problème de chaîne', severity: 'medium' },
-    { value: 'lights', label: 'Problème de lumières', severity: 'medium' },
-    { value: 'lock', label: 'Problème de cadenas', severity: 'high' },
-    { value: 'electronics', label: 'Problème électronique', severity: 'medium' },
-    { value: 'physical_damage', label: 'Dégât physique', severity: 'high' },
-    { value: 'theft', label: 'Vol ou tentative de vol', severity: 'critical' },
-    { value: 'other', label: 'Autre problème', severity: 'low' }
+    { value: 'brakes', label: t('incident.brakes'), severity: 'critical' },
+    { value: 'battery', label: t('incident.battery'), severity: 'high' },
+    { value: 'tire', label: t('incident.tire'), severity: 'high' },
+    { value: 'chain', label: t('incident.chain'), severity: 'medium' },
+    { value: 'lights', label: t('incident.lights'), severity: 'medium' },
+    { value: 'lock', label: t('incident.lock'), severity: 'high' },
+    { value: 'electronics', label: t('incident.electronics'), severity: 'medium' },
+    { value: 'physical_damage', label: t('incident.physicalDamage'), severity: 'high' },
+    { value: 'theft', label: t('incident.theft'), severity: 'critical' },
+    { value: 'other', label: t('incident.other'), severity: 'low' }
   ];
 
   const criticalTypes = ['brakes', 'theft', 'physical_damage', 'electronics'];
@@ -80,8 +79,8 @@ export function MobileCreateIncident({ onBack, incidentId, rideId, bikeId }: Mob
           bikes.push({ 
             ...activeReservation.bike, 
             source: 'reserved',
-            sourceLabel: 'Vélo réservé',
-            sourceDescription: `Réservé jusqu'au ${new Date(activeReservation.endDate).toLocaleDateString()}`,
+            sourceLabel: t('incident.bikeSource.reserved'),
+            sourceDescription: `${t('common.reservedUntil')}: ${ new Date(activeReservation.endDate).toLocaleDateString() }`,
             priority: 1
           });
         }
@@ -96,8 +95,8 @@ export function MobileCreateIncident({ onBack, incidentId, rideId, bikeId }: Mob
           bikes.push({ 
             ...activeRide.bike, 
             source: 'current',
-            sourceLabel: 'Trajet en cours',
-            sourceDescription: `Trajet démarré à ${new Date(activeRide.startTime).toLocaleTimeString()}`,
+            sourceLabel: t('incident.bikeSource.current'),
+            sourceDescription: `${t('common.rideStartedAt')}: ${ new Date(activeRide.startTime).toLocaleTimeString() }`,
             priority: 0,
             rideId: activeRide.id
           });
@@ -120,12 +119,12 @@ export function MobileCreateIncident({ onBack, incidentId, rideId, bikeId }: Mob
               bikes.push({ 
                 ...ride.bike, 
                 source: 'recent',
-                sourceLabel: 'Récemment utilisé',
-                sourceDescription: `Dernier trajet: ${new Date(ride.endTime || ride.startTime).toLocaleDateString()}`,
+                sourceLabel: t('incident.bikeSource.recent'),
+                sourceDescription: `${t('common.lastRide')}: ${ new Date(ride.endTime || ride.startTime).toLocaleDateString() }`,
                 priority: 2,
                 lastRideDate: ride.endTime || ride.startTime
               });
-              break; // Prendre seulement le plus récent
+              break;
             }
           }
         }
@@ -145,7 +144,7 @@ export function MobileCreateIncident({ onBack, incidentId, rideId, bikeId }: Mob
       
     } catch (error) {
       console.error('Error loading available bikes:', error);
-      toast.error('Erreur lors du chargement des vélos disponibles');
+      toast.error(t('error.loadingBikes'));
     } finally {
       setIsLoadingBikes(false);
     }
@@ -160,7 +159,7 @@ export function MobileCreateIncident({ onBack, incidentId, rideId, bikeId }: Mob
       setDescription(incident.description);
     } catch (error) {
       console.error('Error loading incident:', error);
-      toast.error('Erreur lors du chargement du signalement');
+      toast.error(t('error.loadingIncident'));
     }
   };
 
@@ -171,7 +170,7 @@ export function MobileCreateIncident({ onBack, incidentId, rideId, bikeId }: Mob
       setPhotos(newPhotos);
     } else {
       haptics.error();
-      toast.error('Maximum 5 photos autorisées');
+      toast.error(t('incident.maxPhotos'));
     }
   };
 
@@ -183,17 +182,17 @@ export function MobileCreateIncident({ onBack, incidentId, rideId, bikeId }: Mob
 
   const handleSubmit = async () => {
     if (!selectedBike) {
-      toast.error('Veuillez sélectionner un vélo');
+      toast.error(t('incident.selectBike'));
       return;
     }
     
     if (!incidentType) {
-      toast.error('Veuillez sélectionner le type de problème');
+      toast.error(t('incident.selectProblemType'));
       return;
     }
     
     if (!description.trim() || description.trim().length < 20) {
-      toast.error('La description doit contenir au moins 20 caractères');
+      toast.error(t('incident.minimumCharacters'));
       return;
     }
 
@@ -209,16 +208,14 @@ export function MobileCreateIncident({ onBack, incidentId, rideId, bikeId }: Mob
 
       if (incidentId) {
         await incidentService.updateIncident(incidentId, incidentData);
-        toast.success('Signalement mis à jour');
+        toast.success(t('incident.updated'));
       } else {
         await incidentService.createIncident(incidentData);
         
-        // Les problèmes critiques sont automatiquement gérés par le backend
-        // pour mettre le vélo en maintenance
         if (criticalTypes.includes(incidentType)) {
-          toast.success('⚠️ Signalement créé. Le vélo a été mis en maintenance pour sécurité.');
+          toast.success(t('incident.criticalSuccess'));
         } else {
-          toast.success('✅ Signalement créé avec succès');
+          toast.success(t('incident.success'));
         }
       }
 
@@ -227,7 +224,7 @@ export function MobileCreateIncident({ onBack, incidentId, rideId, bikeId }: Mob
       
     } catch (error: any) {
       haptics.error();
-      toast.error(error.message || 'Erreur lors de la création du signalement');
+      toast.error(error.message || t('error.occurred'));
     } finally {
       setIsSubmitting(false);
     }
@@ -263,7 +260,7 @@ export function MobileCreateIncident({ onBack, incidentId, rideId, bikeId }: Mob
           <ArrowLeft size={20} color={colorScheme === 'light' ? '#111827' : '#f9fafb'} />
         </TouchableOpacity>
         <Text variant="subtitle" color="#16a34a">
-          {incidentId ? 'Modifier le signalement' : 'Signaler un problème'}
+          {incidentId ? t('incident.edit.title') : t('incident.create.title')}
         </Text>
       </View>
 
@@ -277,7 +274,7 @@ export function MobileCreateIncident({ onBack, incidentId, rideId, bikeId }: Mob
           <Card style={[styles.p16, styles.alignCenter]}>
             <Clock size={24} color={colorScheme === 'light' ? '#9ca3af' : '#6b7280'} style={styles.mb8} />
             <Text color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
-              Chargement des vélos disponibles...
+              {t('common.loadingBikes')}
             </Text>
           </Card>
         )}
@@ -285,7 +282,7 @@ export function MobileCreateIncident({ onBack, incidentId, rideId, bikeId }: Mob
         {/* Bike Selection */}
         {!isLoadingBikes && (
           <Card style={styles.p16}>
-            <Label style={styles.mb8}>Vélo concerné *</Label>
+            <Label style={styles.mb8}>{t('incident.selectBike')}</Label>
             
             {availableBikes.length > 0 ? (
               <View style={styles.gap8}>
@@ -347,11 +344,8 @@ export function MobileCreateIncident({ onBack, incidentId, rideId, bikeId }: Mob
                 <View style={[styles.row, styles.gap12]}>
                   <AlertTriangle size={20} color="#f59e0b" />
                   <Text size="sm" color="#92400e">
-                    Aucun vélo disponible pour signalement.
-                    {'\n\n'}Pour créer un signalement, vous devez :
-                    {'\n'}• Avoir un vélo réservé, OU
-                    {'\n'}• Être en cours de trajet, OU  
-                    {'\n'}• Avoir récemment utilisé un vélo
+                    {t('incident.noBikes.title')}
+                    {'\n\n'}{t('incident.noBikes.requirements')}
                   </Text>
                 </View>
               </Card>
@@ -362,7 +356,7 @@ export function MobileCreateIncident({ onBack, incidentId, rideId, bikeId }: Mob
         {/* Incident Type */}
         {availableBikes.length > 0 && (
           <Card style={styles.p16}>
-            <Label style={styles.mb8}>Type de problème *</Label>
+            <Label style={styles.mb8}>{t('incident.selectProblemType')}</Label>
             <View style={styles.gap8}>
               {incidentTypes.map((type) => (
                 <TouchableOpacity
@@ -400,7 +394,7 @@ export function MobileCreateIncident({ onBack, incidentId, rideId, bikeId }: Mob
                     </Text>
                     {type.severity === 'critical' && (
                       <Text size="xs" color="#dc2626" style={styles.mt4}>
-                        Ce problème mettra le vélo en maintenance automatiquement
+                        {t('incident.severity.critical')}
                       </Text>
                     )}
                   </View>
@@ -416,11 +410,11 @@ export function MobileCreateIncident({ onBack, incidentId, rideId, bikeId }: Mob
         {/* Description */}
         {availableBikes.length > 0 && (
           <Card style={styles.p16}>
-            <Label style={styles.mb8}>Description détaillée *</Label>
+            <Label style={styles.mb8}>{t('incident.detailedDescription')}</Label>
             <Textarea
               value={description}
               onChangeText={setDescription}
-              placeholder="Décrivez le problème en détail (minimum 20 caractères)..."
+              placeholder={t('incident.descriptionPlaceholder')}
               style={[
                 styles.mt8,
                 { height: 120 },
@@ -432,7 +426,7 @@ export function MobileCreateIncident({ onBack, incidentId, rideId, bikeId }: Mob
                 size="xs" 
                 color={description.trim().length < 20 ? '#f59e0b' : '#6b7280'}
               >
-                {description.trim().length < 20 ? 'Minimum 20 caractères requis' : '✓ Description suffisante'}
+                {description.trim().length < 20 ? t('incident.minimumCharacters') : t('incident.sufficientDescription')}
               </Text>
               <Text size="xs" color="#6b7280">
                 {description.length}/1000
@@ -448,11 +442,10 @@ export function MobileCreateIncident({ onBack, incidentId, rideId, bikeId }: Mob
               <AlertTriangle size={20} color="#dc2626" />
               <View style={styles.flex1}>
                 <Text size="sm" color="#991b1b" weight="bold">
-                  Signalement critique - Maintenance automatique
+                  {t('incident.criticalWarning.title')}
                 </Text>
                 <Text size="sm" color="#991b1b" style={styles.mt4}>
-                  Ce type de problème mettra automatiquement le vélo en maintenance jusqu'à validation par un administrateur. 
-                  Cette mesure est importante pour la sécurité de tous les utilisateurs.
+                  {t('incident.criticalWarning.description')}
                 </Text>
               </View>
             </View>
@@ -463,12 +456,12 @@ export function MobileCreateIncident({ onBack, incidentId, rideId, bikeId }: Mob
         {availableBikes.length > 0 && (
           <Card style={styles.p16}>
             <Label style={styles.mb8}>
-              Photos {criticalTypes.includes(incidentType) ? '(fortement recommandées)' : '(optionnelles)'}
+              {t('incident.photos')} {criticalTypes.includes(incidentType) ? t('incident.photosStronglyRecommended') : t('incident.photosOptional')}
             </Label>
             <Text size="xs" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={styles.mb12}>
               {criticalTypes.includes(incidentType)
-                ? 'Les photos aident nos techniciens à diagnostiquer le problème rapidement'
-                : 'Ajoutez des photos pour nous aider à comprendre le problème'}
+                ? t('incident.photosHelpCritical')
+                : t('incident.photosHelpGeneral')}
             </Text>
             
             {/* Photo Grid */}
@@ -486,7 +479,7 @@ export function MobileCreateIncident({ onBack, incidentId, rideId, bikeId }: Mob
                   ]}
                 >
                   <Text size="xs" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
-                    Photo {index + 1}
+                    {`${t('common.photo')}: ${ index + 1 }`}
                   </Text>
                   <TouchableOpacity
                     onPress={() => handleRemovePhoto(index)}
@@ -515,7 +508,7 @@ export function MobileCreateIncident({ onBack, incidentId, rideId, bikeId }: Mob
               >
                 <Camera size={16} color={colorScheme === 'light' ? '#111827' : '#f9fafb'} />
                 <Text style={styles.ml8} color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
-                  Ajouter une photo
+                  {t('incident.addPhoto')}
                 </Text>
               </Button>
             )}
@@ -536,8 +529,8 @@ export function MobileCreateIncident({ onBack, incidentId, rideId, bikeId }: Mob
             <Save size={16} color="white" />
             <Text style={styles.ml8} color="white">
               {isSubmitting 
-                ? (incidentId ? 'Modification...' : 'Création...') 
-                : (incidentId ? 'Modifier le signalement' : 'Créer le signalement')
+                ? (incidentId ? t('incident.updating') : t('incident.creating')) 
+                : (incidentId ? t('incident.update') : t('incident.submit'))
               }
             </Text>
           </Button>
@@ -546,8 +539,8 @@ export function MobileCreateIncident({ onBack, incidentId, rideId, bikeId }: Mob
         {/* Help Text */}
         <Text size="xs" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={styles.textCenter}>
           {availableBikes.length === 0 
-            ? 'Pour signaler un problème, utilisez d\'abord un vélo ou effectuez une réservation.'
-            : 'Nous traiterons votre signalement dans les plus brefs délais. Vous recevrez une notification dès qu\'il sera pris en charge.'
+            ? t('incident.help.noBikes')
+            : t('incident.help.withBikes')
           }
         </Text>
 
@@ -555,7 +548,7 @@ export function MobileCreateIncident({ onBack, incidentId, rideId, bikeId }: Mob
         {selectedBikeData && (
           <Card style={[styles.p12, { backgroundColor: '#f0fdf4', borderColor: '#16a34a' }]}>
             <Text size="sm" color="#16a34a">
-              Vélo sélectionné: {selectedBikeData.code} ({selectedBikeData.sourceLabel})
+              {t('common.selectedBike')}: {selectedBikeData.code} ({selectedBikeData.sourceLabel})
             </Text>
           </Card>
         )}

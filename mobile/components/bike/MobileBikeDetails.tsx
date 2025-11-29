@@ -1,4 +1,5 @@
-/* eslint-disable react/no-unescaped-entities */
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -26,7 +27,7 @@ interface MobileBikeDetailsProps {
 }
 
 export function MobileBikeDetails({ bike: initialBike, onBack, onStartRide, onNavigate }: MobileBikeDetailsProps) {
-  const { t, language } = useMobileI18n();
+  const { t } = useMobileI18n();
   const { user } = useMobileAuth();
   const colorScheme = useColorScheme();
   const styles = getGlobalStyles(colorScheme);
@@ -73,19 +74,19 @@ export function MobileBikeDetails({ bike: initialBike, onBack, onStartRide, onNa
 
       // Calculer le prix et la logique de facturation
       const hourlyRate = initialBike.currentPricing?.hourlyRate || 200;
-      const estimatedCost = hourlyRate * 0.5; // 30 minutes minimum
+      const estimatedCost = hourlyRate * 0.5;
 
       if (subscription) {
         setPriceInfo({
           amount: estimatedCost,
           willBeCharged: false,
-          message: `Inclus dans votre forfait ${subscription.planName}`
+          message: `${t('subscription.included')} ${ subscription.planName }`
         });
       } else {
         setPriceInfo({
           amount: estimatedCost,
           willBeCharged: true,
-          message: `Sera déduit de votre portefeuille`
+          message: t('subscription.normalRate')
         });
       }
     } catch (error) {
@@ -95,21 +96,21 @@ export function MobileBikeDetails({ bike: initialBike, onBack, onStartRide, onNa
 
   const handleUnlock = async () => {
     if (!user) {
-      toast.error('Vous devez être connecté');
+      toast.error(t('auth.mustBeLoggedIn'));
       return;
     }
 
     // Vérifications de sécurité
     if (!depositInfo?.canUseService) {
       haptics.error();
-      toast.error(`Caution insuffisante. Minimum requis: ${depositInfo?.requiredDeposit || 20000} FCFA`);
+      toast.error(`${t('wallet.insufficientDeposit')} ${ depositInfo?.requiredDeposit || 20000 }`);
       onNavigate?.('recharge-deposit');
       return;
     }
 
     if (priceInfo?.willBeCharged && user.wallet.balance < priceInfo.amount) {
       haptics.error();
-      toast.error('Solde insuffisant. Veuillez recharger votre compte.');
+      toast.error(t('wallet.insufficientBalance'));
       onNavigate?.('wallet');
       return;
     }
@@ -117,16 +118,16 @@ export function MobileBikeDetails({ bike: initialBike, onBack, onStartRide, onNa
     try {
       haptics.light();
       
-      const unlockRequest = await bikeRequestService.createUnlockRequest(bike.id);
+      await bikeRequestService.createUnlockRequest(bike.id);
       
-      toast.success('Demande de déverrouillage envoyée. Un administrateur va valider votre demande.');
+      toast.success(t('unlock.requestSent'));
       
       // Naviguer vers l'écran de suivi des demandes
       onNavigate?.('account-management', { activeTab: 'requests' });
       
     } catch (error: any) {
       haptics.error();
-      toast.error(error.message || 'Erreur lors de la demande');
+      toast.error(error.message || t('unlock.error'));
     }
   };
 
@@ -157,10 +158,10 @@ export function MobileBikeDetails({ bike: initialBike, onBack, onStartRide, onNa
               <Shield size={20} color="#dc2626" />
               <View style={styles.flex1}>
                 <Text size="sm" color="#991b1b" weight="bold">
-                  Utilisation des vélos bloquée
+                  {t('bike.details.serviceBlocked')}
                 </Text>
                 <Text size="sm" color="#991b1b" style={styles.mt4}>
-                  Votre caution est insuffisante pour utiliser ce service.
+                  {t('bike.details.insufficientDeposit')}
                 </Text>
               </View>
             </View>
@@ -240,7 +241,7 @@ export function MobileBikeDetails({ bike: initialBike, onBack, onStartRide, onNa
                       </Text>
                       {priceInfo.willBeCharged && (
                         <Text size="xs" color="#6b7280" style={styles.mt4}>
-                          Estimation 30 min: {priceInfo.amount} XOF
+                          {`${t('bike.details.estimatedCost')} ${ priceInfo.amount }`}
                         </Text>
                       )}
                     </View>
@@ -258,14 +259,17 @@ export function MobileBikeDetails({ bike: initialBike, onBack, onStartRide, onNa
                 <Calendar size={20} color="#3b82f6" />
                 <View style={styles.flex1}>
                   <Text variant="body" color="#1e40af" weight="bold">
-                    Forfait actif: {currentSubscription.planName}
+                    {`${t('bike.details.activePlan')} ${ currentSubscription.planName }`}
                   </Text>
                   <Text size="sm" color="#1e40af">
-                    Type: {currentSubscription.packageType} - Expire le {new Date(currentSubscription.endDate).toLocaleDateString()}
+                    {`${t('bike.details.planType')} ${ 
+                      currentSubscription.packageType, 
+                      new Date(currentSubscription.endDate).toLocaleDateString() 
+                    }`}
                   </Text>
                   {currentSubscription.bikeCode && (
                     <Text size="sm" color="#3b82f6" style={styles.mt4}>
-                      Vélo réservé: {currentSubscription.bikeCode}
+                      {`${t('bike.details.reservedBike')} ${ currentSubscription.bikeCode }`}
                     </Text>
                   )}
                 </View>
@@ -358,7 +362,7 @@ export function MobileBikeDetails({ bike: initialBike, onBack, onStartRide, onNa
               >
                 <Unlock size={20} color="white" />
                 <Text style={styles.ml8} color="white" size="lg">
-                  {depositInfo?.canUseService ? t('map.unlock') : 'Caution insuffisante'}
+                  {depositInfo?.canUseService ? t('map.unlock') : t('bike.details.unlockBlocked')}
                 </Text>
               </Button>
 
@@ -366,7 +370,7 @@ export function MobileBikeDetails({ bike: initialBike, onBack, onStartRide, onNa
               <Button
                 onPress={() => {
                   if (!depositInfo?.canUseService) {
-                    toast.error('Caution insuffisante pour effectuer une réservation');
+                    toast.error(`${t('wallet.insufficientDeposit')} ${ depositInfo?.requiredDeposit || 20000 }`);
                     return;
                   }
                   haptics.light();
@@ -382,7 +386,7 @@ export function MobileBikeDetails({ bike: initialBike, onBack, onStartRide, onNa
               >
                 <Calendar size={20} color={depositInfo?.canUseService ? "#16a34a" : "#9ca3af"} />
                 <Text style={styles.ml8} color={depositInfo?.canUseService ? "#16a34a" : "#9ca3af"} size="lg">
-                  {depositInfo?.canUseService ? 'Réserver ce vélo' : 'Réservation bloquée'}
+                  {depositInfo?.canUseService ? t('reservation.reserveBike') : t('bike.details.reservationBlocked')}
                 </Text>
               </Button>
 
@@ -392,7 +396,7 @@ export function MobileBikeDetails({ bike: initialBike, onBack, onStartRide, onNa
                   <View style={[styles.row, styles.gap8]}>
                     <AlertTriangle size={16} color="#f59e0b" />
                     <Text size="xs" color="#92400e">
-                      Pour débloquer l'accès, rechargez votre caution à {depositInfo?.requiredDeposit || 20000} XOF minimum.
+                      {`${t('bike.details.depositWarning')} ${ depositInfo?.requiredDeposit || 20000 }`}
                     </Text>
                   </View>
                 </Card>
@@ -406,7 +410,7 @@ export function MobileBikeDetails({ bike: initialBike, onBack, onStartRide, onNa
               </Text>
               {bike.status === 'MAINTENANCE' && (
                 <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={[styles.textCenter, styles.mt4]}>
-                  Ce vélo est actuellement en maintenance pour votre sécurité
+                  {t('bike.details.maintenanceMessage')}
                 </Text>
               )}
             </Card>

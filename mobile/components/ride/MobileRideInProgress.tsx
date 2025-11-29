@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable react-hooks/exhaustive-deps */
 import { AlertTriangle, Clock, DollarSign, MapPin, Pause, Play, StopCircle, Lock } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator } from 'react-native';
@@ -105,14 +107,14 @@ export function MobileRideInProgress({
         setPriceInfo({
           currentCost: overrideInfo.finalCost,
           willBeCharged: overrideInfo.finalCost > 0,
-          message: overrideInfo.message
+          message: `${t('subscription.overtime')} ${ overrideInfo.reductionPercentage }`
         });
       } else {
         // Dans les heures du forfait - gratuit
         setPriceInfo({
           currentCost: calculatedCost,
           willBeCharged: false,
-          message: `Inclus dans votre forfait ${currentSubscription.planName}`
+          message: `${t('subscription.included')} ${ currentSubscription.planName }`
         });
       }
     } else {
@@ -120,7 +122,7 @@ export function MobileRideInProgress({
       setPriceInfo({
         currentCost: calculatedCost,
         willBeCharged: true,
-        message: 'Tarif normal - sera déduit de votre portefeuille'
+        message: t('subscription.normalRate')
       });
     }
   };
@@ -132,24 +134,23 @@ export function MobileRideInProgress({
     switch (packageType.toLowerCase()) {
       case 'daily':
       case 'journalier':
-        return hour < 8 || hour >= 19; // Forfait journalier: 8h-19h
+        return hour < 8 || hour >= 19;
       case 'morning':
-        return hour < 6 || hour >= 12; // Forfait matinal: 6h-12h
+        return hour < 6 || hour >= 12;
       case 'evening':
-        return hour < 19 || hour >= 22; // Forfait soirée: 19h-22h
+        return hour < 19 || hour >= 22;
       default:
         return false;
     }
   };
 
   const getOvertimePrice = (originalCost: number, subscription: any) => {
-    // Simulation de la logique d'override - à adapter selon votre backend
-    const reductionPercentage = 50; // 50% de réduction pour les abonnés en overtime
+    const reductionPercentage = 50;
     const finalCost = Math.round(originalCost * (1 - reductionPercentage / 100));
     
     return {
       finalCost,
-      message: `Overtime avec forfait: ${reductionPercentage}% de réduction appliquée`
+      reductionPercentage
     };
   };
 
@@ -171,26 +172,24 @@ export function MobileRideInProgress({
   const handleEndRide = async () => {
     if (!currentRide) return;
 
-    // Créer une demande de verrouillage au lieu de terminer directement
     try {
       const currentLocation = {
         latitude: bike.latitude || 0,
         longitude: bike.longitude || 0
       };
 
-      const lockRequest = await bikeRequestService.createLockRequest(
+      await bikeRequestService.createLockRequest(
         bike.id, 
         currentRide.id, 
         currentLocation
       );
       
-      toast.success('Demande de verrouillage envoyée. Un administrateur va valider la fin de votre trajet.');
+      toast.success(t('lock.requestSent'));
       
-      // Naviguer vers le suivi des demandes
       onNavigate?.('account-management', { activeTab: 'requests' });
       
     } catch (error: any) {
-      toast.error(error.message || 'Erreur lors de la demande de verrouillage');
+      toast.error(error.message || t('lock.requestError'));
     }
   };
 
@@ -281,10 +280,10 @@ export function MobileRideInProgress({
             {currentSubscription && (
               <View style={[styles.card, { backgroundColor: '#eff6ff', borderColor: '#3b82f6' }]}>
                 <Text style={[styles.cardLabel, { color: '#1e40af' }]}>
-                  Forfait actif: {currentSubscription.planName}
+                  {`${t('subscription.active')} ${ currentSubscription.planName }`}
                 </Text>
                 <Text style={[styles.bikeModel, { color: '#3b82f6' }]}>
-                  {priceInfo?.message || 'Forfait appliqué'}
+                  {priceInfo?.message || `${t('subscription.included')} ${ currentSubscription.planName }`}
                 </Text>
               </View>
             )}
@@ -313,7 +312,7 @@ export function MobileRideInProgress({
                 </Text>
                 {priceInfo && (
                   <Text style={[styles.statLabel, { color: priceInfo.willBeCharged ? "#f59e0b" : "#16a34a", marginTop: 4 }]}>
-                    {priceInfo.willBeCharged ? 'À payer' : 'Inclus'}
+                    {priceInfo.willBeCharged ? t('payment.toPay') : t('payment.included')}
                   </Text>
                 )}
               </View>
@@ -340,7 +339,7 @@ export function MobileRideInProgress({
               {priceInfo?.willBeCharged && (
                 <View style={[styles.costRow, styles.totalRow]}>
                   <Text style={styles.totalLabel}>
-                    À déduire du portefeuille
+                    {t('payment.willBeDeducted')}
                   </Text>
                   <Text style={styles.totalValue}>
                     {priceInfo.currentCost} {user?.wallet?.currency || 'XAF'}
@@ -350,7 +349,7 @@ export function MobileRideInProgress({
               {!priceInfo?.willBeCharged && currentSubscription && (
                 <View style={[styles.costRow, { backgroundColor: '#f0fdf4' }]}>
                   <Text style={[styles.totalLabel, { color: '#16a34a' }]}>
-                    Inclus dans le forfait
+                    {t('payment.includedInPlan')}
                   </Text>
                   <Text style={[styles.totalValue, { color: '#16a34a' }]}>
                     0 {user?.wallet?.currency || 'XAF'}
@@ -389,7 +388,7 @@ export function MobileRideInProgress({
               >
                 <Lock size={20} color="white" />
                 <Text style={styles.endButtonText}>
-                  {isLoading ? t('common.loading') : 'Demander le verrouillage'}
+                  {isLoading ? t('common.loading') : t('lock.requestButton')}
                 </Text>
               </TouchableOpacity>
 
@@ -407,7 +406,7 @@ export function MobileRideInProgress({
             {/* Info about admin validation */}
             <View style={[styles.safetyCard, { backgroundColor: '#eff6ff' }]}>
               <Text style={[styles.safetyText, { color: '#1e40af' }]}>
-                Le verrouillage nécessite une validation par un administrateur pour vérifier que le vélo est correctement positionné.
+                {t('lock.adminValidation')}
               </Text>
             </View>
 
@@ -424,7 +423,6 @@ export function MobileRideInProgress({
   );
 }
 
-// Styles identiques à l'original...
 const styles = StyleSheet.create({
   container: {
     flex: 1,

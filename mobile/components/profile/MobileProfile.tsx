@@ -21,7 +21,7 @@ interface MobileProfileProps {
 }
 
 export default function MobileProfile({ onNavigate }: MobileProfileProps) {
-  const { user, logout, refreshUser } = useMobileAuth();
+  const { user, logout } = useMobileAuth();
   const { t, language, setLanguage } = useMobileI18n();
   const colorScheme = useColorScheme();
   const styles = getGlobalStyles(colorScheme);
@@ -39,22 +39,18 @@ export default function MobileProfile({ onNavigate }: MobileProfileProps) {
     try {
       setIsLoading(true);
       
-      // Charger les statistiques utilisateur
-      const stats = await userService.getStats();
+      const [stats, unreadCount, notificationsEnabled] = await Promise.all([
+        userService.getStats(),
+        userService.getUnreadNotificationsCount(),
+        notificationService.areNotificationsEnabled()
+      ]);
+
       setUserStats(stats);
-      
-      // Charger le nombre de notifications non lues
-      const unreadCount = await userService.getUnreadNotificationsCount();
       setUnreadNotifications(unreadCount);
-      
-      // Charger les préférences de notifications
-      const notificationsEnabled = await notificationService.areNotificationsEnabled();
       setNotifications(notificationsEnabled);
       
     } catch (error) {
       console.error('Error loading profile data:', error);
-      // Ne pas afficher d'erreur pour éviter de perturber l'utilisateur
-      // Les statistiques resteront vides
     } finally {
       setIsLoading(false);
     }
@@ -72,14 +68,9 @@ export default function MobileProfile({ onNavigate }: MobileProfileProps) {
       setLanguage(newLanguage);
       await storeLanguage(newLanguage);
       
-      // Mettre à jour le profil utilisateur avec la nouvelle langue
       await userService.updateProfile({ language: newLanguage });
       
-      toast.success(
-        newLanguage === 'fr' 
-          ? 'Langue mise à jour' 
-          : 'Language updated'
-      );
+      toast.success(t('profile.languageUpdated'));
     } catch (error) {
       console.error('Error updating language:', error);
       toast.error(t('common.error'));
@@ -91,20 +82,14 @@ export default function MobileProfile({ onNavigate }: MobileProfileProps) {
       haptics.light();
       setNotifications(enabled);
       
-      // Mettre à jour les préférences de notifications
       await notificationService.updatePreferences({
         pushNotifications: enabled,
         emailNotifications: enabled,
       });
       
-      toast.success(
-        language === 'fr'
-          ? `Notifications ${enabled ? 'activées' : 'désactivées'}`
-          : `Notifications ${enabled ? 'enabled' : 'disabled'}`
-      );
+      toast.success(enabled ? t('profile.notificationsEnabled') : t('profile.notificationsDisabled'));
     } catch (error) {
       console.error('Error updating notifications:', error);
-      // Revert the toggle if there's an error
       setNotifications(!enabled);
       toast.error(t('common.error'));
     }
@@ -130,7 +115,7 @@ export default function MobileProfile({ onNavigate }: MobileProfileProps) {
         },
         {
           icon: Wallet,
-          label: 'Gestion de compte',
+          label: t('profile.accountManagement'),
           onPress: () => {
             haptics.light();
             onNavigate('account-management');
@@ -484,7 +469,7 @@ export default function MobileProfile({ onNavigate }: MobileProfileProps) {
                   color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}
                   style={styles.textCenter}
                 >
-                  km
+                  {t('profile.stats.km')}
                 </Text>
               </View>
               <View style={[styles.flex1, styles.alignCenter]}>
@@ -518,7 +503,7 @@ export default function MobileProfile({ onNavigate }: MobileProfileProps) {
                   color={colorScheme === 'light' ? '#111827' : '#f9fafb'}
                   weight="medium"
                 >
-                  {(userStats.averageRating || 0).toFixed(1)}/5
+                  {`${t('profile.stats.rating')}: ${(userStats.averageRating || 0).toFixed(1)}`}
                 </Text>
               </View>
             )}

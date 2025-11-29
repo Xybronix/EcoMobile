@@ -20,7 +20,7 @@ interface MobileResetPasswordProps {
 
 export function MobileResetPassword({ onNavigate, resetToken }: MobileResetPasswordProps) {
   const { resetPassword } = useMobileAuth();
-  const { t, language } = useMobileI18n();
+  const { t } = useMobileI18n();
   const colorScheme = useColorScheme();
   const styles = getGlobalStyles(colorScheme);
   
@@ -34,43 +34,27 @@ export function MobileResetPassword({ onNavigate, resetToken }: MobileResetPassw
 
   useEffect(() => {
     if (!resetToken) {
-      setError(
-        language === 'fr'
-          ? 'Lien de réinitialisation invalide'
-          : 'Invalid reset link'
-      );
+      setError(t('error.invalidResetLink'));
     }
-  }, [resetToken, language]);
+  }, [resetToken, t]);
 
   const handleSubmit = async () => {
     setError('');
     
     if (!resetToken) {
-      setError(
-        language === 'fr'
-          ? 'Lien de réinitialisation invalide'
-          : 'Invalid reset link'
-      );
+      setError(t('error.invalidResetLink'));
       return;
     }
 
     if (password !== confirmPassword) {
       haptics.error();
-      toast.error(
-        language === 'fr'
-          ? 'Les mots de passe ne correspondent pas'
-          : 'Passwords do not match'
-      );
+      toast.error(t('validation.passwordsNoMatch'));
       return;
     }
 
     if (password.length < 8) {
       haptics.error();
-      toast.error(
-        language === 'fr'
-          ? 'Le mot de passe doit contenir au moins 8 caractères'
-          : 'Password must be at least 8 characters'
-      );
+      toast.error(t('validation.passwordMinLength'));
       return;
     }
 
@@ -84,25 +68,17 @@ export function MobileResetPassword({ onNavigate, resetToken }: MobileResetPassw
     } catch (error: any) {
       haptics.error();
       
-      let errorMessage = language === 'fr'
-        ? 'Erreur lors de la réinitialisation'
-        : 'Error resetting password';
+      let errorMessage = t('error.resetPasswordError');
       
       switch (error.message) {
         case 'invalid_token':
-          errorMessage = language === 'fr'
-            ? 'Lien de réinitialisation invalide ou expiré'
-            : 'Invalid or expired reset link';
+          errorMessage = t('error.invalidToken');
           break;
         case 'network_error':
-          errorMessage = language === 'fr'
-            ? 'Erreur de connexion'
-            : 'Network error';
+          errorMessage = t('error.networkError');
           break;
         case 'server_error':
-          errorMessage = language === 'fr'
-            ? 'Erreur serveur'
-            : 'Server error';
+          errorMessage = t('error.serverError');
           break;
       }
       
@@ -138,7 +114,7 @@ export function MobileResetPassword({ onNavigate, resetToken }: MobileResetPassw
               style={[styles.mb16, styles.textCenter]}
               color={colorScheme === 'light' ? '#111827' : '#f9fafb'}
             >
-              {language === 'fr' ? 'Mot de passe réinitialisé !' : 'Password reset!'}
+              {t('auth.passwordReset')}
             </Text>
             
             <Text 
@@ -146,9 +122,7 @@ export function MobileResetPassword({ onNavigate, resetToken }: MobileResetPassw
               style={[styles.mb32, styles.textCenter]}
               color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}
             >
-              {language === 'fr'
-                ? 'Votre mot de passe a été réinitialisé avec succès. Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.'
-                : 'Your password has been reset successfully. You can now log in with your new password.'}
+              {t('auth.passwordResetSuccess')}
             </Text>
             
             <Button
@@ -159,7 +133,7 @@ export function MobileResetPassword({ onNavigate, resetToken }: MobileResetPassw
                 onNavigate('login');
               }}
             >
-              {language === 'fr' ? 'Se connecter' : 'Log In'}
+              {t('auth.login')}
             </Button>
           </View>
         </View>
@@ -204,7 +178,7 @@ export function MobileResetPassword({ onNavigate, resetToken }: MobileResetPassw
             style={[styles.mb8, styles.textCenter]}
             color={colorScheme === 'light' ? '#111827' : '#f9fafb'}
           >
-            {language === 'fr' ? 'Nouveau mot de passe' : 'New Password'}
+            {t('auth.newPassword')}
           </Text>
           
           <Text 
@@ -212,19 +186,17 @@ export function MobileResetPassword({ onNavigate, resetToken }: MobileResetPassw
             style={styles.textCenter}
             color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}
           >
-            {language === 'fr'
-              ? 'Votre nouveau mot de passe doit être différent des mots de passe précédents.'
-              : 'Your new password must be different from previous passwords.'}
+            {t('auth.newPasswordDescription')}
           </Text>
         </View>
 
         {/* Form */}
         <View style={[styles.wT100, styles.gap16]}>
           <View style={styles.inputGroup}>
-            <Label>{language === 'fr' ? 'Nouveau mot de passe' : 'New password'}</Label>
+            <Label>{t('auth.newPassword')}</Label>
             <View style={styles.relative}>
               <Input
-                placeholder={language === 'fr' ? 'Entrez votre mot de passe' : 'Enter your password'}
+                placeholder={t('auth.enterPassword')}
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
@@ -250,17 +222,15 @@ export function MobileResetPassword({ onNavigate, resetToken }: MobileResetPassw
               color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}
               style={{ marginTop: 2 }}
             >
-              {language === 'fr'
-                ? 'Au moins 8 caractères'
-                : 'At least 8 characters'}
+              {t('auth.atLeast8Chars')}
             </Text>
           </View>
 
           <View style={styles.inputGroup}>
-            <Label>{language === 'fr' ? 'Confirmer le mot de passe' : 'Confirm password'}</Label>
+            <Label>{t('auth.confirmPassword')}</Label>
             <View style={styles.relative}>
               <Input
-                placeholder={language === 'fr' ? 'Confirmez votre mot de passe' : 'Confirm your password'}
+                placeholder={t('auth.confirmYourPassword')}
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
                 secureTextEntry={!showConfirmPassword}
@@ -312,9 +282,7 @@ export function MobileResetPassword({ onNavigate, resetToken }: MobileResetPassw
             disabled={isLoading || !resetToken}
             onPress={handleSubmit}
           >
-            {isLoading
-              ? (language === 'fr' ? 'Réinitialisation...' : 'Resetting...')
-              : (language === 'fr' ? 'Réinitialiser le mot de passe' : 'Reset password')}
+            {isLoading ? t('auth.resetting') : t('auth.resetPasswordAction')}
           </Button>
         </View>
       </View>

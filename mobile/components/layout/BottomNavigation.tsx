@@ -1,4 +1,3 @@
-// components/mobile/BottomNavigation.tsx
 import { Text } from '@/components/ui/Text';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -6,7 +5,7 @@ import { getGlobalStyles } from '@/styles/globalStyles';
 import { Home, Map, Route, ScanLine, User } from 'lucide-react-native';
 import React from 'react';
 import { TouchableOpacity, View } from 'react-native';
-import { useMobileI18n } from '../../lib/mobile-i18n';
+import { useMobileI18n } from '@/lib/mobile-i18n';
 
 interface BottomNavigationProps {
   activeScreen: string;

@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable react-hooks/exhaustive-deps */
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -32,7 +34,7 @@ interface MobileSubscriptionPlansProps {
 }
 
 export function MobileSubscriptionPlans({ onBack, onNavigate }: MobileSubscriptionPlansProps) {
-  const { t, language } = useMobileI18n();
+  const { t } = useMobileI18n();
   const { user } = useMobileAuth();
   const colorScheme = useColorScheme();
   const styles = getGlobalStyles(colorScheme);
@@ -59,7 +61,7 @@ export function MobileSubscriptionPlans({ onBack, onNavigate }: MobileSubscripti
       }
     } catch (error) {
       console.error('Error loading plans:', error);
-      toast.error('Erreur lors du chargement des plans');
+      toast.error(t('subscription.error.loading'));
     } finally {
       setIsLoading(false);
     }
@@ -77,22 +79,22 @@ export function MobileSubscriptionPlans({ onBack, onNavigate }: MobileSubscripti
   const packageOptions = [
     {
       key: 'daily',
-      label: 'Forfait Journalier',
-      description: 'Valable 24h',
+      label: t('subscription.package.daily'),
+      description: t('subscription.package.dailyDesc'),
       icon: Clock,
       getRateKey: (plan: Plan) => plan.dailyRate
     },
     {
       key: 'weekly',
-      label: 'Forfait Hebdomadaire', 
-      description: 'Valable 7 jours',
+      label: t('subscription.package.weekly'), 
+      description: t('subscription.package.weeklyDesc'),
       icon: Star,
       getRateKey: (plan: Plan) => plan.weeklyRate
     },
     {
       key: 'monthly',
-      label: 'Forfait Mensuel',
-      description: 'Valable 30 jours',
+      label: t('subscription.package.monthly'),
+      description: t('subscription.package.monthlyDesc'),
       icon: Zap,
       getRateKey: (plan: Plan) => plan.monthlyRate
     }
@@ -108,7 +110,7 @@ export function MobileSubscriptionPlans({ onBack, onNavigate }: MobileSubscripti
 
   const handleSubscribe = async () => {
     if (!selectedPlanData || !user) {
-      toast.error('Veuillez sélectionner un plan');
+      toast.error(t('subscription.selectPlanError'));
       return;
     }
 
@@ -120,11 +122,11 @@ export function MobileSubscriptionPlans({ onBack, onNavigate }: MobileSubscripti
     if (currentBalance < price) {
       haptics.error();
       Alert.alert(
-        'Solde insuffisant',
-        'Votre solde est insuffisant pour souscrire à ce forfait. Rechargez votre compte.',
+        t('subscription.insufficientBalance.title'),
+        t('subscription.insufficientBalance.message'),
         [
-          { text: 'Annuler', style: 'cancel' },
-          { text: 'Recharger', onPress: () => onNavigate('wallet') }
+          { text: t('subscription.insufficientBalance.cancel'), style: 'cancel' },
+          { text: t('subscription.insufficientBalance.topUp'), onPress: () => onNavigate('wallet') }
         ]
       );
       return;
@@ -140,19 +142,22 @@ export function MobileSubscriptionPlans({ onBack, onNavigate }: MobileSubscripti
       });
 
       haptics.success();
-      toast.success('Abonnement souscrit avec succès!');
+      toast.success(t('subscription.success.title'));
       
       Alert.alert(
-        'Abonnement confirmé',
-        `Votre abonnement ${selectedPlanData.name} - ${selectedPackageData?.label} est maintenant actif.`,
+        t('subscription.success.title'),
+        `${t('subscription.success.message')} ${ 
+          selectedPlanData.name, 
+          selectedPackageData?.label 
+        }`,
         [
-          { text: 'OK', onPress: () => onBack() }
+          { text: t('subscription.success.ok'), onPress: () => onBack() }
         ]
       );
       
     } catch (error: any) {
       haptics.error();
-      toast.error(error.message || 'Erreur lors de la souscription');
+      toast.error(error.message || t('subscription.error.subscribing'));
     } finally {
       setIsSubmitting(false);
     }
@@ -185,7 +190,7 @@ export function MobileSubscriptionPlans({ onBack, onNavigate }: MobileSubscripti
           <ArrowLeft size={20} color={colorScheme === 'light' ? '#111827' : '#f9fafb'} />
         </TouchableOpacity>
         <Text variant="subtitle" color="#16a34a">
-          Choisir un forfait
+          {t('subscription.plans.title')}
         </Text>
       </View>
 
@@ -197,7 +202,7 @@ export function MobileSubscriptionPlans({ onBack, onNavigate }: MobileSubscripti
         {/* Plans Selection */}
         <View style={styles.gap16}>
           <Text variant="body" color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
-            Sélectionnez votre plan tarifaire
+            {t('subscription.plans.selectPlan')}
           </Text>
           
           {plans.map((plan) => (
@@ -227,18 +232,18 @@ export function MobileSubscriptionPlans({ onBack, onNavigate }: MobileSubscripti
                 </Text>
                 {plan.isPopular && (
                   <Badge variant="default">
-                    <Text color="white" size="xs">Populaire</Text>
+                    <Text color="white" size="xs">{t('subscription.plans.popular')}</Text>
                   </Badge>
                 )}
               </View>
               
               <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={styles.mb8}>
-                Tarif horaire : {plan.hourlyRate} XOF/h
+                {`${t('subscription.plans.hourlyRate')} ${ plan.hourlyRate }`}
               </Text>
               
               {plan.discount > 0 && (
                 <Text size="sm" color="#16a34a" style={styles.mb8}>
-                  Réduction : {plan.discount}%
+                  {`${t('subscription.plans.discount')} ${ plan.discount }`}
                 </Text>
               )}
               
@@ -259,7 +264,7 @@ export function MobileSubscriptionPlans({ onBack, onNavigate }: MobileSubscripti
         {/* Package Type Selection */}
         <View style={styles.gap16}>
           <Text variant="body" color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
-            Choisissez la durée de votre forfait
+            {t('subscription.plans.selectDuration')}
           </Text>
           
           {packageOptions.map((option) => {
@@ -317,26 +322,26 @@ export function MobileSubscriptionPlans({ onBack, onNavigate }: MobileSubscripti
         {selectedPlanData && (
           <Card style={[styles.p16, { backgroundColor: '#f0fdf4', borderColor: '#16a34a' }]}>
             <Text variant="body" color="#111827" style={styles.mb12}>
-              Résumé de votre abonnement
+              {t('subscription.summary.title')}
             </Text>
             
             <View style={[styles.row, styles.spaceBetween, styles.mb4]}>
-              <Text size="sm" color="#6b7280">Plan :</Text>
+              <Text size="sm" color="#6b7280">{t('subscription.summary.plan')}</Text>
               <Text size="sm" color="#111827">{selectedPlanData.name}</Text>
             </View>
             
             <View style={[styles.row, styles.spaceBetween, styles.mb4]}>
-              <Text size="sm" color="#6b7280">Forfait :</Text>
+              <Text size="sm" color="#6b7280">{t('subscription.summary.package')}</Text>
               <Text size="sm" color="#111827">{selectedPackageData?.label}</Text>
             </View>
             
             <View style={[styles.row, styles.spaceBetween, styles.mb4]}>
-              <Text size="sm" color="#6b7280">Solde actuel :</Text>
+              <Text size="sm" color="#6b7280">{t('subscription.summary.currentBalance')}</Text>
               <Text size="sm" color="#111827">{walletData?.balance || 0} XOF</Text>
             </View>
             
             <View style={[styles.row, styles.spaceBetween, { paddingTop: 8, borderTopWidth: 1, borderTopColor: '#d1fae5' }]}>
-              <Text variant="body" color="#111827">Prix total :</Text>
+              <Text variant="body" color="#111827">{t('subscription.summary.totalPrice')}</Text>
               <Text variant="body" color="#16a34a" weight="bold">
                 {getPrice()} XOF
               </Text>
@@ -356,12 +361,15 @@ export function MobileSubscriptionPlans({ onBack, onNavigate }: MobileSubscripti
         >
           <CreditCard size={16} color="white" />
           <Text style={styles.ml8} color="white">
-            {isSubmitting ? 'Souscription...' : `Souscrire pour ${getPrice()} XOF`}
+            {isSubmitting 
+              ? t('subscription.subscribing') 
+              : `${t('subscription.subscribe')} ${ getPrice() }`
+            }
           </Text>
         </Button>
 
         <Text size="xs" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={styles.textCenter}>
-          Le montant sera déduit de votre portefeuille. Vous pouvez annuler votre abonnement à tout moment.
+          {t('subscription.footer')}
         </Text>
       </ScrollView>
     </View>

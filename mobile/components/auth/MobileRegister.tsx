@@ -46,11 +46,7 @@ export function MobileRegister({ onNavigate }: MobileRegisterProps) {
     setFormData({ ...formData, email: text });
     
     if (text.length > 0 && !validateEmail(text)) {
-      setEmailError(
-        language === 'fr' 
-          ? 'Adresse email invalide' 
-          : 'Invalid email address'
-      );
+      setEmailError(t('validation.invalidEmail'));
     } else {
       setEmailError('');
     }
@@ -59,51 +55,31 @@ export function MobileRegister({ onNavigate }: MobileRegisterProps) {
   const handleSubmit = async () => {
     if (!formData.firstName || !formData.lastName || !formData.email || !formData.phone || !formData.password || !formData.confirmPassword) {
       haptics.error();
-      toast.error(
-        language === 'fr'
-          ? 'Veuillez remplir tous les champs'
-          : 'Please fill in all fields'
-      );
+      toast.error(t('validation.fillAllFields'));
       return;
     }
 
     if (!validateEmail(formData.email)) {
       haptics.error();
-      toast.error(
-        language === 'fr'
-          ? 'Adresse email invalide'
-          : 'Invalid email address'
-      );
+      toast.error(t('validation.invalidEmail'));
       return;
     }
 
     if (!isPhoneValid) {
       haptics.error();
-      toast.error(
-        language === 'fr'
-          ? 'Numéro de téléphone invalide'
-          : 'Invalid phone number'
-      );
+      toast.error(t('validation.invalidPhone'));
       return;
     }
 
     if (formData.password !== formData.confirmPassword) {
       haptics.error();
-      toast.error(
-        language === 'fr'
-          ? 'Les mots de passe ne correspondent pas'
-          : 'Passwords do not match'
-      );
+      toast.error(t('validation.passwordsNoMatch'));
       return;
     }
 
     if (formData.password.length < 8) {
       haptics.error();
-      toast.error(
-        language === 'fr'
-          ? 'Le mot de passe doit contenir au moins 8 caractères'
-          : 'Password must be at least 8 characters'
-      );
+      toast.error(t('validation.passwordMinLength'));
       return;
     }
 
@@ -120,41 +96,26 @@ export function MobileRegister({ onNavigate }: MobileRegisterProps) {
         language,
       });
       haptics.success();
-      toast.success(
-        language === 'fr'
-          ? 'Compte créé avec succès !'
-          : 'Account created successfully!'
-      );
-      // La redirection est gérée automatiquement par le contexte d'authentification
+      toast.success(t('success.accountCreated'));
     } catch (error: any) {
       haptics.error();
       
       let errorMessage = t('common.error');
       switch (error.message) {
         case 'user_already_exists':
-          errorMessage = language === 'fr' 
-            ? 'Un compte existe déjà avec cet email' 
-            : 'An account already exists with this email';
+          errorMessage = t('error.userAlreadyExists');
           break;
         case 'invalid_data':
-          errorMessage = language === 'fr' 
-            ? 'Données invalides' 
-            : 'Invalid data';
+          errorMessage = t('error.invalidData');
           break;
         case 'validation_error':
-          errorMessage = language === 'fr' 
-            ? 'Erreur de validation' 
-            : 'Validation error';
+          errorMessage = t('error.validationError');
           break;
         case 'network_error':
-          errorMessage = language === 'fr' 
-            ? 'Erreur de connexion' 
-            : 'Network error';
+          errorMessage = t('error.networkError');
           break;
         case 'server_error':
-          errorMessage = language === 'fr' 
-            ? 'Erreur serveur' 
-            : 'Server error';
+          errorMessage = t('error.serverError');
           break;
       }
       
@@ -201,7 +162,7 @@ export function MobileRegister({ onNavigate }: MobileRegisterProps) {
                 <Label required>{t('auth.firstName')}</Label>
                 <Input
                   value={formData.firstName}
-                  placeholder="Jean"
+                  placeholder={t('placeholder.firstName')}
                   onChangeText={(text) => setFormData({ ...formData, firstName: text })}
                   autoComplete="given-name"
                   textContentType="givenName"
@@ -214,7 +175,7 @@ export function MobileRegister({ onNavigate }: MobileRegisterProps) {
                 <Label required>{t('auth.lastName')}</Label>
                 <Input
                   value={formData.lastName}
-                  placeholder="Pierre"
+                  placeholder={t('placeholder.lastName')}
                   onChangeText={(text) => setFormData({ ...formData, lastName: text })}
                   autoComplete="family-name"
                   textContentType="familyName"
@@ -228,7 +189,7 @@ export function MobileRegister({ onNavigate }: MobileRegisterProps) {
             <Input
               value={formData.email}
               onChangeText={handleEmailChange}
-              placeholder="jean@email.com"
+              placeholder={t('placeholder.email')}
               keyboardType="email-address"
               autoCapitalize="none"
               autoComplete="email"
@@ -248,7 +209,7 @@ export function MobileRegister({ onNavigate }: MobileRegisterProps) {
               value={formData.phone}
               onChangeText={(text) => setFormData({ ...formData, phone: text })}
               onValidationChange={setIsPhoneValid}
-              placeholder="690635827"
+              placeholder={t('placeholder.phone')}
               error={formData.phone.length > 0 && !isPhoneValid}
               defaultCountry="CM"
             />
@@ -260,7 +221,7 @@ export function MobileRegister({ onNavigate }: MobileRegisterProps) {
               <Input
                 value={formData.password}
                 onChangeText={(text) => setFormData({ ...formData, password: text })}
-                placeholder="••••••••"
+                placeholder={t('placeholder.password')}
                 secureTextEntry={!showPassword}
                 style={{ paddingRight: 48 }}
                 autoComplete="new-password"
@@ -280,20 +241,18 @@ export function MobileRegister({ onNavigate }: MobileRegisterProps) {
               </TouchableOpacity>
             </View>
             <Text size="xs" color="#6b7280" style={{marginTop: 2}}>
-              {language === 'fr' 
-                ? 'Au moins 8 caractères' 
-                : 'At least 8 characters'}
+              {t('auth.atLeast8Chars')}
             </Text>
           </View>
 
           <View style={styles.inputGroup}>
             <Label required>
-              {language === 'fr' ? 'Confirmer le mot de passe' : 'Confirm Password'}
+              {t('auth.confirmPassword')}
             </Label>
             <Input
               value={formData.confirmPassword}
               onChangeText={(text) => setFormData({ ...formData, confirmPassword: text })}
-              placeholder="••••••••"
+              placeholder={t('placeholder.password')}
               secureTextEntry={!showPassword}
               error={formData.confirmPassword.length > 0 && formData.password !== formData.confirmPassword}
             />
