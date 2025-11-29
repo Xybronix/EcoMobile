@@ -19,7 +19,7 @@ interface MobileLoginProps {
 
 export default function MobileLogin({ onNavigate }: MobileLoginProps) {
   const { login } = useMobileAuth();
-  const { t, language } = useMobileI18n();
+  const { t } = useMobileI18n();
   const colorScheme = useColorScheme();
   const styles = getGlobalStyles(colorScheme);
   
@@ -31,11 +31,7 @@ export default function MobileLogin({ onNavigate }: MobileLoginProps) {
   const handleLogin = async () => {
     if (!email || !password) {
       haptics.error();
-      toast.error(
-        language === 'fr' 
-          ? 'Veuillez remplir tous les champs' 
-          : 'Please fill in all fields'
-      );
+      toast.error(t('validation.fillAllFields'));
       return;
     }
 
@@ -45,50 +41,32 @@ export default function MobileLogin({ onNavigate }: MobileLoginProps) {
     try {
       await login({ email, password });
       haptics.success();
-      toast.success(
-        language === 'fr' 
-          ? 'Connexion réussie !' 
-          : 'Login successful!'
-      );
+      toast.success(t('success.loginSuccessful'));
     } catch (error: any) {
       haptics.error();
       
       let errorMessage = t('common.error');
       switch (error.message) {
         case 'invalid_credentials':
-          errorMessage = language === 'fr' 
-            ? 'Email ou mot de passe incorrect' 
-            : 'Invalid email or password';
+          errorMessage = t('error.invalidCredentials');
           break;
         case 'network_error':
-          errorMessage = language === 'fr' 
-            ? 'Erreur de connexion' 
-            : 'Network error';
+          errorMessage = t('error.networkError');
           break;
         case 'validation_error':
-          errorMessage = language === 'fr' 
-            ? 'Données invalides' 
-            : 'Invalid data';
+          errorMessage = t('error.validationError');
           break;
         case 'user_already_exists':
-          errorMessage = language === 'fr' 
-            ? 'Utilisateur déjà existant' 
-            : 'User already exists';
+          errorMessage = t('error.userAlreadyExists');
           break;
         case 'server_error':
-          errorMessage = language === 'fr' 
-            ? 'Erreur serveur' 
-            : 'Server error';
+          errorMessage = t('error.serverError');
           break;
         case 'service_unavailable':
-          errorMessage = language === 'fr' 
-            ? 'Service indisponible' 
-            : 'Service unavailable';
+          errorMessage = t('error.serviceUnavailable');
           break;
         default:
-          errorMessage = language === 'fr' 
-            ? 'Email ou mot de passe incorrect' 
-            : 'Invalid email or password';
+          errorMessage = t('error.invalidCredentials');
           break;
       }
       
@@ -123,9 +101,7 @@ export default function MobileLogin({ onNavigate }: MobileLoginProps) {
             EcoMobile
           </Text>
           <Text variant="subtitle">
-            {language === 'fr'
-              ? 'Votre mobilité électrique'
-              : 'Your electric mobility'}
+            {t('auth.yourElectricMobility')}
           </Text>
         </View>
 
@@ -136,7 +112,7 @@ export default function MobileLogin({ onNavigate }: MobileLoginProps) {
             <Input
               value={email}
               onChangeText={setEmail}
-              placeholder="exemple@email.com"
+              placeholder={t('placeholder.email')}
               keyboardType="email-address"
               autoCapitalize="none"
               autoComplete="email"
@@ -150,7 +126,7 @@ export default function MobileLogin({ onNavigate }: MobileLoginProps) {
               <Input
                 value={password}
                 onChangeText={setPassword}
-                placeholder="••••••••"
+                placeholder={t('placeholder.password')}
                 secureTextEntry={!showPassword}
                 style={{ paddingRight: 48 }}
                 autoComplete="password"

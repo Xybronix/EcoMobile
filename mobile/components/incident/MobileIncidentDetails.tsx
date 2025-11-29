@@ -1,4 +1,4 @@
-/* eslint-disable react/no-unescaped-entities */
+/* eslint-disable react-hooks/exhaustive-deps */
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -40,7 +40,7 @@ export function MobileIncidentDetails({ onBack, onEdit, incidentId }: MobileInci
       setIncident(data);
     } catch (error) {
       console.error('Error loading incident:', error);
-      toast.error('Erreur lors du chargement du signalement');
+      toast.error(t('error.loadingIncident'));
       onBack();
     } finally {
       setIsLoading(false);
@@ -58,10 +58,10 @@ export function MobileIncidentDetails({ onBack, onEdit, incidentId }: MobileInci
 
   const getStatusText = (status: string) => {
     const statusMap: { [key: string]: string } = {
-      'OPEN': 'Ouvert',
-      'IN_PROGRESS': 'En cours',
-      'RESOLVED': 'Résolu',
-      'CLOSED': 'Fermé'
+      'OPEN': t('incident.status.open'),
+      'IN_PROGRESS': t('incident.status.in_progress'),
+      'RESOLVED': t('incident.status.resolved'),
+      'CLOSED': t('incident.status.closed')
     };
     return statusMap[status] || status;
   };
@@ -78,26 +78,26 @@ export function MobileIncidentDetails({ onBack, onEdit, incidentId }: MobileInci
 
   const getPriorityText = (priority: string) => {
     const priorityMap: { [key: string]: string } = {
-      'LOW': 'Basse',
-      'MEDIUM': 'Moyenne',
-      'HIGH': 'Haute',
-      'URGENT': 'Urgente'
+      'LOW': t('priority.low'),
+      'MEDIUM': t('priority.medium'),
+      'HIGH': t('priority.high'),
+      'URGENT': t('priority.urgent')
     };
     return priorityMap[priority] || priority;
   };
 
   const getIncidentTypeText = (type: string) => {
     const typeMap: { [key: string]: string } = {
-      'brakes': 'Problème de freins',
-      'battery': 'Problème de batterie',
-      'tire': 'Problème de pneu',
-      'chain': 'Problème de chaîne',
-      'lights': 'Problème de lumières',
-      'lock': 'Problème de cadenas',
-      'electronics': 'Problème électronique',
-      'physical_damage': 'Dégât physique',
-      'theft': 'Vol ou tentative',
-      'other': 'Autre problème'
+      'brakes': t('incident.type.brakes'),
+      'battery': t('incident.type.battery'),
+      'tire': t('incident.type.tire'),
+      'chain': t('incident.type.chain'),
+      'lights': t('incident.type.lights'),
+      'lock': t('incident.type.lock'),
+      'electronics': t('incident.type.electronics'),
+      'physical_damage': t('incident.type.physical_damage'),
+      'theft': t('incident.type.theft'),
+      'other': t('incident.type.other')
     };
     return typeMap[type] || type;
   };
@@ -129,13 +129,13 @@ export function MobileIncidentDetails({ onBack, onEdit, incidentId }: MobileInci
             <ArrowLeft size={20} color={colorScheme === 'light' ? '#111827' : '#f9fafb'} />
           </TouchableOpacity>
           <Text variant="subtitle" color="#16a34a">
-            Détails du signalement
+            {t('incident.details.title')}
           </Text>
         </View>
         
         <View style={[styles.flex1, styles.alignCenter, styles.justifyCenter]}>
           <ActivityIndicator size="large" color="#16a34a" />
-          <Text color="#6b7280" style={styles.mt16}>Chargement...</Text>
+          <Text color="#6b7280" style={styles.mt16}>{t('common.loading')}</Text>
         </View>
       </View>
     );
@@ -172,7 +172,7 @@ export function MobileIncidentDetails({ onBack, onEdit, incidentId }: MobileInci
           <ArrowLeft size={20} color={colorScheme === 'light' ? '#111827' : '#f9fafb'} />
         </TouchableOpacity>
         <Text variant="subtitle" color="#16a34a">
-          Signalement #{incident.id.slice(0, 8)}
+          {`${t('incident.details.reportNumber')}: ${ incident.id.slice(0, 8) }`}
         </Text>
       </View>
 
@@ -186,7 +186,7 @@ export function MobileIncidentDetails({ onBack, onEdit, incidentId }: MobileInci
           <View style={[styles.row, styles.spaceBetween, styles.alignCenter]}>
             <View>
               <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={styles.mb4}>
-                Statut
+                {t('incident.details.status')}
               </Text>
               <View style={[styles.row, styles.alignCenter, styles.gap8]}>
                 {incident.status === 'RESOLVED' || incident.status === 'CLOSED' ? (
@@ -207,7 +207,7 @@ export function MobileIncidentDetails({ onBack, onEdit, incidentId }: MobileInci
             
             <View style={styles.alignEnd}>
               <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={styles.mb4}>
-                Priorité
+                {t('incident.details.priority')}
               </Text>
               <Badge 
                 variant="default"
@@ -224,13 +224,13 @@ export function MobileIncidentDetails({ onBack, onEdit, incidentId }: MobileInci
         {/* Incident Info */}
         <Card style={styles.p16}>
           <Text variant="body" color={colorScheme === 'light' ? '#111827' : '#f9fafb'} style={styles.mb12}>
-            Informations du signalement
+            {t('incident.details.information')}
           </Text>
           
           <View style={styles.gap12}>
             <View>
               <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
-                Type de problème
+                {t('incident.details.problemType')}
               </Text>
               <Text variant="body" color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
                 {getIncidentTypeText(incident.type)}
@@ -240,7 +240,7 @@ export function MobileIncidentDetails({ onBack, onEdit, incidentId }: MobileInci
             {incident.bike && (
               <View>
                 <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
-                  Vélo concerné
+                  {t('incident.details.relatedBike')}
                 </Text>
                 <Text variant="body" color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
                   {incident.bike.code} - {incident.bike.model}
@@ -250,10 +250,10 @@ export function MobileIncidentDetails({ onBack, onEdit, incidentId }: MobileInci
 
             <View>
               <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
-                Date de création
+                {t('incident.details.creationDate')}
               </Text>
               <Text variant="body" color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
-                {new Date(incident.createdAt).toLocaleDateString('fr-FR', {
+                {new Date(incident.createdAt).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', {
                   day: 'numeric',
                   month: 'long',
                   year: 'numeric',
@@ -266,10 +266,10 @@ export function MobileIncidentDetails({ onBack, onEdit, incidentId }: MobileInci
             {incident.resolvedAt && (
               <View>
                 <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
-                  Résolu le
+                  {t('incident.details.resolvedDate')}
                 </Text>
                 <Text variant="body" color="#16a34a">
-                  {new Date(incident.resolvedAt).toLocaleDateString('fr-FR', {
+                  {new Date(incident.resolvedAt).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', {
                     day: 'numeric',
                     month: 'long',
                     year: 'numeric',
@@ -285,7 +285,7 @@ export function MobileIncidentDetails({ onBack, onEdit, incidentId }: MobileInci
         {/* Description */}
         <Card style={styles.p16}>
           <Text variant="body" color={colorScheme === 'light' ? '#111827' : '#f9fafb'} style={styles.mb8}>
-            Description détaillée
+            {t('incident.details.description')}
           </Text>
           <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={{ lineHeight: 20 }}>
             {incident.description}
@@ -296,7 +296,7 @@ export function MobileIncidentDetails({ onBack, onEdit, incidentId }: MobileInci
         {incident.photos && incident.photos.length > 0 && (
           <Card style={styles.p16}>
             <Text variant="body" color={colorScheme === 'light' ? '#111827' : '#f9fafb'} style={styles.mb12}>
-              Photos jointes ({incident.photos.length})
+              {`${t('incident.details.photosCount')}: ${ incident.photos.length }`}
             </Text>
             <View style={[styles.row, { flexWrap: 'wrap' }, styles.gap8]}>
               {incident.photos.map((photo: string, index: number) => (
@@ -312,7 +312,7 @@ export function MobileIncidentDetails({ onBack, onEdit, incidentId }: MobileInci
                 >
                   <ImageIcon size={24} color={colorScheme === 'light' ? '#9ca3af' : '#6b7280'} />
                   <Text size="xs" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={styles.mt4}>
-                    Photo {index + 1}
+                    {`${t('common.photo')}: ${ index + 1 }`}
                   </Text>
                 </View>
               ))}
@@ -327,13 +327,13 @@ export function MobileIncidentDetails({ onBack, onEdit, incidentId }: MobileInci
               <CheckCircle size={24} color="#16a34a" />
               <View style={styles.flex1}>
                 <Text variant="body" color="#16a34a" weight="bold">
-                  Remboursement effectué
+                  {t('incident.details.refundIssued')}
                 </Text>
                 <Text size="sm" color="#6b7280" style={styles.mt4}>
-                  Montant : {incident.refundAmount} XOF
+                  {`${t('incident.details.refundAmount')}: ${ incident.refundAmount }`}
                 </Text>
                 <Text size="xs" color="#6b7280">
-                  Le montant a été crédité sur votre portefeuille
+                  {t('incident.details.refundDescription')}
                 </Text>
               </View>
             </View>
@@ -346,7 +346,7 @@ export function MobileIncidentDetails({ onBack, onEdit, incidentId }: MobileInci
             <View style={[styles.row, styles.alignCenter, styles.gap8, styles.mb8]}>
               <AlertTriangle size={20} color="#3b82f6" />
               <Text variant="body" color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
-                Note de l'administrateur
+                {t('incident.details.adminNote')}
               </Text>
             </View>
             <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={{ lineHeight: 20 }}>
@@ -368,7 +368,7 @@ export function MobileIncidentDetails({ onBack, onEdit, incidentId }: MobileInci
             >
               <Edit size={16} color="white" />
               <Text style={styles.ml8} color="white">
-                Modifier le signalement
+                {t('incident.details.editReport')}
               </Text>
             </Button>
           )}
@@ -383,7 +383,7 @@ export function MobileIncidentDetails({ onBack, onEdit, incidentId }: MobileInci
           >
             <ArrowLeft size={16} color={colorScheme === 'light' ? '#111827' : '#f9fafb'} />
             <Text style={styles.ml8} color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
-              Retour
+              {t('incident.details.back')}
             </Text>
           </Button>
         </View>
@@ -391,10 +391,10 @@ export function MobileIncidentDetails({ onBack, onEdit, incidentId }: MobileInci
         {/* Help Text */}
         <Text size="xs" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={[styles.textCenter, { lineHeight: 18 }]}>
           {incident.status === 'OPEN' 
-            ? 'Votre signalement sera traité dans les plus brefs délais. Vous recevrez une notification dès qu\'il sera pris en charge.'
+            ? t('incident.statusHelp.open')
             : incident.status === 'IN_PROGRESS'
-            ? 'Votre signalement est actuellement en cours de traitement par notre équipe technique.'
-            : 'Ce signalement a été traité. Merci pour votre contribution à l\'amélioration de notre service.'
+            ? t('incident.statusHelp.inProgress')
+            : t('incident.statusHelp.resolved')
           }
         </Text>
       </ScrollView>

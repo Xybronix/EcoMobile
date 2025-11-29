@@ -1,10 +1,8 @@
-/* eslint-disable react/no-unescaped-entities */
+/* eslint-disable react-hooks/exhaustive-deps */
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
 import { Text } from '@/components/ui/Text';
 import { toast } from '@/components/ui/Toast';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -54,7 +52,7 @@ interface PlanWithSubscriptionInfo {
 }
 
 export function MobileBikeReservation({ bike, onBack, onReservationComplete }: MobileBikeReservationProps) {
-  const { t, language } = useMobileI18n();
+  const { t } = useMobileI18n();
   const colorScheme = useColorScheme();
   const styles = getGlobalStyles(colorScheme);
   
@@ -66,7 +64,6 @@ export function MobileBikeReservation({ bike, onBack, onReservationComplete }: M
   const [availablePlans, setAvailablePlans] = useState<PlanWithSubscriptionInfo[]>([]);
   const [conflictMessage, setConflictMessage] = useState('');
   const [currentSubscription, setCurrentSubscription] = useState<SubscriptionInfo | null>(null);
-  const [reservationDuration, setReservationDuration] = useState(1);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedDateTime, setSelectedDateTime] = useState(new Date());
   const [showTimePicker, setShowTimePicker] = useState(false);
@@ -146,7 +143,7 @@ export function MobileBikeReservation({ bike, onBack, onReservationComplete }: M
         isCovered: false,
         coveredDays: 0,
         remainingDays: 0,
-        message: 'La réservation commence après la fin de votre abonnement'
+        message: t('subscription.afterExpiry')
       };
     }
 
@@ -161,13 +158,12 @@ export function MobileBikeReservation({ bike, onBack, onReservationComplete }: M
     let extraCost = 0;
 
     if (isFullyCovered) {
-      message = 'Entièrement inclus dans votre abonnement';
+      message = t('subscription.fullyIncluded');
     } else {
       // Calculer le coût supplémentaire pour les jours non couverts
       const dailyRate = getDailyRate(plan, packageType);
       extraCost = remainingDays * dailyRate;
-      
-      message = `${coveredDays} jour(s) inclus, ${remainingDays} jour(s) à ${extraCost.toLocaleString()} XOF`;
+      message = `${t('subscription.partiallyIncluded')} (coveredDays: ${coveredDays}, remainingDays: ${remainingDays}, extraCost: ${extraCost.toLocaleString()})`;
     }
 
     return {
@@ -202,7 +198,7 @@ export function MobileBikeReservation({ bike, onBack, onReservationComplete }: M
       );
       
       if (!isAvailable) {
-        setConflictMessage('Une réservation existe déjà pour cette période');
+        setConflictMessage(t('reservation.conflictMessage'));
       } else {
         setConflictMessage('');
       }
@@ -212,20 +208,15 @@ export function MobileBikeReservation({ bike, onBack, onReservationComplete }: M
   };
 
   const packageOptions = [
-    { value: 'hourly', label: 'Forfait Horaire', duration: '1-24h' },
-    { value: 'daily', label: 'Forfait Journalier', duration: '1 jour' },
-    { value: 'weekly', label: 'Forfait Hebdomadaire', duration: '7 jours' },
-    { value: 'monthly', label: 'Forfait Mensuel', duration: '30 jours' }
+    { value: 'hourly', label: t('package.hourly'), duration: t('package.hourlyDuration') },
+    { value: 'daily', label: t('package.daily'), duration: t('package.dailyDuration') },
+    { value: 'weekly', label: t('package.weekly'), duration: t('package.weeklyDuration') },
+    { value: 'monthly', label: t('package.monthly'), duration: t('package.monthlyDuration') }
   ];
-
-  const timeSlots = Array.from({ length: 24 }, (_, i) => ({
-    value: `${i.toString().padStart(2, '0')}:00`,
-    label: `${i.toString().padStart(2, '0')}:00`
-  }));
 
   const handleSubmit = async () => {
     if (!selectedPlan || !selectedPackage || !selectedDate || !selectedTime) {
-      toast.error('Veuillez remplir tous les champs');
+      toast.error(t('reservation.fillAllFields'));
       return;
     }
 
@@ -246,11 +237,11 @@ export function MobileBikeReservation({ bike, onBack, onReservationComplete }: M
       });
 
       haptics.success();
-      toast.success('Réservation créée avec succès');
+      toast.success(t('reservation.success'));
       onReservationComplete();
     } catch (error: any) {
       haptics.error();
-      toast.error(error.message || 'Erreur lors de la réservation');
+      toast.error(error.message || t('reservation.error'));
     } finally {
       setIsSubmitting(false);
     }
@@ -283,11 +274,15 @@ export function MobileBikeReservation({ bike, onBack, onReservationComplete }: M
     if (!selectedPlanData) return '';
     
     if (selectedPlanData.isCoveredBySubscription) {
-      return 'Inclus dans votre abonnement';
+      return t('subscription.fullyIncluded');
     } else if (selectedPlanData.subscriptionCoverage?.extraCost) {
-      return `Partiellement inclus (${selectedPlanData.subscriptionCoverage.message})`;
+      return `${t('subscription.partiallyIncluded')} ${ 
+        selectedPlanData.subscriptionCoverage.coveredDays, 
+        selectedPlanData.subscriptionCoverage.remainingDays, 
+        selectedPlanData.subscriptionCoverage.extraCost.toLocaleString() 
+      }`;
     } else {
-      return 'Hors abonnement';
+      return t('subscription.normalRate');
     }
   };
 
@@ -339,11 +334,13 @@ export function MobileBikeReservation({ bike, onBack, onReservationComplete }: M
               <Crown size={20} color="#3b82f6" />
               <View style={styles.flex1}>
                 <Text variant="body" color="#1e40af" weight="bold">
-                  Abonnement actif: {currentSubscription.planName}
+                  {`${t('subscription.active')} ${ currentSubscription.planName }`}
                 </Text>
                 <Text size="sm" color="#1e40af">
-                  Valide jusqu'au {new Date(currentSubscription.endDate).toLocaleDateString()} 
-                  ({currentSubscription.remainingDays} jour(s) restant(s))
+                  {`${t('subscription.validUntil')} ${ 
+                    new Date(currentSubscription.endDate).toLocaleDateString(),
+                    currentSubscription.remainingDays
+                  }`}
                 </Text>
               </View>
             </View>
@@ -352,7 +349,7 @@ export function MobileBikeReservation({ bike, onBack, onReservationComplete }: M
 
         {/* Plan Selection */}
         <Card style={styles.p16}>
-          <Label style={styles.mb8}>Plan Tarifaire *</Label>
+          <Label style={styles.mb8}>{t('reservation.planSelection')}</Label>
           <View style={styles.gap8}>
             {availablePlans.map((plan) => (
               <TouchableOpacity
@@ -389,7 +386,7 @@ export function MobileBikeReservation({ bike, onBack, onReservationComplete }: M
                         <View style={[styles.row, styles.alignCenter, styles.gap4]}>
                           <Crown size={16} color="#3b82f6" />
                           <Text size="xs" color="#3b82f6">
-                            Inclus
+                            {t('subscription.included')}
                           </Text>
                         </View>
                       )}
@@ -408,10 +405,10 @@ export function MobileBikeReservation({ bike, onBack, onReservationComplete }: M
                     {/* Pricing */}
                     <View style={[styles.row, styles.gap12]}>
                       <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
-                        Journalier: {plan.dailyRate.toLocaleString()} XOF
+                        {`${t('price.daily')} ${ plan.dailyRate.toLocaleString() }`}
                       </Text>
                       <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
-                        Mensuel: {plan.monthlyRate.toLocaleString()} XOF
+                        {`${t('price.monthly')} ${ plan.monthlyRate.toLocaleString() }`}
                       </Text>
                     </View>
                   </View>
@@ -420,7 +417,7 @@ export function MobileBikeReservation({ bike, onBack, onReservationComplete }: M
                   <View style={styles.alignEnd}>
                     {plan.isCoveredBySubscription ? (
                       <Text size="lg" color="#3b82f6" weight="bold">
-                        Gratuit
+                        {t('reservation.free')}
                       </Text>
                     ) : plan.subscriptionCoverage?.extraCost ? (
                       <View style={styles.alignEnd}>
@@ -428,7 +425,7 @@ export function MobileBikeReservation({ bike, onBack, onReservationComplete }: M
                           {plan.subscriptionCoverage.extraCost.toLocaleString()} XOF
                         </Text>
                         <Text size="xs" color="#6b7280" style={styles.textRight}>
-                          supplémentaire
+                          {t('reservation.additional')}
                         </Text>
                       </View>
                     ) : (
@@ -445,7 +442,7 @@ export function MobileBikeReservation({ bike, onBack, onReservationComplete }: M
 
         {/* Package Type */}
         <Card style={styles.p16}>
-          <Label style={styles.mb8}>Type de Forfait *</Label>
+          <Label style={styles.mb8}>{t('reservation.packageType')}</Label>
           <View style={styles.gap8}>
             {packageOptions.map((option) => (
               <TouchableOpacity
@@ -484,7 +481,7 @@ export function MobileBikeReservation({ bike, onBack, onReservationComplete }: M
                 </View>
                 {selectedPlanData && (
                   <Text variant="body" color="#16a34a">
-                    {option.value === 'hourly' && `${selectedPlanData.hourlyRate} XOF/h`}
+                    {option.value === 'hourly' && `${t('price.hourly')} ${ selectedPlanData.hourlyRate }`}
                     {option.value === 'daily' && `${selectedPlanData.dailyRate} XOF`}
                     {option.value === 'weekly' && `${selectedPlanData.weeklyRate} XOF`}
                     {option.value === 'monthly' && `${selectedPlanData.monthlyRate} XOF`}
@@ -497,7 +494,7 @@ export function MobileBikeReservation({ bike, onBack, onReservationComplete }: M
 
         {/* Date Selection */}
         <Card style={styles.p16}>
-          <Label style={styles.mb8}>Date de début *</Label>
+          <Label style={styles.mb8}>{t('reservation.startDate')}</Label>
           <TouchableOpacity
             onPress={() => setShowDatePicker(true)}
             style={[
@@ -515,7 +512,7 @@ export function MobileBikeReservation({ bike, onBack, onReservationComplete }: M
           >
             <Calendar size={20} color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} />
             <Text color={selectedDate ? (colorScheme === 'light' ? '#111827' : '#f9fafb') : '#6b7280'}>
-              {selectedDate ? new Date(selectedDate).toLocaleDateString('fr-FR') : 'Sélectionner une date'}
+              {selectedDate ? new Date(selectedDate).toLocaleDateString('fr-FR') : t('reservation.selectDate')}
             </Text>
           </TouchableOpacity>
 
@@ -539,7 +536,7 @@ export function MobileBikeReservation({ bike, onBack, onReservationComplete }: M
 
         {/* Time Selection */}
         <Card style={styles.p16}>
-          <Label style={styles.mb8}>Heure de début *</Label>
+          <Label style={styles.mb8}>{t('reservation.startTime')}</Label>
           <TouchableOpacity
             onPress={() => setShowTimePicker(true)}
             style={[
@@ -557,7 +554,7 @@ export function MobileBikeReservation({ bike, onBack, onReservationComplete }: M
           >
             <Clock size={20} color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} />
             <Text color={selectedTime ? (colorScheme === 'light' ? '#111827' : '#f9fafb') : '#6b7280'}>
-              {selectedTime || "Sélectionner l'heure"}
+              {selectedTime || t('reservation.selectTime')}
             </Text>
           </TouchableOpacity>
 
@@ -597,32 +594,32 @@ export function MobileBikeReservation({ bike, onBack, onReservationComplete }: M
             borderColor: selectedPlanData.isCoveredBySubscription ? '#3b82f6' : '#16a34a' 
           }]}>
             <Text variant="body" color="#111827" style={styles.mb8}>
-              Résumé de la réservation
+              {t('reservation.summary')}
             </Text>
             <View style={[styles.row, styles.spaceBetween, styles.mb4]}>
-              <Text size="sm" color="#6b7280">Plan :</Text>
+              <Text size="sm" color="#6b7280">{t('reservation.plan')}</Text>
               <Text size="sm" color="#111827">{selectedPlanData.name}</Text>
             </View>
             <View style={[styles.row, styles.spaceBetween, styles.mb4]}>
-              <Text size="sm" color="#6b7280">Forfait :</Text>
+              <Text size="sm" color="#6b7280">{t('reservation.package')}</Text>
               <Text size="sm" color="#111827">{selectedPackageData.label}</Text>
             </View>
             <View style={[styles.row, styles.spaceBetween, styles.mb4]}>
-              <Text size="sm" color="#6b7280">Date/Heure :</Text>
+              <Text size="sm" color="#6b7280">{t('reservation.dateTime')}</Text>
               <Text size="sm" color="#111827">{selectedDate} à {selectedTime}</Text>
             </View>
             {selectedPlanData.subscriptionCoverage && (
               <View style={[styles.row, styles.spaceBetween, styles.mb4]}>
-                <Text size="sm" color="#6b7280">Couverture :</Text>
+                <Text size="sm" color="#6b7280">{t('reservation.coverage')}</Text>
                 <Text size="sm" color={selectedPlanData.isCoveredBySubscription ? "#3b82f6" : "#f59e0b"}>
                   {getPriceMessage()}
                 </Text>
               </View>
             )}
             <View style={[styles.row, styles.spaceBetween, { paddingTop: 8, borderTopWidth: 1, borderTopColor: selectedPlanData.isCoveredBySubscription ? '#dbeafe' : '#d1fae5' }]}>
-              <Text variant="body" color="#111827">Prix :</Text>
+              <Text variant="body" color="#111827">{t('reservation.price')}</Text>
               <Text variant="body" color={selectedPlanData.isCoveredBySubscription ? "#3b82f6" : "#16a34a"} weight="bold">
-                {getPrice() === 0 ? 'Gratuit' : `${getPrice().toLocaleString()} XOF`}
+                {getPrice() === 0 ? t('reservation.free') : `${getPrice().toLocaleString()} XOF`}
               </Text>
             </View>
           </Card>
@@ -640,7 +637,7 @@ export function MobileBikeReservation({ bike, onBack, onReservationComplete }: M
         >
           <Check size={16} color="white" />
           <Text style={styles.ml8} color="white">
-            {isSubmitting ? 'Création...' : 'Confirmer la réservation'}
+            {isSubmitting ? t('reservation.creating') : t('reservation.confirm')}
           </Text>
         </Button>
       </ScrollView>

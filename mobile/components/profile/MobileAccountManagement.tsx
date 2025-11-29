@@ -1,4 +1,5 @@
-/* eslint-disable react/no-unescaped-entities */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable react-hooks/exhaustive-deps */
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Label } from '@/components/ui/Label';
@@ -15,7 +16,6 @@ import { Wallet, CreditCard, Clock, Shield, AlertTriangle, ArrowLeft, Lock, Unlo
 import React, { useEffect, useState } from 'react';
 import { View, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
 import { useMobileI18n } from '@/lib/mobile-i18n';
-import { useMobileAuth } from '@/lib/mobile-auth';
 
 interface MobileAccountManagementProps {
   onBack: () => void;
@@ -24,8 +24,7 @@ interface MobileAccountManagementProps {
 }
 
 export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'overview' }: MobileAccountManagementProps) {
-  const { t, language } = useMobileI18n();
-  const { user } = useMobileAuth();
+  const { t } = useMobileI18n();
   const colorScheme = useColorScheme();
   const styles = getGlobalStyles(colorScheme);
   
@@ -79,7 +78,7 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
       
     } catch (error) {
       console.error('Error loading account data:', error);
-      toast.error('Erreur lors du chargement des données');
+      toast.error(t('common.error'));
     } finally {
       setIsLoading(false);
     }
@@ -96,7 +95,7 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
       setLockRequests(lockReqs.data || []);
     } catch (error) {
       console.error('Error loading requests:', error);
-      toast.error('Erreur lors du chargement des demandes');
+      toast.error(t('common.error'));
     }
   };
 
@@ -112,44 +111,44 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
 
   const getStatusText = (status: string) => {
     const statusMap: { [key: string]: string } = {
-      'COMPLETED': 'Terminé',
-      'PENDING': 'En attente',
-      'FAILED': 'Échoué',
-      'APPROVED': 'Approuvé',
-      'REJECTED': 'Rejeté',
-      'CANCELLED': 'Annulé',
-      'OPEN': 'Ouvert',
-      'IN_PROGRESS': 'En cours',
-      'RESOLVED': 'Résolu',
-      'CLOSED': 'Fermé'
+      'COMPLETED': t('status.completed'),
+      'PENDING': t('status.pending'),
+      'FAILED': t('status.failed'),
+      'APPROVED': t('status.approved'),
+      'REJECTED': t('status.rejected'),
+      'CANCELLED': t('status.cancelled'),
+      'OPEN': t('status.open'),
+      'IN_PROGRESS': t('status.in_progress'),
+      'RESOLVED': t('status.resolved'),
+      'CLOSED': t('status.closed')
     };
     return statusMap[status] || status;
   };
 
   const getTransactionTypeText = (type: string) => {
     const typeMap: { [key: string]: string } = {
-      'DEPOSIT': 'Dépôt',
-      'RIDE_PAYMENT': 'Paiement trajet',
-      'REFUND': 'Remboursement',
-      'DEPOSIT_RECHARGE': 'Recharge caution',
-      'DAMAGE_CHARGE': 'Frais de dégâts',
-      'SUBSCRIPTION_PAYMENT': 'Paiement forfait'
+      'DEPOSIT': t('transaction.deposit'),
+      'RIDE_PAYMENT': t('transaction.ridePayment'),
+      'REFUND': t('transaction.refund'),
+      'DEPOSIT_RECHARGE': t('transaction.depositRecharge'),
+      'DAMAGE_CHARGE': t('transaction.damageCharge'),
+      'SUBSCRIPTION_PAYMENT': t('transaction.subscriptionPayment')
     };
     return typeMap[type] || type;
   };
 
   const getIncidentTypeText = (type: string) => {
     const typeMap: { [key: string]: string } = {
-      'brakes': 'Problème de freins',
-      'battery': 'Problème de batterie',
-      'tire': 'Problème de pneu',
-      'chain': 'Problème de chaîne',
-      'lights': 'Problème de lumières',
-      'lock': 'Problème de cadenas',
-      'electronics': 'Problème électronique',
-      'physical_damage': 'Dégât physique',
-      'theft': 'Vol ou tentative',
-      'other': 'Autre problème'
+      'brakes': t('incident.brakes'),
+      'battery': t('incident.battery'),
+      'tire': t('incident.tire'),
+      'chain': t('incident.chain'),
+      'lights': t('incident.lights'),
+      'lock': t('incident.lock'),
+      'electronics': t('incident.electronics'),
+      'physical_damage': t('incident.physicalDamage'),
+      'theft': t('incident.theft'),
+      'other': t('incident.other')
     };
     return typeMap[type] || type;
   };
@@ -182,7 +181,7 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
       {currentSubscription ? (
         <Card style={[styles.p16, { backgroundColor: '#f0fdf4', borderColor: '#16a34a' }]}>
           <Text variant="body" color="#111827" style={styles.mb8}>
-            Forfait Actuel
+            {t('accountManagement.currentSubscription')}
           </Text>
           <View style={[styles.row, styles.spaceBetween, styles.alignCenter]}>
             <View>
@@ -190,20 +189,20 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
                 {currentSubscription.planName} - {currentSubscription.packageType}
               </Text>
               <Text size="sm" color="#6b7280">
-                Expire le {new Date(currentSubscription.endDate).toLocaleDateString()}
+                {`${t('accountManagement.expiresOn')}: ${ new Date(currentSubscription.endDate).toLocaleDateString() }`}
               </Text>
               {currentSubscription.bikeCode && (
                 <Text size="sm" color="#16a34a" style={styles.mt4}>
-                  Vélo réservé: {currentSubscription.bikeCode}
+                  {`${t('accountManagement.reservedBike')}: ${ currentSubscription.bikeCode }`}
                 </Text>
               )}
             </View>
             <View style={styles.alignEnd}>
               <Text size="sm" color="#16a34a" weight="bold">
-                {currentSubscription.remainingDays} jours
+                {currentSubscription.remainingDays}
               </Text>
               <Text size="xs" color="#6b7280">
-                restants
+                {`${t('accountManagement.daysRemaining')}: ${ currentSubscription.remainingDays }`}
               </Text>
             </View>
           </View>
@@ -211,12 +210,12 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
       ) : (
         <Card style={[styles.p16, { backgroundColor: '#f8fafc', borderColor: '#e2e8f0' }]}>
           <Text variant="body" color="#111827" style={styles.mb8}>
-            Aucun forfait actif
+            {t('accountManagement.noActivePlan')}
           </Text>
           <View style={[styles.row, styles.spaceBetween, styles.alignCenter]}>
             <View style={styles.flex1}>
               <Text size="sm" color="#6b7280" style={styles.mb4}>
-                Souscrivez à un forfait pour bénéficier de tarifs avantageux et d'une utilisation illimitée.
+                {t('accountManagement.subscribeDescription')}
               </Text>
             </View>
             <Button
@@ -224,7 +223,7 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
               size="sm"
               onPress={() => onNavigate('subscription-plans')}
             >
-              <Text>Souscrire</Text>
+              <Text>{t('accountManagement.subscribe')}</Text>
             </Button>
           </View>
         </Card>
@@ -235,7 +234,7 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
         <Card style={[styles.flex1, styles.p16, styles.alignCenter]}>
           <Wallet size={24} color="#16a34a" style={styles.mb8} />
           <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={styles.mb4}>
-            Solde Wallet
+            {t('accountManagement.walletBalance')}
           </Text>
           <Text variant="body" color={colorScheme === 'light' ? '#111827' : '#f9fafb'} weight="bold">
             {walletData?.balance || 0} XOF
@@ -245,7 +244,7 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
         <Card style={[styles.flex1, styles.p16, styles.alignCenter]}>
           <Shield size={24} color="#3b82f6" style={styles.mb8} />
           <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={styles.mb4}>
-            Caution
+            {t('accountManagement.deposit')}
           </Text>
           <Text variant="body" color={colorScheme === 'light' ? '#111827' : '#f9fafb'} weight="bold">
             {depositInfo?.currentDeposit || 0} XOF
@@ -260,12 +259,12 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
             <AlertTriangle size={20} color="#f59e0b" />
             <View style={styles.flex1}>
               <Text size="sm" color="#92400e" weight="bold">
-                🚫 Service bloqué - Caution insuffisante
+                🚫 {t('accountManagement.serviceBlocked')}
               </Text>
               <Text size="sm" color="#92400e" style={styles.mt4}>
-                Minimum requis: {depositInfo.requiredDeposit} XOF
-                {'\n'}Montant actuel: {depositInfo.currentDeposit} XOF
-                {'\n'}Manquant: {depositInfo.requiredDeposit - depositInfo.currentDeposit} XOF
+                {`${t('accountManagement.requiredMinimum')}: ${ depositInfo.requiredDeposit }`}
+                {'\n'}{`${t('accountManagement.currentAmount')}: ${ depositInfo.currentDeposit }`}
+                {'\n'}{`${t('accountManagement.missingAmount')}: ${ depositInfo.requiredDeposit - depositInfo.currentDeposit }`}
               </Text>
               <Button
                 variant="outline"
@@ -273,7 +272,7 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
                 onPress={() => onNavigate('recharge-deposit')}
                 style={[styles.mt8, { borderColor: '#f59e0b' }]}
               >
-                <Text color="#f59e0b">Recharger la caution</Text>
+                <Text color="#f59e0b">{t('accountManagement.rechargeDeposit')}</Text>
               </Button>
             </View>
           </View>
@@ -287,10 +286,10 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
             <AlertTriangle size={20} color="#dc2626" />
             <View style={styles.flex1}>
               <Text size="sm" color="#991b1b" weight="bold">
-                ⚠️ Solde négatif : -{depositInfo.negativeBalance} XOF
+                ⚠️ {`${t('accountManagement.negativeBalance')} ${ depositInfo.negativeBalance }`}
               </Text>
               <Text size="xs" color="#991b1b" style={styles.mt4}>
-                Rechargez votre wallet et votre caution pour continuer à utiliser les services.
+                {t('wallet.insufficientBalance')}
               </Text>
             </View>
           </View>
@@ -307,7 +306,7 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
           >
             <CreditCard size={16} color={colorScheme === 'light' ? '#111827' : '#f9fafb'} />
             <Text style={styles.ml8} color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
-              Recharger
+              {t('accountManagement.rechargeWallet')}
             </Text>
           </Button>
           <Button
@@ -317,7 +316,7 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
           >
             <Shield size={16} color={colorScheme === 'light' ? '#111827' : '#f9fafb'} />
             <Text style={styles.ml8} color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
-              Caution
+              {t('accountManagement.deposit')}
             </Text>
           </Button>
         </View>
@@ -328,7 +327,7 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
         >
           <AlertTriangle size={16} color={colorScheme === 'light' ? '#111827' : '#f9fafb'} />
           <Text style={styles.ml8} color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
-            Signaler un problème
+            {t('accountManagement.reportProblem')}
           </Text>
         </Button>
       </View>
@@ -341,33 +340,33 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
       <Card style={styles.p16}>
         <View style={[styles.row, styles.gap12]}>
           <View style={styles.flex1}>
-            <Label style={styles.mb8}>Type</Label>
+            <Label style={styles.mb8}>{t('accountManagement.filters.type')}</Label>
             <Select value={transactionFilter} onValueChange={setTransactionFilter}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Tous</SelectItem>
-                <SelectItem value="DEPOSIT">Dépôts</SelectItem>
-                <SelectItem value="RIDE_PAYMENT">Paiements trajets</SelectItem>
-                <SelectItem value="REFUND">Remboursements</SelectItem>
-                <SelectItem value="DEPOSIT_RECHARGE">Recharge caution</SelectItem>
-                <SelectItem value="DAMAGE_CHARGE">Frais dégâts</SelectItem>
-                <SelectItem value="SUBSCRIPTION_PAYMENT">Forfaits</SelectItem>
+                <SelectItem value="all">{t('accountManagement.filters.all')}</SelectItem>
+                <SelectItem value="DEPOSIT">{t('accountManagement.filters.deposits')}</SelectItem>
+                <SelectItem value="RIDE_PAYMENT">{t('accountManagement.filters.ridePayments')}</SelectItem>
+                <SelectItem value="REFUND">{t('accountManagement.filters.refunds')}</SelectItem>
+                <SelectItem value="DEPOSIT_RECHARGE">{t('accountManagement.filters.depositRecharge')}</SelectItem>
+                <SelectItem value="DAMAGE_CHARGE">{t('accountManagement.filters.damageCharges')}</SelectItem>
+                <SelectItem value="SUBSCRIPTION_PAYMENT">{t('accountManagement.filters.subscriptionPayments')}</SelectItem>
               </SelectContent>
             </Select>
           </View>
           <View style={styles.flex1}>
-            <Label style={styles.mb8}>Période</Label>
+            <Label style={styles.mb8}>{t('accountManagement.filters.period')}</Label>
             <Select value={dateFilter} onValueChange={setDateFilter}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Toutes</SelectItem>
-                <SelectItem value="today">Aujourd'hui</SelectItem>
-                <SelectItem value="week">7 derniers jours</SelectItem>
-                <SelectItem value="month">30 derniers jours</SelectItem>
+                <SelectItem value="all">{t('accountManagement.filters.all')}</SelectItem>
+                <SelectItem value="today">{t('accountManagement.filters.today')}</SelectItem>
+                <SelectItem value="week">{t('accountManagement.filters.week')}</SelectItem>
+                <SelectItem value="month">{t('accountManagement.filters.month')}</SelectItem>
               </SelectContent>
             </Select>
           </View>
@@ -413,7 +412,7 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
             
             {transaction.metadata?.discountApplied > 0 && (
               <Text size="xs" color="#16a34a" style={styles.mb4}>
-                💰 Économie: {transaction.metadata.discountApplied} XOF grâce à votre forfait
+                💰 {`${t('accountManagement.savings')}: ${ transaction.metadata.discountApplied }`}
               </Text>
             )}
           </Card>
@@ -423,7 +422,7 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
           <Card style={[styles.p32, styles.alignCenter]}>
             <FileText size={32} color={colorScheme === 'light' ? '#9ca3af' : '#6b7280'} style={styles.mb8} />
             <Text color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
-              Aucune transaction trouvée
+              {t('accountManagement.noTransactions')}
             </Text>
           </Card>
         )}
@@ -434,14 +433,14 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
   const renderRequests = () => (
     <View style={styles.gap16}>
       <Text variant="body" color={colorScheme === 'light' ? '#111827' : '#f9fafb'} style={styles.mb8}>
-        Demandes de déverrouillage/verrouillage
+        {t('accountManagement.tabs.requests')}
       </Text>
       
       {/* Unlock Requests */}
       {unlockRequests.length > 0 && (
         <View style={styles.gap12}>
           <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={styles.mb4}>
-            🔓 Déverrouillages ({unlockRequests.length})
+            🔓 {`${t('accountManagement.unlockRequests')}: ${ unlockRequests.length }`}
           </Text>
           {unlockRequests.map((request) => (
             <Card key={request.id} style={styles.p16}>
@@ -450,19 +449,19 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
                   <Unlock size={20} color={getStatusColor(request.status)} />
                   <View>
                     <Text variant="body" color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
-                      Déverrouillage - {request.bike?.code || 'Vélo'}
+                      {`${t('accountManagement.unlockRequests')}: ${ 1 }`} - {request.bike?.code || t('common.bike')}
                     </Text>
                     <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
                       {new Date(request.requestedAt || request.createdAt).toLocaleString()}
                     </Text>
                     {request.adminNote && (
                       <Text size="xs" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={styles.mt4}>
-                        Note admin: {request.adminNote}
+                        {`${t('accountManagement.adminNote')}: ${(request.adminNote)}`}
                       </Text>
                     )}
                     {request.rejectionReason && (
                       <Text size="xs" color="#dc2626" style={styles.mt4}>
-                        Rejeté: {request.rejectionReason}
+                        {`${t('accountManagement.rejectionReason')}: ${ request.rejectionReason }`}
                       </Text>
                     )}
                   </View>
@@ -484,7 +483,7 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
       {lockRequests.length > 0 && (
         <View style={styles.gap12}>
           <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={styles.mb4}>
-            🔒 Verrouillages ({lockRequests.length})
+            🔒 {`${t('accountManagement.lockRequests')} ${ lockRequests.length }`}
           </Text>
           {lockRequests.map((request) => (
             <Card key={request.id} style={styles.p16}>
@@ -493,19 +492,22 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
                   <Lock size={20} color={getStatusColor(request.status)} />
                   <View>
                     <Text variant="body" color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
-                      Verrouillage - {request.bike?.code || 'Vélo'}
+                      {`${t('accountManagement.lockRequests')}: ${ 1 }`} - {request.bike?.code || t('common.bike')}
                     </Text>
                     <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
                       {new Date(request.requestedAt || request.createdAt).toLocaleString()}
                     </Text>
                     {request.adminNote && (
                       <Text size="xs" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={styles.mt4}>
-                        Note admin: {request.adminNote}
+                        {`${t('accountManagement.adminNote')}: ${ request.adminNote }`}
                       </Text>
                     )}
                     {request.ride && (
                       <Text size="xs" color="#16a34a" style={styles.mt4}>
-                        Trajet: {Math.round((request.ride.duration || 0) / 60)} min - {request.ride.cost || 0} XOF
+                        {`${t('accountManagement.rideDetails')}: ${ 
+                          Math.round((request.ride.duration || 0) / 60), 
+                          request.ride.cost || 0 
+                        }`}
                       </Text>
                     )}
                   </View>
@@ -527,7 +529,7 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
         <Card style={[styles.p32, styles.alignCenter]}>
           <Clock size={32} color={colorScheme === 'light' ? '#9ca3af' : '#6b7280'} style={styles.mb8} />
           <Text color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
-            Aucune demande trouvée
+            {t('accountManagement.noRequests')}
           </Text>
         </Card>
       )}
@@ -538,14 +540,14 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
     <View style={styles.gap16}>
       <View style={[styles.row, styles.spaceBetween, styles.alignCenter]}>
         <Text variant="body" color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
-          Mes signalements
+          {t('accountManagement.myReports')}
         </Text>
         <Button
           variant="primary"
           size="sm"
           onPress={() => onNavigate('create-incident')}
         >
-          <Text>Nouveau</Text>
+          <Text>{t('accountManagement.newReport')}</Text>
         </Button>
       </View>
       
@@ -557,7 +559,7 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
                 {getIncidentTypeText(incident.type)}
               </Text>
               <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
-                {incident.bike?.code || 'Vélo non spécifié'} - {new Date(incident.createdAt).toLocaleDateString()}
+                {incident.bike?.code || t('common.bike')} - {new Date(incident.createdAt).toLocaleDateString()}
               </Text>
             </View>
             <Text 
@@ -576,7 +578,7 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
           {incident.refundAmount > 0 && (
             <View style={[styles.row, styles.alignCenter, styles.gap4, styles.mb8]}>
               <Text size="sm" color="#16a34a" weight="bold">
-                💰 Remboursement: {incident.refundAmount} XOF
+                {`${t('accountManagement.refundAmount')}: ${(incident.refundAmount)}`}
               </Text>
             </View>
           )}
@@ -584,7 +586,7 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
           {incident.adminNote && (
             <View style={[styles.p12, styles.rounded8, { backgroundColor: colorScheme === 'light' ? '#f9fafb' : '#374151' }]}>
               <Text size="xs" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
-                📝 Note admin: {incident.adminNote}
+                {`${t('accountManagement.adminNote')}: ${ incident.adminNote }`}
               </Text>
             </View>
           )}
@@ -596,7 +598,7 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
               onPress={() => onNavigate('incident-details', { incidentId: incident.id })}
               style={styles.flex1}
             >
-              <Text>Détails</Text>
+              <Text>{t('accountManagement.details')}</Text>
             </Button>
             {incident.status === 'OPEN' && (
               <Button
@@ -605,7 +607,7 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
                 onPress={() => onNavigate('edit-incident', { incidentId: incident.id })}
                 style={styles.flex1}
               >
-                <Text>Modifier</Text>
+                <Text>{t('accountManagement.edit')}</Text>
               </Button>
             )}
           </View>
@@ -616,13 +618,13 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
         <Card style={[styles.p32, styles.alignCenter]}>
           <AlertTriangle size={32} color={colorScheme === 'light' ? '#9ca3af' : '#6b7280'} style={styles.mb8} />
           <Text color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={styles.mb16}>
-            Aucun signalement trouvé
+            {t('accountManagement.noReports')}
           </Text>
           <Button
             variant="primary"
             onPress={() => onNavigate('create-incident')}
           >
-            <Text>Créer un premier signalement</Text>
+            <Text>{t('accountManagement.createFirstReport')}</Text>
           </Button>
         </Card>
       )}
@@ -630,10 +632,10 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
   );
 
   const tabs = [
-    { key: 'overview', label: 'Vue d\'ensemble', icon: Wallet },
-    { key: 'transactions', label: 'Transactions', icon: CreditCard },
-    { key: 'requests', label: 'Demandes', icon: Clock },
-    { key: 'incidents', label: 'Signalements', icon: AlertTriangle }
+    { key: 'overview', label: t('accountManagement.tabs.overview'), icon: Wallet },
+    { key: 'transactions', label: t('accountManagement.tabs.transactions'), icon: CreditCard },
+    { key: 'requests', label: t('accountManagement.tabs.requests'), icon: Clock },
+    { key: 'incidents', label: t('accountManagement.tabs.incidents'), icon: AlertTriangle }
   ];
 
   return (
@@ -663,7 +665,7 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
           <ArrowLeft size={20} color={colorScheme === 'light' ? '#111827' : '#f9fafb'} />
         </TouchableOpacity>
         <Text variant="subtitle" color="#16a34a">
-          Gestion de compte
+          {t('accountManagement.title')}
         </Text>
       </View>
 

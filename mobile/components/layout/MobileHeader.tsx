@@ -1,4 +1,3 @@
-// components/mobile/MobileHeader.tsx
 import { Text } from '@/components/ui/Text';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { notificationService } from '@/services/notificationService';
@@ -7,7 +6,7 @@ import { haptics } from '@/utils/haptics';
 import { ArrowLeft, Bell, Bike, Menu, RefreshCw } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { TouchableOpacity, View } from 'react-native';
-import { useMobileI18n } from '../../lib/mobile-i18n';
+import { useMobileI18n } from '@/lib/mobile-i18n';
 
 interface MobileHeaderProps {
   title?: string;
@@ -83,12 +82,6 @@ export function MobileHeader({
     } finally {
       setIsRefreshing(false);
     }
-  };
-
-  const handleNotificationsPress = () => {
-    haptics.light();
-    refreshNotifications();
-    onNotifications?.();
   };
 
   return (

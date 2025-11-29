@@ -19,7 +19,7 @@ interface MobileEditProfileProps {
 
 export default function MobileEditProfile({ onNavigate }: MobileEditProfileProps) {
   const { user, updateProfile, refreshUser } = useMobileAuth();
-  const { language } = useMobileI18n();
+  const { t } = useMobileI18n();
   const colorScheme = useColorScheme();
   const styles = getGlobalStyles(colorScheme);
   
@@ -44,11 +44,7 @@ export default function MobileEditProfile({ onNavigate }: MobileEditProfileProps
 
   const handleSubmit = async () => {
     if (!formData.firstName || !formData.lastName || !formData.email) {
-      toast.error(
-        language === 'fr'
-          ? 'Veuillez remplir tous les champs obligatoires'
-          : 'Please fill in all required fields'
-      );
+      toast.error(t('profile.edit.fillRequiredFields'));
       return;
     }
 
@@ -65,39 +61,25 @@ export default function MobileEditProfile({ onNavigate }: MobileEditProfileProps
       await refreshUser();
       
       haptics.success();
-      toast.success(
-        language === 'fr'
-          ? 'Profil mis à jour avec succès'
-          : 'Profile updated successfully'
-      );
+      toast.success(t('profile.edit.updateSuccess'));
       setIsEditing(false);
     } catch (error: any) {
       haptics.error();
       
-      let errorMessage = language === 'fr'
-        ? 'Erreur lors de la mise à jour du profil'
-        : 'Error updating profile';
+      let errorMessage = t('profile.edit.updateError');
       
       switch (error.message) {
         case 'invalid_data':
-          errorMessage = language === 'fr'
-            ? 'Données invalides'
-            : 'Invalid data';
+          errorMessage = t('error.invalidData');
           break;
         case 'user_already_exists':
-          errorMessage = language === 'fr'
-            ? 'Un compte existe déjà avec cet email'
-            : 'An account already exists with this email';
+          errorMessage = t('error.userAlreadyExists');
           break;
         case 'network_error':
-          errorMessage = language === 'fr'
-            ? 'Erreur de connexion'
-            : 'Network error';
+          errorMessage = t('error.networkError');
           break;
         case 'server_error':
-          errorMessage = language === 'fr'
-            ? 'Erreur serveur'
-            : 'Server error';
+          errorMessage = t('error.serverError');
           break;
       }
       
@@ -125,11 +107,7 @@ export default function MobileEditProfile({ onNavigate }: MobileEditProfileProps
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
       
       if (!permissionResult.granted) {
-        toast.error(
-          language === 'fr' 
-            ? 'Permission d\'accéder à la galerie refusée' 
-            : 'Permission to access gallery denied'
-        );
+        toast.error(t('profile.edit.galleryPermissionDenied'));
         return;
       }
 
@@ -150,21 +128,13 @@ export default function MobileEditProfile({ onNavigate }: MobileEditProfileProps
       }
     } catch (error) {
       console.error('Error picking image:', error);
-      toast.error(
-        language === 'fr' 
-          ? 'Erreur lors de la sélection de l\'image' 
-          : 'Error selecting image'
-      );
+      toast.error(t('profile.edit.photoSelectionError'));
     }
   };
 
   const confirmImageChange = () => {
     // TODO: Implémenter l'upload de l'image vers le backend
-    toast.success(
-      language === 'fr' 
-        ? 'Photo de profil mise à jour' 
-        : 'Profile picture updated'
-    );
+    toast.success(t('profile.edit.photoUpdated'));
     setShowImageModal(false);
     setSelectedImage(null);
   };
@@ -214,7 +184,7 @@ export default function MobileEditProfile({ onNavigate }: MobileEditProfileProps
             variant="subtitle" 
             color={colorScheme === 'light' ? '#111827' : '#f9fafb'}
           >
-            {language === 'fr' ? 'Modifier le profil' : 'Edit Profile'}
+            {t('profile.edit.title')}
           </Text>
         </View>
         
@@ -299,7 +269,7 @@ export default function MobileEditProfile({ onNavigate }: MobileEditProfileProps
               size="sm" 
               color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}
             >
-              {language === 'fr' ? 'Changer la photo' : 'Change photo'}
+              {t('profile.edit.changePhoto')}
             </Text>
           </View>
 
@@ -313,7 +283,7 @@ export default function MobileEditProfile({ onNavigate }: MobileEditProfileProps
                     variant="body" 
                     color={colorScheme === 'light' ? '#111827' : '#f9fafb'}
                   >
-                    {language === 'fr' ? 'Prénom' : 'First Name'}
+                    {t('profile.edit.firstName')}
                   </Text>
                   <View style={{ position: 'relative' }}>
                     <User 
@@ -337,7 +307,7 @@ export default function MobileEditProfile({ onNavigate }: MobileEditProfileProps
                     variant="body" 
                     color={colorScheme === 'light' ? '#111827' : '#f9fafb'}
                   >
-                    {language === 'fr' ? 'Nom' : 'Last Name'}
+                    {t('profile.edit.lastName')}
                   </Text>
                   <View style={{ position: 'relative' }}>
                     <User 
@@ -362,7 +332,7 @@ export default function MobileEditProfile({ onNavigate }: MobileEditProfileProps
                 variant="body" 
                 color={colorScheme === 'light' ? '#111827' : '#f9fafb'}
               >
-                {language === 'fr' ? 'Adresse email' : 'Email address'}
+                {t('profile.edit.email')}
               </Text>
               <View style={{ position: 'relative' }}>
                 <Mail 
@@ -383,7 +353,7 @@ export default function MobileEditProfile({ onNavigate }: MobileEditProfileProps
                 <View style={[styles.row, styles.alignCenter, styles.gap4]}>
                   <Text size="xs" color="#16a34a">✓</Text>
                   <Text size="xs" color="#16a34a">
-                    {language === 'fr' ? 'Email vérifié' : 'Email verified'}
+                    {t('profile.edit.emailVerified')}
                   </Text>
                 </View>
               )}
@@ -395,13 +365,13 @@ export default function MobileEditProfile({ onNavigate }: MobileEditProfileProps
                 variant="body" 
                 color={colorScheme === 'light' ? '#111827' : '#f9fafb'}
               >
-                {language === 'fr' ? 'Numéro de téléphone' : 'Phone number'}
+                {t('profile.edit.phone')}
               </Text>
               <View style={{ position: 'relative' }}>
                 <PhoneInput
                   value={formData.phone}
                   onChangeText={(value) => handleChange('phone', value)}
-                  placeholder={language === 'fr' ? '6 90 63 58 27' : '6 90 63 58 27'}
+                  placeholder={t('placeholder.phone')}
                   defaultCountry="CM"
                   disabled={!isEditing}
                 />
@@ -410,7 +380,7 @@ export default function MobileEditProfile({ onNavigate }: MobileEditProfileProps
                 <View style={[styles.row, styles.alignCenter, styles.gap4]}>
                   <Text size="xs" color="#16a34a">✓</Text>
                   <Text size="xs" color="#16a34a">
-                    {language === 'fr' ? 'Téléphone vérifié' : 'Phone verified'}
+                    {t('profile.edit.phoneVerified')}
                   </Text>
                 </View>
               )}
@@ -429,7 +399,7 @@ export default function MobileEditProfile({ onNavigate }: MobileEditProfileProps
                 fullWidth
                 style={{ height: 48 }}
               >
-                {language === 'fr' ? 'Annuler' : 'Cancel'}
+                {t('profile.edit.cancel')}
               </Button>
               <Button
                 onPress={handleSubmit}
@@ -444,8 +414,8 @@ export default function MobileEditProfile({ onNavigate }: MobileEditProfileProps
                   <Save size={20} color="white" />
                   <Text color="white">
                     {isLoading
-                      ? (language === 'fr' ? 'Enregistrement...' : 'Saving...')
-                      : (language === 'fr' ? 'Enregistrer' : 'Save')}
+                      ? t('profile.edit.saving')
+                      : t('profile.edit.save')}
                   </Text>
                 </View>
               </Button>
@@ -479,7 +449,7 @@ export default function MobileEditProfile({ onNavigate }: MobileEditProfileProps
                 variant="subtitle" 
                 color={colorScheme === 'light' ? '#111827' : '#f9fafb'}
               >
-                {language === 'fr' ? 'Prévisualisation' : 'Preview'}
+                {t('profile.edit.preview')}
               </Text>
               <TouchableOpacity
                 onPress={cancelImageChange}
@@ -509,9 +479,7 @@ export default function MobileEditProfile({ onNavigate }: MobileEditProfileProps
                   color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}
                   style={[styles.textCenter, styles.mt12]}
                 >
-                  {language === 'fr' 
-                    ? 'Aperçu de votre nouvelle photo de profil'
-                    : 'Preview of your new profile picture'}
+                  {t('profile.edit.previewDescription')}
                 </Text>
               </View>
             )}
@@ -521,9 +489,7 @@ export default function MobileEditProfile({ onNavigate }: MobileEditProfileProps
               color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}
               style={[styles.textCenter, styles.mb24]}
             >
-              {language === 'fr' 
-                ? 'Voulez-vous utiliser cette image comme photo de profil ?'
-                : 'Do you want to use this image as your profile picture?'}
+              {t('profile.edit.confirmImage')}
             </Text>
 
             <View style={[styles.row, styles.gap12]}>
@@ -541,7 +507,7 @@ export default function MobileEditProfile({ onNavigate }: MobileEditProfileProps
                   color={colorScheme === 'light' ? '#374151' : '#f9fafb'}
                   weight="medium"
                 >
-                  {language === 'fr' ? 'Annuler' : 'Cancel'}
+                  {t('profile.edit.cancel')}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -558,7 +524,7 @@ export default function MobileEditProfile({ onNavigate }: MobileEditProfileProps
                   color="white"
                   weight="medium"
                 >
-                  {language === 'fr' ? 'Confirmer' : 'Confirm'}
+                  {t('profile.edit.confirm')}
                 </Text>
               </TouchableOpacity>
             </View>

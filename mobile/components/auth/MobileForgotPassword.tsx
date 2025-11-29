@@ -19,7 +19,7 @@ interface MobileForgotPasswordProps {
 
 export function MobileForgotPassword({ onNavigate }: MobileForgotPasswordProps) {
   const { forgotPassword } = useMobileAuth();
-  const { t, language } = useMobileI18n();
+  const { t } = useMobileI18n();
   const colorScheme = useColorScheme();
   const styles = getGlobalStyles(colorScheme);
   
@@ -37,11 +37,7 @@ export function MobileForgotPassword({ onNavigate }: MobileForgotPasswordProps) 
     setEmail(text);
     
     if (text.length > 0 && !validateEmail(text)) {
-      setEmailError(
-        language === 'fr' 
-          ? 'Adresse email invalide' 
-          : 'Invalid email address'
-      );
+      setEmailError(t('validation.invalidEmail'));
     } else {
       setEmailError('');
     }
@@ -50,21 +46,13 @@ export function MobileForgotPassword({ onNavigate }: MobileForgotPasswordProps) 
   const handleSubmit = async () => {
     if (!email) {
       haptics.error();
-      toast.error(
-        language === 'fr'
-          ? 'Veuillez saisir votre adresse email'
-          : 'Please enter your email address'
-      );
+      toast.error(t('validation.enterEmail'));
       return;
     }
 
     if (!validateEmail(email)) {
       haptics.error();
-      toast.error(
-        language === 'fr'
-          ? 'Adresse email invalide'
-          : 'Invalid email address'
-      );
+      toast.error(t('validation.invalidEmail'));
       return;
     }
 
@@ -81,24 +69,16 @@ export function MobileForgotPassword({ onNavigate }: MobileForgotPasswordProps) 
       let errorMessage = t('common.error');
       switch (error.message) {
         case 'user_not_found':
-          errorMessage = language === 'fr' 
-            ? 'Aucun compte trouvé avec cette adresse email' 
-            : 'No account found with this email address';
+          errorMessage = t('error.userNotFound');
           break;
         case 'network_error':
-          errorMessage = language === 'fr' 
-            ? 'Erreur de connexion' 
-            : 'Network error';
+          errorMessage = t('error.networkError');
           break;
         case 'server_error':
-          errorMessage = language === 'fr' 
-            ? 'Erreur serveur' 
-            : 'Server error';
+          errorMessage = t('error.serverError');
           break;
         default:
-          errorMessage = language === 'fr' 
-            ? 'Une erreur est survenue' 
-            : 'An error occurred';
+          errorMessage = t('error.occurred');
           break;
       }
       
@@ -134,7 +114,7 @@ export function MobileForgotPassword({ onNavigate }: MobileForgotPasswordProps) 
               style={[styles.mb16, styles.textCenter]}
               color={colorScheme === 'light' ? '#111827' : '#f9fafb'}
             >
-              {language === 'fr' ? 'Email envoyé !' : 'Email sent!'}
+              {t('auth.emailSent')}
             </Text>
             
             <Text 
@@ -142,9 +122,7 @@ export function MobileForgotPassword({ onNavigate }: MobileForgotPasswordProps) 
               style={[styles.mb16, styles.textCenter]}
               color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}
             >
-              {language === 'fr'
-                ? 'Nous avons envoyé un lien de réinitialisation à votre adresse email.'
-                : 'We have sent a reset link to your email address.'}
+              {t('auth.emailSentDescription')}
             </Text>
             
             <Text 
@@ -152,9 +130,7 @@ export function MobileForgotPassword({ onNavigate }: MobileForgotPasswordProps) 
               style={[styles.mb32, styles.textCenter]}
               color={colorScheme === 'light' ? '#9ca3af' : '#6b7280'}
             >
-              {language === 'fr'
-                ? 'Vérifiez votre boîte de réception et cliquez sur le lien pour réinitialiser votre mot de passe.'
-                : 'Check your inbox and click the link to reset your password.'}
+              {t('auth.checkInbox')}
             </Text>
             
             <Button
@@ -165,7 +141,7 @@ export function MobileForgotPassword({ onNavigate }: MobileForgotPasswordProps) 
                 onNavigate('login');
               }}
             >
-              {language === 'fr' ? 'Retour à la connexion' : 'Back to login'}
+              {t('auth.backToLogin')}
             </Button>
           </View>
         </View>
@@ -210,7 +186,7 @@ export function MobileForgotPassword({ onNavigate }: MobileForgotPasswordProps) 
             style={[styles.mb8, styles.textCenter]}
             color={colorScheme === 'light' ? '#111827' : '#f9fafb'}
           >
-            {language === 'fr' ? 'Mot de passe oublié' : 'Forgot Password'}
+            {t('auth.forgotPassword')}
           </Text>
           
           <Text 
@@ -218,9 +194,7 @@ export function MobileForgotPassword({ onNavigate }: MobileForgotPasswordProps) 
             style={styles.textCenter}
             color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}
           >
-            {language === 'fr'
-              ? 'Entrez votre email et nous vous enverrons un lien pour réinitialiser votre mot de passe.'
-              : 'Enter your email and we will send you a link to reset your password.'}
+            {t('auth.forgotPasswordDescription')}
           </Text>
         </View>
 
@@ -231,7 +205,7 @@ export function MobileForgotPassword({ onNavigate }: MobileForgotPasswordProps) 
             <Input
               value={email}
               onChangeText={handleEmailChange}
-              placeholder={language === 'fr' ? 'votre@email.com' : 'your@email.com'}
+              placeholder={t('placeholder.yourEmail')}
               keyboardType="email-address"
               autoCapitalize="none"
               autoComplete="email"
@@ -252,9 +226,7 @@ export function MobileForgotPassword({ onNavigate }: MobileForgotPasswordProps) 
             disabled={isLoading}
             onPress={handleSubmit}
           >
-            {isLoading
-              ? (language === 'fr' ? 'Envoi en cours...' : 'Sending...')
-              : (language === 'fr' ? 'Envoyer le lien' : 'Send link')}
+            {isLoading ? t('auth.sending') : t('auth.sendLink')}
           </Button>
         </View>
 
@@ -267,7 +239,7 @@ export function MobileForgotPassword({ onNavigate }: MobileForgotPasswordProps) 
             }}
           >
             <Text variant="body" color="primary" weight="medium">
-              {language === 'fr' ? 'Retour à la connexion' : 'Back to login'}
+              {t('auth.backToLogin')}
             </Text>
           </TouchableOpacity>
         </View>

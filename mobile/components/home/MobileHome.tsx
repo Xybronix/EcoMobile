@@ -9,12 +9,12 @@ import { userService } from '@/services/userService';
 import { WalletBalance, walletService } from '@/services/walletService';
 import { getGlobalStyles } from '@/styles/globalStyles';
 import { haptics } from '@/utils/haptics';
-import { ChevronRight, Clock, MapPin, TrendingUp, Wallet, Zap, User as UserIcon, Settings } from 'lucide-react-native';
+import { ChevronRight, Clock, MapPin, TrendingUp, Wallet, Zap, User as UserIcon } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { ScrollView, TouchableOpacity, View } from 'react-native';
-import { useMobileAuth } from '../../lib/mobile-auth';
-import { useMobileI18n } from '../../lib/mobile-i18n';
-import { MobileHeader } from '../layout/MobileHeader';
+import { useMobileAuth } from '@/lib/mobile-auth';
+import { useMobileI18n } from '@/lib/mobile-i18n';
+import { MobileHeader } from '@/components/layout/MobileHeader';
 
 interface MobileHomeProps {
   onNavigate: (screen: string, data?: unknown) => void;
@@ -22,7 +22,7 @@ interface MobileHomeProps {
 
 export function MobileHome({ onNavigate }: MobileHomeProps) {
   const {user: contextUser, refreshUser } = useMobileAuth();
-  const { t, language } = useMobileI18n();
+  const { t } = useMobileI18n();
   const colorScheme = useColorScheme();
   const styles = getGlobalStyles(colorScheme);
 
@@ -63,7 +63,6 @@ export function MobileHome({ onNavigate }: MobileHomeProps) {
     } catch (error) {
     }
   };
-
 
   useEffect(() => {
     const loadUserData = async () => {
@@ -231,14 +230,14 @@ export function MobileHome({ onNavigate }: MobileHomeProps) {
       bgColor: colorScheme === 'light' ? '#eff6ff' : '#1e3a8a',
     },
     {
-      label: language === 'fr' ? 'Temps total' : 'Total Time',
+      label: t('home.totalTime'),
       value: isLoadingRides ? '...' : `${Math.round((rideStats?.totalDuration || 0) / 60)} min`,
       icon: Clock,
       color: '#7c3aed',
       bgColor: colorScheme === 'light' ? '#f3e8ff' : '#581c87',
     },
     {
-      label: language === 'fr' ? 'Distance' : 'Distance',
+      label: t('home.distance'),
       value: isLoadingRides ? '...' : `${(rideStats?.totalDistance || 0).toFixed(1)} km`,
       icon: TrendingUp,
       color: '#16a34a',
@@ -280,9 +279,7 @@ export function MobileHome({ onNavigate }: MobileHomeProps) {
             </Text>
           )}
           <Text variant="body" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
-            {language === 'fr'
-              ? 'Trouvez un vélo et commencez votre trajet'
-              : 'Find a bike and start your ride'}
+            {t('home.findBikeDescription')}
           </Text>
         </View>
 
@@ -311,7 +308,7 @@ export function MobileHome({ onNavigate }: MobileHomeProps) {
             
             {isLoadingWallet ? (
               <Text variant="title" color="white" size="xl">
-                {language === 'fr' ? 'Chargement...' : 'Loading...'}
+                {t('home.loadingWallet')}
               </Text>
             ) : walletError ? (
               <View>
@@ -319,7 +316,7 @@ export function MobileHome({ onNavigate }: MobileHomeProps) {
                   -- {walletBalance.currency}
                 </Text>
                 <Text size="xs" color="rgba(255,255,255,0.7)" style={styles.mt4}>
-                  {language === 'fr' ? 'Erreur de chargement' : 'Loading error'}
+                  {t('home.loadingError')}
                 </Text>
               </View>
             ) : (
@@ -452,7 +449,7 @@ export function MobileHome({ onNavigate }: MobileHomeProps) {
               style={[styles.row, styles.alignCenter, styles.gap4]}
             >
               <Text size="sm" color="#16a34a">
-                {language === 'fr' ? 'Voir tout' : 'View all'}
+                {t('home.viewAll')}
               </Text>
               <ChevronRight size={16} color="#16a34a" />
             </TouchableOpacity>
@@ -461,13 +458,13 @@ export function MobileHome({ onNavigate }: MobileHomeProps) {
           {isLoadingRides ? (
             <View style={[styles.card, styles.p32, styles.alignCenter]}>
               <Text variant="body" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
-                {language === 'fr' ? 'Chargement des trajets...' : 'Loading rides...'}
+                {t('home.loadingRides')}
               </Text>
             </View>
           ) : ridesError ? (
             <View style={[styles.card, styles.p32, styles.alignCenter]}>
               <Text variant="body" color={colorScheme === 'light' ? '#ef4444' : '#f87171'}>
-                {language === 'fr' ? 'Erreur de chargement' : 'Loading error'}
+                {t('home.loadingError')}
               </Text>
               <TouchableOpacity
                 onPress={() => {
@@ -477,7 +474,7 @@ export function MobileHome({ onNavigate }: MobileHomeProps) {
                 style={styles.mt8}
               >
                 <Text size="sm" color="#16a34a">
-                  {language === 'fr' ? 'Réessayer' : 'Retry'}
+                  {t('common.retry')}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -537,7 +534,7 @@ export function MobileHome({ onNavigate }: MobileHomeProps) {
                 style={styles.mt8}
               >
                 <Text size="sm" color="#16a34a">
-                  {language === 'fr' ? 'Commencer un trajet' : 'Start a ride'}
+                  {t('home.startRide')}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -567,10 +564,10 @@ export function MobileHome({ onNavigate }: MobileHomeProps) {
             </View>
             <View>
               <Text variant="body" color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
-                Gestion de compte
+                {t('home.accountManagement')}
               </Text>
               <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
-                Forfaits, transactions, signalements
+                {t('home.accountManagementDesc')}
               </Text>
             </View>
           </View>

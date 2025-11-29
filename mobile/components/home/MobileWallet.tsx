@@ -1,8 +1,8 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import { ArrowDownLeft, ArrowUpRight, Clock, CreditCard, Plus, Wallet } from 'lucide-react-native';
 import React, { useState, useEffect, useCallback } from 'react';
 import { ActivityIndicator, Modal, ScrollView, TextInput, TouchableOpacity, View, RefreshControl } from 'react-native';
 import { toast } from 'sonner';
-import { useMobileAuth } from '@/lib/mobile-auth';
 import { useMobileI18n } from '@/lib/mobile-i18n';
 import { walletService, type Transaction, type WalletBalance } from '@/services/walletService';
 import { MobileHeader } from '@/components/layout/MobileHeader';
@@ -20,7 +20,6 @@ interface MobileWalletProps {
 
 export function MobileWallet({ onBack, onNavigate }: MobileWalletProps) {
   const { t, language } = useMobileI18n();
-  const { user } = useMobileAuth();
   const colorScheme = useColorScheme();
   const styles = getGlobalStyles(colorScheme);
   
@@ -36,8 +35,6 @@ export function MobileWallet({ onBack, onNavigate }: MobileWalletProps) {
   const [newCashAmount, setNewCashAmount] = useState('');
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [error, setError] = useState<string | null>(null);
-
-  const predefinedAmounts = [1000, 2000, 5000, 10000, 20000, 50000];
 
   const loadWalletData = useCallback(async (showRefresh = false) => {
     try {
@@ -55,16 +52,12 @@ export function MobileWallet({ onBack, onNavigate }: MobileWalletProps) {
     } catch (error) {
       console.error('Error loading wallet data:', error);
       setError(error instanceof Error ? error.message : 'unknown_error');
-      
-      const errorMessage = language === 'fr' 
-        ? 'Erreur lors du chargement des données du portefeuille'
-        : 'Error loading wallet data';
-      toast.error(errorMessage);
+      toast.error(t('wallet.loadingWalletData'));
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, [language]);
+  }, [language, t]);
 
   const onRefresh = useCallback(() => {
     loadWalletData(true);
@@ -101,7 +94,7 @@ export function MobileWallet({ onBack, onNavigate }: MobileWalletProps) {
         'cash': 'CASH'
       };
 
-      const result = await walletService.initiateDeposit({
+      await walletService.initiateDeposit({
         amount: Math.round(amount),
         paymentMethod: paymentMethodMap[paymentMethod],
         currency: 'XOF'
@@ -117,7 +110,7 @@ export function MobileWallet({ onBack, onNavigate }: MobileWalletProps) {
       const errorMessage = error instanceof Error ? error.message : 'unknown_error';
       
       if (errorMessage === 'invalid_amount') {
-        toast.error('Montant invalide. Veuillez vérifier le format.');
+        toast.error(t('wallet.invalidAmountFormat'));
       } else if (errorMessage === 'network_error') {
         toast.error(t('common.networkError'));
       } else {
@@ -137,19 +130,19 @@ export function MobileWallet({ onBack, onNavigate }: MobileWalletProps) {
     }
     
     if (amount < 500) {
-      toast.error('Le montant minimum pour une recharge en espèces est de 500 FCFA');
+      toast.error(t('wallet.minimumCashAmount'));
       return;
     }
     
     setIsProcessing(true);
     
     try {
-      const result = await walletService.requestCashDeposit({
+      await walletService.requestCashDeposit({
         amount: Math.round(amount),
         description: 'Demande de recharge en espèces'
       });
       
-      toast.success('Demande de recharge en espèces créée avec succès. Un administrateur va valider votre demande.');
+      toast.success(t('wallet.cashRequestSuccess'));
       loadWalletData();
       setShowTopUpDialog(false);
       setSelectedAmount(null);
@@ -159,9 +152,9 @@ export function MobileWallet({ onBack, onNavigate }: MobileWalletProps) {
       const errorMessage = error instanceof Error ? error.message : 'unknown_error';
       
       if (errorMessage === 'invalid_amount') {
-        toast.error('Montant invalide pour la demande en espèces.');
+        toast.error(t('wallet.invalidCashAmount'));
       } else {
-        toast.error('Erreur lors de la création de la demande de recharge');
+        toast.error(t('wallet.cashRequestError'));
       }
     } finally {
       setIsProcessing(false);
@@ -172,30 +165,30 @@ export function MobileWallet({ onBack, onNavigate }: MobileWalletProps) {
     const amount = parseInt(newCashAmount);
     
     if (!amount || amount < 500) {
-      toast.error('Le montant minimum est de 500 FCFA');
+      toast.error(t('wallet.minimumCashAmount'));
       return;
     }
     
     try {
       await walletService.updateCashDepositRequest(transactionId, Math.round(amount));
-      toast.success('Demande de recharge modifiée avec succès');
+      toast.success(t('wallet.cashRequestModified'));
       setEditingCashRequest(null);
       setNewCashAmount('');
       loadWalletData();
     } catch (error) {
       console.error('Error updating cash request:', error);
-      toast.error('Erreur lors de la modification de la demande');
+      toast.error(t('wallet.cashModifyError'));
     }
   };
 
   const handleCancelCashRequest = async (transactionId: string) => {
     try {
       await walletService.cancelCashDepositRequest(transactionId);
-      toast.success('Demande de recharge annulée avec succès');
+      toast.success(t('wallet.cashRequestCancelled'));
       loadWalletData();
     } catch (error) {
       console.error('Error cancelling cash request:', error);
-      toast.error('Erreur lors de l\'annulation de la demande');
+      toast.error(t('wallet.cashCancelError'));
     }
   };
 
@@ -210,13 +203,13 @@ export function MobileWallet({ onBack, onNavigate }: MobileWalletProps) {
     if (transaction.paymentMethod === 'CASH') {
       switch (transaction.status) {
         case 'PENDING':
-          return 'En attente de validation';
+          return t('wallet.pendingValidation');
         case 'COMPLETED':
-          return 'Validée';
+          return t('wallet.validated');
         case 'FAILED':
-          return 'Rejetée';
+          return t('wallet.rejected');
         case 'CANCELLED':
-          return 'Annulée';
+          return t('wallet.status.cancelled');
         default:
           return getStatusLabel(transaction.status);
       }
@@ -399,7 +392,7 @@ export function MobileWallet({ onBack, onNavigate }: MobileWalletProps) {
                       <View style={styles.flex1}>
                         <Text weight="medium" style={styles.mb4}>
                           {getPaymentTypeLabel(transaction.type)}
-                          {transaction.paymentMethod === 'CASH' && ' (Espèces)'}
+                          {transaction.paymentMethod === 'CASH' && ` (${t('wallet.cashPayment')})`}
                         </Text>
                         <Text size="sm" color="muted" style={styles.mb8}>
                           {new Date(transaction.createdAt).toLocaleDateString(
@@ -458,7 +451,7 @@ export function MobileWallet({ onBack, onNavigate }: MobileWalletProps) {
                             setNewCashAmount(transaction.amount.toString());
                           }}
                         >
-                          Modifier
+                          {t('wallet.modify')}
                         </Button>
                         <Button
                           variant="outline"
@@ -468,7 +461,7 @@ export function MobileWallet({ onBack, onNavigate }: MobileWalletProps) {
                           }}
                           onPress={() => handleCancelCashRequest(transaction.id)}
                         >
-                          Annuler
+                          {t('common.cancel')}
                         </Button>
                       </View>
                     )}
@@ -476,13 +469,13 @@ export function MobileWallet({ onBack, onNavigate }: MobileWalletProps) {
                     {/* Modal de modification pour les demandes en espèces */}
                     {editingCashRequest === transaction.id && (
                       <Card style={[styles.mt12, styles.p12, { backgroundColor: '#f8fafc' }]}>
-                        <Text weight="medium" style={styles.mb8}>Modifier le montant</Text>
+                        <Text weight="medium" style={styles.mb8}>{t('wallet.modifyAmount')}</Text>
                         <TextInput
                           style={[styles.input, styles.mb12]}
                           value={newCashAmount}
                           onChangeText={setNewCashAmount}
                           keyboardType="numeric"
-                          placeholder="Nouveau montant"
+                          placeholder={t('wallet.newAmount')}
                         />
                         <View style={[styles.row, styles.gap8, styles.justifyEnd]}>
                           <Button
@@ -493,7 +486,7 @@ export function MobileWallet({ onBack, onNavigate }: MobileWalletProps) {
                             }}
                             onPress={() => setEditingCashRequest(null)}
                           >
-                            Annuler
+                            {t('common.cancel')}
                           </Button>
                           <Button
                             size="sm"
@@ -502,7 +495,7 @@ export function MobileWallet({ onBack, onNavigate }: MobileWalletProps) {
                             }}
                             onPress={() => handleUpdateCashRequest(transaction.id)}
                           >
-                            Confirmer
+                            {t('common.confirm')}
                           </Button>
                         </View>
                       </Card>
@@ -651,7 +644,7 @@ export function MobileWallet({ onBack, onNavigate }: MobileWalletProps) {
                         <View style={[styles.w8, styles.h8, styles.rounded4, { backgroundColor: '#16a34a' }]} />
                       )}
                     </View>
-                    <Text>Paiement en espèces</Text>
+                    <Text>{t('wallet.cashPayment')}</Text>
                   </TouchableOpacity>
                 </View>
               </View>

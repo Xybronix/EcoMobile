@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import { Text } from '@/components/ui/Text';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { getGlobalStyles } from '@/styles/globalStyles';
@@ -92,7 +93,7 @@ export function MobileChat({ onNavigate }: MobileChatProps) {
     
     const messageContent = newMessage;
     setNewMessage('');
-    setInputHeight(40); // Reset height after sending
+    setInputHeight(40);
     Keyboard.dismiss();
 
     try {
@@ -110,7 +111,7 @@ export function MobileChat({ onNavigate }: MobileChatProps) {
           createdAt: new Date().toISOString(),
           user: {
             id: 'support-admin',
-            firstName: 'Support',
+            firstName: t('chat.support'),
             lastName: 'FreeBike',
             role: 'admin'
           }
@@ -139,7 +140,6 @@ export function MobileChat({ onNavigate }: MobileChatProps) {
 
   const handleContentSizeChange = (event: NativeSyntheticEvent<TextInputContentSizeChangeEventData>) => {
     const { contentSize } = event.nativeEvent;
-    // Limiter la hauteur maximale à 100px (environ 4-5 lignes)
     const newHeight = Math.max(40, Math.min(100, contentSize.height));
     setInputHeight(newHeight);
   };
