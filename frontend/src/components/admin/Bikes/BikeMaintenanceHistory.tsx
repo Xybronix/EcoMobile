@@ -4,14 +4,12 @@ import { ArrowLeft, Wrench, Calendar, AlertCircle, CheckCircle } from 'lucide-re
 import { Button } from '../../ui/button';
 import { Card } from '../../ui/card';
 import { Badge } from '../../ui/badge';
-import { useTranslation } from '../../../lib/i18n';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../ui/table';
 import { bikeService } from '../../../services/api/bike.service';
 import { toast } from 'sonner';
 
 export function BikeMaintenanceHistory() {
   const { id } = useParams<{ id: string }>();
-  const { t } = useTranslation();
   const navigate = useNavigate();
   const [maintenanceLogs, setMaintenanceLogs] = useState<any[]>([]);
   const [bike, setBike] = useState<any>(null);

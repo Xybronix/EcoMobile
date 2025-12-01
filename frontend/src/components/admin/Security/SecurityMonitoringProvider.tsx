@@ -1,4 +1,3 @@
-// components/admin/Security/SecurityMonitoringProvider.tsx
 import React, { createContext, useContext } from 'react';
 import { SecurityAlertModal } from './SecurityAlertModal';
 import { useSecurityMonitoring } from '../../../hooks/useSecurityMonitoring';

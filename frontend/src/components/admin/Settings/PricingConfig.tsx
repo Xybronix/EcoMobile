@@ -1,6 +1,4 @@
-// components/admin/settings/PricingConfig.tsx
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { DollarSign, Bike, Battery, MapPin, Plus, Edit, Check, X, Clock, Tag, Trash2, Eye, EyeOff } from 'lucide-react';
 import { Card } from '../../ui/card';
 import { Button } from '../../ui/button';

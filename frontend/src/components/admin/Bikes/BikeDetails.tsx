@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Bike as BikeIcon, Battery, MapPin, Signal, ArrowLeft, Calendar, Activity, Settings } from 'lucide-react';
+import { Bike as BikeIcon, Battery, MapPin, Signal, ArrowLeft, Activity, Settings } from 'lucide-react';
 import { Button } from '../../ui/button';
 import { Badge } from '../../ui/badge';
 import { Card } from '../../ui/card';

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Settings, Save, Building2, Mail, Phone, MapPin, CreditCard, Facebook, Twitter, Instagram, Linkedin, Globe } from 'lucide-react';
+import { Save, Building2, Mail, MapPin, CreditCard, Facebook, Twitter, Instagram, Linkedin, Globe } from 'lucide-react';
 import { Card } from '../../ui/card';
 import { Button } from '../../ui/button';
 import { Input } from '../../ui/input';

@@ -1,7 +1,6 @@
-// components/admin/Users/UserDetails.tsx
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { User, Mail, Phone, MapPin, DollarSign, Activity, Calendar, ArrowLeft, Ban, CheckCircle, AlertCircle } from 'lucide-react';
+import { User, Mail, Phone, DollarSign, Activity, Calendar, ArrowLeft, Ban, CheckCircle, AlertCircle } from 'lucide-react';
 import { Button } from '../../ui/button';
 import { Badge } from '../../ui/badge';
 import { Card } from '../../ui/card';

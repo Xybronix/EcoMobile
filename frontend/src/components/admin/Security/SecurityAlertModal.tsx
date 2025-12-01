@@ -1,6 +1,5 @@
-// components/admin/Security/SecurityAlertModal.tsx
-import { useState, useEffect } from 'react';
-import { AlertTriangle, MapPin, Clock, User, X, Eye, CheckCircle, XCircle } from 'lucide-react';
+import { useState } from 'react';
+import { AlertTriangle, Clock, User, Eye, CheckCircle, XCircle } from 'lucide-react';
 import { Card } from '../../ui/card';
 import { Button } from '../../ui/button';
 import { Badge } from '../../ui/badge';

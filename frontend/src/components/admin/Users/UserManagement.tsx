@@ -1,4 +1,3 @@
-// components/admin/Users/UserManagement.tsx
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Users, Search, Star, DollarSign, Activity, Ban, CheckCircle } from 'lucide-react';
