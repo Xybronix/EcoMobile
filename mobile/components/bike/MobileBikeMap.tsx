@@ -15,7 +15,7 @@ import { getGlobalStyles } from '@/styles/globalStyles';
 import { haptics } from '@/utils/haptics';
 import { Battery, Building2, Filter, Home, MapPin, Navigation, Search, X, Zap, RotateCcw, MapPinIcon, CheckCircle } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
-import { Keyboard, RefreshControl, ScrollView, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import { Keyboard, RefreshControl, ScrollView, TouchableOpacity, TouchableWithoutFeedback, View, useWindowDimensions } from 'react-native';
 import { useMobileI18n } from '@/lib/mobile-i18n';
 import { MobileHeader } from '@/components/layout/MobileHeader';
 
@@ -44,6 +44,7 @@ export function MobileBikeMap({ onNavigate }: MobileBikeMapProps) {
   const colorScheme = useColorScheme();
   const styles = getGlobalStyles(colorScheme);
   const colors = Colors[colorScheme === 'dark' ? 'dark' : 'light'];
+  const { width: screenWidth } = useWindowDimensions();
   
   const [selectedBike, setSelectedBike] = useState<Bike | null>(null);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
@@ -110,7 +111,6 @@ export function MobileBikeMap({ onNavigate }: MobileBikeMapProps) {
         : userLocation;
 
       const filters: any = {
-        status: 'AVAILABLE',
         minBatteryLevel: minBattery,
       };
 
@@ -122,11 +122,7 @@ export function MobileBikeMap({ onNavigate }: MobileBikeMapProps) {
 
       const result = await bikeService.getAvailableBikes(filters, 1, 50);
       
-      const activeBikes = (result.bikes || []).filter(bike => 
-        bike.status === 'AVAILABLE'
-      );
-      
-      setBikes(activeBikes);
+      setBikes(result.bikes || []);
     } catch (error) {
       console.error('Error loading bikes:', error);
       toast.error(t('common.error'));
@@ -372,7 +368,7 @@ export function MobileBikeMap({ onNavigate }: MobileBikeMapProps) {
                   </View>
                 )}
 
-                {/* 🔧 Distance avec boutons prédéfinis au lieu du slider */}
+                {/* Distance avec boutons prédéfinis */}
                 <View style={{ gap: 12 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                     <Label>
@@ -490,29 +486,46 @@ export function MobileBikeMap({ onNavigate }: MobileBikeMapProps) {
 
         {/* Carte Interactive Améliorée */}
         <View style={styles.relative}>
-          {/* Map Container - Simulation interactive */}
+          {/* Carte Interactive avec vraies positions */}
           <View 
             style={[
               styles.wT100,
               { height: 350, backgroundColor: colorScheme === 'light' ? '#f8fafc' : '#1e293b' }
             ]}
           >
-            {/* Simulation de carte avec marqueurs */}
-            <View style={[styles.absolute, { top: 0, left: 0, right: 0, bottom: 0 }]}>
-              {/* Grille de fond pour simuler une carte */}
-              <View 
-                style={[
-                  styles.absolute,
-                  { top: 0, left: 0, right: 0, bottom: 0 },
-                  {
-                    backgroundColor: colorScheme === 'light' ? '#e2e8f0' : '#334155',
-                    opacity: 0.3,
-                  }
-                ]}
-              />
+            {/* Carte de fond */}
+            <View 
+              style={[
+                styles.absolute,
+                { top: 0, left: 0, right: 0, bottom: 0 },
+                {
+                  backgroundImage: 'linear-gradient(45deg, #f0f9ff 25%, transparent 25%), linear-gradient(-45deg, #f0f9ff 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #f0f9ff 75%), linear-gradient(-45deg, transparent 75%, #f0f9ff 75%)',
+                  backgroundSize: '20px 20px',
+                  backgroundPosition: '0 0, 0 10px, 10px -10px, -10px 0px'
+                }
+              ]}
+            />
+            
+            {/* 🗺️ VRAIES POSITIONS DES VÉLOS */}
+            {referenceLocation && filteredBikes.map((bike, index) => {
+              if (!bike.latitude || !bike.longitude) return null;
               
-              {/* Marqueurs de vélos simulés */}
-              {filteredBikes.slice(0, 8).map((bike, index) => (
+              // Calculer position relative sur l'écran
+              const deltaLat = bike.latitude - referenceLocation.lat;
+              const deltaLng = bike.longitude - referenceLocation.lng;
+              
+              // Conversion approximative pour affichage (1 degré ≈ 111km)
+              const scale = 350 / (maxDistance * 2);
+              const centerX = screenWidth / 2;
+              const centerY = 175;
+              
+              const x = centerX + (deltaLng * 111 * scale);
+              const y = centerY - (deltaLat * 111 * scale);
+              
+              const clampedX = Math.max(20, Math.min(screenWidth - 20, x));
+              const clampedY = Math.max(20, Math.min(330, y));
+
+              return (
                 <TouchableOpacity
                   key={bike.id}
                   onPress={() => {
@@ -522,8 +535,8 @@ export function MobileBikeMap({ onNavigate }: MobileBikeMapProps) {
                   style={[
                     styles.absolute,
                     {
-                      left: `${20 + (index % 4) * 20}%`,
-                      top: `${25 + Math.floor(index / 4) * 30}%`,
+                      left: clampedX - 16,
+                      top: clampedY - 16,
                       width: 32,
                       height: 32,
                       borderRadius: 16,
@@ -540,73 +553,106 @@ export function MobileBikeMap({ onNavigate }: MobileBikeMapProps) {
                     }
                   ]}
                 >
-                  <Text size="xs" color="white" style={{ fontWeight: 'bold' }}>
-                    {bike.code.slice(-2)}
-                  </Text>
+                  <Zap size={16} color="white" />
                 </TouchableOpacity>
-              ))}
+              );
+            })}
 
-              {/* Indicateur centre */}
+            {/* Marqueur position utilisateur */}
+            {referenceLocation && (
               <View style={[
                 styles.absolute,
-                { left: '50%', top: '50%', marginLeft: -12, marginTop: -12 }
+                { 
+                  left: screenWidth / 2 - 12, 
+                  top: 175 - 12,
+                  width: 24,
+                  height: 24,
+                  borderRadius: 12,
+                  backgroundColor: '#2563eb',
+                  borderWidth: 3,
+                  borderColor: 'white',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.3,
+                  shadowRadius: 4,
+                  elevation: 5,
+                }
               ]}>
-                <View 
-                  style={{
-                    width: 24,
-                    height: 24,
-                    borderRadius: 12,
-                    backgroundColor: colors.primary,
-                    borderWidth: 3,
-                    borderColor: 'white',
+                <View style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: 4,
+                  backgroundColor: 'white',
+                }} />
+              </View>
+            )}
+
+            {/* Cercle de rayon */}
+            {referenceLocation && (
+              <View style={[
+                styles.absolute,
+                {
+                  left: screenWidth / 2 - (maxDistance * 350 / (maxDistance * 2)),
+                  top: 175 - (maxDistance * 350 / (maxDistance * 2)),
+                  width: (maxDistance * 350 / maxDistance),
+                  height: (maxDistance * 350 / maxDistance),
+                  borderRadius: (maxDistance * 350 / maxDistance) / 2,
+                  borderWidth: 2,
+                  borderColor: '#2563eb',
+                  opacity: 0.3,
+                }
+              ]} />
+            )}
+
+            {/* Info overlay mise à jour */}
+            <View style={[
+              styles.absolute,
+              { bottom: 16, left: 16, right: 16 },
+              styles.alignCenter
+            ]}>
+              <View 
+                style={[
+                  styles.row,
+                  { 
+                    backgroundColor: 'rgba(255,255,255,0.95)',
+                    paddingHorizontal: 16,
+                    paddingVertical: 8,
+                    borderRadius: 20,
+                    alignItems: 'center',
+                    gap: 8,
                     shadowColor: '#000',
                     shadowOffset: { width: 0, height: 2 },
-                    shadowOpacity: 0.3,
+                    shadowOpacity: 0.1,
                     shadowRadius: 4,
-                    elevation: 5,
+                    elevation: 3,
+                  }
+                ]}
+              >
+                <View 
+                  style={{
+                    width: 12,
+                    height: 12,
+                    borderRadius: 6,
+                    backgroundColor: '#16a34a',
                   }}
                 />
-              </View>
-              
-              {/* Info overlay */}
-              <View style={[
-                styles.absolute,
-                { bottom: 16, left: 16, right: 16 },
-                styles.alignCenter
-              ]}>
-                <View 
-                  style={[
-                    styles.row,
-                    { 
-                      backgroundColor: 'rgba(255,255,255,0.95)',
-                      paddingHorizontal: 16,
-                      paddingVertical: 8,
-                      borderRadius: 20,
-                      alignItems: 'center',
-                      gap: 8,
-                    }
-                  ]}
-                >
-                  <View 
-                    style={{
-                      width: 12,
-                      height: 12,
-                      borderRadius: 6,
-                      backgroundColor: '#16a34a',
-                    }}
-                  />
-                  <Text size="sm" color="#111827">
-                    {filteredBikes.length} vélo{filteredBikes.length > 1 ? 's' : ''} disponible{filteredBikes.length > 1 ? 's' : ''}
-                  </Text>
-                  {searchMode === 'area' && selectedArea && (
-                    <>
-                      <Text size="sm" color="#6b7280">•</Text>
-                      <Text size="sm" color="#6b7280">
-                        {areas.find(a => a.key === selectedArea)?.name}
-                      </Text>
-                    </>
-                  )}
-                </View>
+                <Text size="sm" color="#111827">
+                  {filteredBikes.length} vélo{filteredBikes.length > 1 ? 's' : ''} trouvé{filteredBikes.length > 1 ? 's' : ''}
+                </Text>
+                {searchMode === 'area' && selectedArea && (
+                  <>
+                    <Text size="sm" color="#6b7280">•</Text>
+                    <Text size="sm" color="#6b7280">
+                      {areas.find(a => a.key === selectedArea)?.name}
+                    </Text>
+                  </>
+                )}
+                <Text size="sm" color="#6b7280">•</Text>
+                <Text size="sm" color="#6b7280">
+                  Rayon {maxDistance}km
+                </Text>
               </View>
             </View>
           </View>
@@ -709,7 +755,7 @@ export function MobileBikeMap({ onNavigate }: MobileBikeMapProps) {
                 : 'Vélos disponibles à proximité'}
             </Text>
             <Badge variant="secondary">
-              <Zap size={12} color="currentColor" />
+              <Zap size={12} color="currentColor" style={{marginRight: 10}} />
               <Text style={styles.ml4}>{filteredBikes.length}</Text>
             </Badge>
           </View>
@@ -857,7 +903,6 @@ export function MobileBikeMap({ onNavigate }: MobileBikeMapProps) {
                               onNavigate('bike-details', bike);
                             }}
                           >
-                            <Zap size={14} color="white" />
                             <Text color="white" style={styles.ml4}>{t('map.unlock')}</Text>
                           </Button>
                         </View>

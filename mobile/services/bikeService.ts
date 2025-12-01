@@ -78,7 +78,7 @@ class BikeService {
         });
       }
       
-      const response = await fetch(`${this.baseUrl}/public/available?${queryParams.toString()}`, {
+      const response = await fetch(`${this.baseUrl}/available?${queryParams.toString()}`, {
         method: 'GET',
         headers: API_CONFIG.HEADERS,
       });
