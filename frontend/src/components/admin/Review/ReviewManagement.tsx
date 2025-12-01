@@ -1,7 +1,6 @@
-// components/admin/Review/ReviewManagement.tsx
 import { useState, useEffect } from 'react';
 import { Star, Check, X, Trash2, MessageCircle, ThumbsUp, ThumbsDown, Plus, Edit } from 'lucide-react';
-import { reviewService, Review, ReviewSubmission } from '../../../services/api/review.service';
+import { reviewService, Review } from '../../../services/api/review.service';
 import { Button } from '../../ui/button';
 import { Card } from '../../ui/card';
 import { Badge } from '../../ui/badge';
@@ -10,7 +9,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Input } from '../../ui/input';
 import { Textarea } from '../../ui/textarea';
 import { Label } from '../../ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
 import { toast } from 'sonner';
 import { Pagination } from '../../Pagination';
 

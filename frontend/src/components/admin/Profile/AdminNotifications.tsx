@@ -1,6 +1,5 @@
-// components/admin/Profile/AdminNotifications.tsx
 import { useState, useEffect } from 'react';
-import { Bell, Check, Trash2, AlertCircle, Info, CheckCircle, XCircle, Lock, Search, Filter, RefreshCw, Plus, Send, Mail, Users } from 'lucide-react';
+import { Bell, Check, Trash2, AlertCircle, Info, CheckCircle, XCircle, Lock, Search, RefreshCw, Send, Mail } from 'lucide-react';
 import { Card } from '../../ui/card';
 import { Button } from '../../ui/button';
 import { Badge } from '../../ui/badge';

@@ -6,12 +6,11 @@ import { Button } from '../../ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
 import { Label } from '../../ui/label';
 import { useTranslation } from '../../../lib/i18n';
-import { ExportButtons } from '../ExportButtons';
 import { toast } from 'sonner';
 import { Calendar } from '../../ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '../../ui/popover';
 import { format } from 'date-fns';
-import { fr, enUS } from 'date-fns/locale';
+import { fr } from 'date-fns/locale';
 import { financialService } from '../../../services/api/financial.service';
 
 export function FinancialDashboard() {

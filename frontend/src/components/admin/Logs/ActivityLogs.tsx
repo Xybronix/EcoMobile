@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FileText, Search, Filter, Calendar } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { Card } from '../../ui/card';
 import { Input } from '../../ui/input';
 import { Badge } from '../../ui/badge';

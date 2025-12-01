@@ -1,4 +1,3 @@
-// components/admin/employees/EmployeeManagement.tsx
 import { useState, useEffect } from 'react';
 import { UserCog, Search, Plus, Edit, Trash2, Ban, CheckCircle, Eye, X, Check } from 'lucide-react';
 import { Card } from '../../ui/card';

@@ -1,8 +1,5 @@
-// components/admin/Security/SecurityDashboardWidget.tsx
-import { useState, useEffect } from 'react';
-import { AlertTriangle, Shield, Eye, TrendingUp } from 'lucide-react';
+import { AlertTriangle, Shield } from 'lucide-react';
 import { Card } from '../../ui/card';
-import { Button } from '../../ui/button';
 import { Badge } from '../../ui/badge';
 import { useSecurityMonitoring } from '../../../hooks/useSecurityMonitoring';
 

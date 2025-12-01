@@ -1,4 +1,3 @@
-// components/admin/bikes/LocationSelector.tsx
 import { useState, useEffect } from 'react';
 import { MapPin, Navigation, Search, Loader2 } from 'lucide-react';
 import { Button } from '../../ui/button';

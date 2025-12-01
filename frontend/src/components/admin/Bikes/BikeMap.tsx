@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, MapPin, Navigation, RefreshCw, Zap, Battery, Signal, Clock, AlertTriangle, Activity, Eye, EyeOff } from 'lucide-react';
+import { ArrowLeft, MapPin, RefreshCw, Zap, Signal, AlertTriangle, Eye, EyeOff } from 'lucide-react';
 import { Button } from '../../ui/button';
 import { Card } from '../../ui/card';
 import { bikeService } from '../../../services/api/bike.service';
