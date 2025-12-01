@@ -101,7 +101,7 @@ export default function MobileWelcome({ onNavigate }: MobileWelcomeProps) {
           </View>
           
           <Text size="4xl" weight="bold" color="white" style={styles.mb16}>
-            EcoMobile 
+            Eco-Mobile 
           </Text>
           
           <Text size="lg" color="white" align="center" style={[styles.mb32, { opacity: 0.9, maxWidth: 300 }]}>

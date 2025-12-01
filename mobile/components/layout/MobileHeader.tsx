@@ -141,7 +141,7 @@ export function MobileHeader({
               </View>
               {isHomePage && (
                 <Text variant="title" color="white" size="xl">
-                  EcoMobile
+                  Eco-Mobile
                 </Text>
               )}
             </View>
