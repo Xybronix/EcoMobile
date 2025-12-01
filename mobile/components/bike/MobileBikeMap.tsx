@@ -762,7 +762,7 @@ export function MobileBikeMap({ onNavigate }: MobileBikeMapProps) {
 
           {/* Résumé des filtres appliqués */}
           {hasActiveFilters && (
-            <View style={[styles.card, { padding: 12, backgroundColor: colors.primary + '10' }]}>
+            <View style={[styles.card, { padding: 12 }]}>
               <View style={[styles.row, { gap: 8, flexWrap: 'wrap' }]}>
                 <Text size="sm" color={colors.primary}>Filtres actifs:</Text>
                 {searchMode === 'area' && (
