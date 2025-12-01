@@ -147,7 +147,7 @@ export function MobileRegister({ onNavigate }: MobileRegisterProps) {
             <Bike color="white" size={24} />
           </View>
           <Text size="xl" weight="bold" color="primary" style={styles.mb8}>
-            EcoMobile
+            Eco-Mobile
           </Text>
           <Text variant="subtitle">
             {t('auth.register')}
