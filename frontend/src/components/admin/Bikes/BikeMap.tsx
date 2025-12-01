@@ -5,20 +5,9 @@ import { Button } from '../../ui/button';
 import { Card } from '../../ui/card';
 import { bikeService } from '../../../services/api/bike.service';
 import { toast } from 'sonner';
+import type { FeatureGroup } from 'leaflet';
 
 import 'leaflet/dist/leaflet.css';
-
-let L: any;
-if (typeof window !== 'undefined') {
-  L = require('leaflet');
-
-  delete (L.Icon.Default.prototype as any)._getIconUrl;
-  L.Icon.Default.mergeOptions({
-    iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-    iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-  });
-}
 
 interface BikeMarker {
   id: string;
@@ -89,11 +78,23 @@ export function BikeMap() {
     }
   }, [bikes, showInactive, showOffline]);
 
-  const initializeMap = () => {
-    if (!L || !mapRef.current) return;
+  const initializeMap = async() => {
+    if (!mapRef.current) return;
+
+    const L = await import('leaflet');
+
+    const Control = L.Control as any;
+    
+    // Configuration des icônes (doit être fait avant d'utiliser L)
+    delete (L.Icon.Default.prototype as any)._getIconUrl;
+    L.Icon.Default.mergeOptions({
+      iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+      iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+    });
 
     // Centrer sur Douala par défaut
-    const doualaCenter = [4.0511, 9.7679];
+    const doualaCenter = [4.0511, 9.7679] as [number, number];
     
     leafletMapRef.current = L.map(mapRef.current).setView(doualaCenter, 12);
 
@@ -104,12 +105,19 @@ export function BikeMap() {
     }).addTo(leafletMapRef.current);
 
     // Contrôles personnalisés
-    const customControl = L.control({ position: 'topright' });
+    const customControl = new Control({ position: 'topright' });
     customControl.onAdd = function() {
       const div = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
       div.innerHTML = `
         <a href="#" id="center-map" title="Centrer sur les vélos">
-          <span style="font-size: 18px;">🎯</span>
+          <svg style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <circle cx="12" cy="12" r="3"></circle>
+            <line x1="12" y1="8" x2="12" y2="2"></line>
+            <line x1="12" y1="22" x2="12" y2="16"></line>
+            <line x1="8" y1="12" x2="2" y2="12"></line>
+            <line x1="22" y1="12" x2="16" y2="12"></line>
+          </svg>
         </a>
       `;
       return div;
@@ -128,7 +136,14 @@ export function BikeMap() {
     }, 100);
   };
 
-  const centerMapOnBikes = () => {
+  const getLeaflet = async () => {
+    if (typeof window === 'undefined') return null;
+    const L = await import('leaflet');
+    return L;
+  };
+
+  const centerMapOnBikes = async() => {
+    const L = await getLeaflet();
     if (!leafletMapRef.current || !bikes.length) return;
     
     const validBikes = bikes.filter(bike => bike.latitude && bike.longitude);
@@ -137,7 +152,7 @@ export function BikeMap() {
     if (validBikes.length === 1) {
       leafletMapRef.current.setView([validBikes[0].latitude, validBikes[0].longitude], 16);
     } else {
-      const group = new L.featureGroup(markersRef.current);
+      const group = (L as any).featureGroup(markersRef.current) as FeatureGroup;
       leafletMapRef.current.fitBounds(group.getBounds().pad(0.1));
     }
   };
@@ -200,7 +215,8 @@ export function BikeMap() {
     }
   };
 
-  const updateMapMarkers = () => {
+  const updateMapMarkers = async() => {
+    const L = await getLeaflet();
     if (!leafletMapRef.current || !L) return;
 
     // Clear existing markers
@@ -292,13 +308,20 @@ export function BikeMap() {
 
           ${bike.locationName ? `
             <div style="font-size: 11px; color: #6b7280; margin-bottom: 8px;">
-              📍 ${bike.locationName}
+              <svg style="width: 12px; height: 12px; display: inline; vertical-align: middle; margin-right: 4px;" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+              </svg>
+              ${bike.locationName}
             </div>
           ` : ''}
 
           ${bike.lastUpdate ? `
             <div style="font-size: 11px; color: #6b7280; margin-bottom: 8px;">
-              🕐 MAJ: ${new Date(bike.lastUpdate).toLocaleString('fr-FR')}
+              <svg style="width: 12px; height: 12px; display: inline; vertical-align: middle; margin-right: 4px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+              MAJ: ${new Date(bike.lastUpdate).toLocaleString('fr-FR')}
             </div>
           ` : ''}
 
