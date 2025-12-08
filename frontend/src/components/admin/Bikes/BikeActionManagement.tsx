@@ -16,6 +16,15 @@ export function BikeActionManagement() {
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
   const [validationAction, setValidationAction] = useState<'approve' | 'reject' | null>(null);
   const [adminNote, setAdminNote] = useState('');
+  const [inspectionModal, setInspectionModal] = useState<{open: boolean; request: any | null; type: 'unlock' | 'lock' | null;}>({open: false, request: null, type: null});
+
+  const openInspectionModal = (request: any, type: 'unlock' | 'lock') => {
+    setInspectionModal({
+      open: true,
+      request,
+      type
+    });
+  };
 
   useEffect(() => {
     loadRequests();
@@ -186,6 +195,48 @@ export function BikeActionManagement() {
                       <span>•</span>
                       <span>{new Date(request.requestedAt).toLocaleString('fr-FR')}</span>
                     </div>
+                    
+                    {/* Données d'inspection */}
+                    {request.metadata?.inspectionData && (
+                      <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+                        <h5 className="text-xs font-medium text-gray-700 mb-2">Inspection du vélo:</h5>
+                        
+                        {request.metadata.inspectionData.issues?.length > 0 ? (
+                          <div className="mb-2">
+                            <span className="text-xs text-red-600 font-medium">Problèmes signalés:</span>
+                            <ul className="text-xs text-red-700 mt-1 ml-4">
+                              {request.metadata.inspectionData.issues.map((issue: string, index: number) => (
+                                <li key={index}>• {issue}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        ) : (
+                          <p className="text-xs text-green-600 mb-2">Aucun problème signalé</p>
+                        )}
+                        
+                        {request.metadata.inspectionData.notes && (
+                          <div className="mb-2">
+                            <span className="text-xs text-gray-600 font-medium">💬 Notes:</span>
+                            <p className="text-xs text-gray-700 mt-1">{request.metadata.inspectionData.notes}</p>
+                          </div>
+                        )}
+                        
+                        {request.metadata.inspectionData.photos?.length > 0 && (
+                          <div>
+                            <span className="text-xs text-gray-600 font-medium">
+                              Photos: {request.metadata.inspectionData.photos.length} image(s)
+                            </span>
+                          </div>
+                        )}
+                        
+                        <div className="mt-2 pt-2 border-t border-gray-200">
+                          <span className="text-xs text-blue-600">
+                            Paiement: {request.metadata.paymentMethod === 'SUBSCRIPTION' ? 'Forfait actif' : 'Paiement direct'}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                    
                     {request.reservation && (
                       <Badge variant="outline" className="mt-2">
                         Réservation: {new Date(request.reservation.startDate).toLocaleDateString()}
@@ -200,7 +251,7 @@ export function BikeActionManagement() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setSelectedRequest(request)}
+                  onClick={() => openInspectionModal(request, activeTab)}
                 >
                   <Eye className="w-4 h-4 mr-2" />
                   Voir Détails
@@ -287,6 +338,165 @@ export function BikeActionManagement() {
                 {validationAction === 'approve' ? 'Approuver' : 'Rejeter'}
               </Button>
             </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {inspectionModal.open && inspectionModal.request && (
+        <Dialog open={inspectionModal.open} onOpenChange={(open) => 
+          setInspectionModal(prev => ({ ...prev, open }))
+        }>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>
+                Détails de la demande - {inspectionModal.type === 'unlock' ? 'Déverrouillage' : 'Verrouillage'}
+              </DialogTitle>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              {/* Informations de base */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-gray-500">Utilisateur</p>
+                  <p className="text-sm">
+                    {inspectionModal.request.user?.firstName} {inspectionModal.request.user?.lastName}
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-gray-500">Vélo</p>
+                  <p className="text-sm">{inspectionModal.request.bike?.code}</p>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-gray-500">Date</p>
+                  <p className="text-sm">
+                    {new Date(inspectionModal.request.requestedAt).toLocaleString('fr-FR')}
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-gray-500">Statut</p>
+                  <Badge variant={
+                    inspectionModal.request.status === 'PENDING' ? 'outline' :
+                    inspectionModal.request.status === 'APPROVED' ? 'default' : 'destructive'
+                  }>
+                    {inspectionModal.request.status}
+                  </Badge>
+                </div>
+              </div>
+
+              {/* Rapport d'inspection (si disponible) */}
+              {inspectionModal.request.metadata?.inspection && (
+                <div className="border rounded-lg p-4">
+                  <h4 className="font-medium mb-2">📋 Rapport d'inspection</h4>
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">État général</p>
+                      <p className="text-sm">{inspectionModal.request.metadata.inspection.condition}</p>
+                    </div>
+                    
+                    {inspectionModal.request.metadata.inspection.issues?.length > 0 && (
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Problèmes identifiés</p>
+                        <ul className="list-disc pl-5 text-sm">
+                          {inspectionModal.request.metadata.inspection.issues.map((issue: string, idx: number) => (
+                            <li key={idx}>{issue}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    
+                    {inspectionModal.request.metadata.inspection.notes && (
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Notes</p>
+                        <p className="text-sm">{inspectionModal.request.metadata.inspection.notes}</p>
+                      </div>
+                    )}
+                    
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Méthode de paiement</p>
+                      <Badge variant="secondary" className="mt-1">
+                        {inspectionModal.request.metadata.inspection.paymentMethod || 'WALLET'}
+                      </Badge>
+                    </div>
+                    
+                    {inspectionModal.request.metadata.inspection.photos?.length > 0 && (
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Photos</p>
+                        <p className="text-sm">{inspectionModal.request.metadata.inspection.photos.length} photo(s)</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Informations de réservation (si disponible) */}
+              {inspectionModal.request.reservation && (
+                <div className="border rounded-lg p-4">
+                  <h4 className="font-medium mb-2">📅 Réservation associée</h4>
+                  <div className="space-y-2">
+                    <p className="text-sm">
+                      Du {new Date(inspectionModal.request.reservation.startDate).toLocaleDateString()}
+                      {' au '}
+                      {new Date(inspectionModal.request.reservation.endDate).toLocaleDateString()}
+                    </p>
+                    <Badge variant="outline">
+                      {inspectionModal.request.reservation.packageType}
+                    </Badge>
+                  </div>
+                </div>
+              )}
+
+              {/* Informations de trajet (pour verrouillage) */}
+              {inspectionModal.type === 'lock' && inspectionModal.request.ride && (
+                <div className="border rounded-lg p-4">
+                  <h4 className="font-medium mb-2">🚴 Trajet associé</h4>
+                  <div className="space-y-2">
+                    <p className="text-sm">
+                      Durée: {Math.round((inspectionModal.request.ride.duration || 0) / 60)} min
+                    </p>
+                    <p className="text-sm">
+                      Coût: {inspectionModal.request.ride.cost || 0} XOF
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Actions */}
+              {inspectionModal.request.status === 'PENDING' && (
+                <div className="flex gap-2 pt-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setInspectionModal({ open: false, request: null, type: null });
+                    }}
+                    className="flex-1"
+                  >
+                    Fermer
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={() => {
+                      setValidationAction('reject');
+                      setSelectedRequest(inspectionModal.request);
+                      setInspectionModal({ open: false, request: null, type: null });
+                    }}
+                    className="flex-1"
+                  >
+                    Rejeter
+                  </Button>
+                  <Button
+                    variant="default"
+                    onClick={() => {
+                      setValidationAction('approve');
+                      setSelectedRequest(inspectionModal.request);
+                      setInspectionModal({ open: false, request: null, type: null });
+                    }}
+                    className="flex-1"
+                  >
+                    Approuver
+                  </Button>
+                </div>
+              )}
+            </div>
           </DialogContent>
         </Dialog>
       )}

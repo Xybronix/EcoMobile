@@ -118,12 +118,23 @@ export function MobileBikeDetails({ bike: initialBike, onBack, onStartRide, onNa
     try {
       haptics.light();
       
-      await bikeRequestService.createUnlockRequest(bike.id);
-      
-      toast.success(t('unlock.requestSent'));
-      
-      // Naviguer vers l'écran de suivi des demandes
-      onNavigate?.('account-management', { activeTab: 'requests' });
+      onNavigate?.('bike-inspection', {
+        bikeId: bike.id,
+        bikeName: `${bike.code} - ${bike.model}`,
+        inspectionType: 'pickup',
+        onInspectionComplete: async (inspectionData: any) => {
+          try {
+            const request = await bikeRequestService.createUnlockRequest(bike.id, inspectionData.metadata);
+            
+            toast.success(t('unlock.requestSent'));
+            
+            // Naviguer vers les demandes
+            onNavigate?.('account-management', { activeTab: 'requests' });
+          } catch (error: any) {
+            toast.error(error.message || 'Erreur lors de la demande');
+          }
+        }
+      });
       
     } catch (error: any) {
       haptics.error();
