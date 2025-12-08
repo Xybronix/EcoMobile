@@ -1,4 +1,3 @@
-// services/walletService.ts
 import { API_CONFIG, handleApiResponse, ApiError } from '@/lib/api/config';
 import { authService } from './authService';
 

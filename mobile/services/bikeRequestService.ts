@@ -1,4 +1,3 @@
-// services/bikeRequestService.ts
 import { API_CONFIG, handleApiResponse, ApiError } from '@/lib/api/config';
 import { authService } from './authService';
 
@@ -93,14 +92,14 @@ class BikeRequestService {
   }
 
   // Demandes de déverrouillage
-  async createUnlockRequest(bikeId: string): Promise<UnlockRequest> {
+  async createUnlockRequest(bikeId: string, metadata?: any): Promise<UnlockRequest> {
     const headers = await this.getAuthHeaders();
     
     try {
       const response = await fetch(`${this.baseUrl}/unlock`, {
         method: 'POST',
         headers,
-        body: JSON.stringify({ bikeId: bikeId }),
+        body: JSON.stringify({ bikeId: bikeId, metadata: metadata }),
       });
 
       const result = await handleApiResponse(response);

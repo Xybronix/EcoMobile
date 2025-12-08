@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Label } from '@/components/ui/Label';
@@ -7,8 +8,9 @@ import { toast } from '@/components/ui/Toast';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { getGlobalStyles } from '@/styles/globalStyles';
 import { haptics } from '@/utils/haptics';
+import { subscriptionService } from '@/services/subscriptionService';
 import { AlertTriangle, ArrowLeft, Camera, Check, X } from 'lucide-react-native';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ScrollView, TouchableOpacity, View } from 'react-native';
 import { useMobileI18n } from '@/lib/mobile-i18n';
 
@@ -26,6 +28,18 @@ interface InspectionData {
   issues: string[];
   notes: string;
   photos: string[];
+  metadata?: {
+    inspection: {
+      type: 'pickup' | 'return';
+      condition: string;
+      issues: string[];
+      notes: string;
+      photos: string[];
+      inspectedAt: string;
+      hasIssues: boolean;
+    };
+    paymentMethod: string;
+  };
 }
 
 interface InspectionItem {
@@ -39,43 +53,60 @@ export function MobileBikeInspection({ bikeId, bikeName, inspectionType, bikeEqu
   const colorScheme = useColorScheme();
   const styles = getGlobalStyles(colorScheme);
 
-  // Mapping des équipements vers leurs labels multilingues
-  const equipmentLabels: Record<string, { fr: string; en: string }> = {
-    headlight: { fr: 'Phares avant', en: 'Headlight' },
-    taillight: { fr: 'Feu arrière', en: 'Taillight' },
-    basket: { fr: 'Panier', en: 'Basket' },
-    rack: { fr: 'Porte-bagages', en: 'Rack' },
-    bell: { fr: 'Sonnette', en: 'Bell' },
-    mudguards: { fr: 'Garde-boue', en: 'Mudguards' },
-    lock: { fr: 'Antivol', en: 'Lock' },
-    reflectors: { fr: 'Réflecteurs', en: 'Reflectors' },
-  };
-
-  // Éléments de base à toujours vérifier
-  const baseItems: InspectionItem[] = [
-    { id: 'brakes', label: { fr: 'Freins', en: 'Brakes' }, isGood: null },
-    { id: 'tires', label: { fr: 'Pneus', en: 'Tires' }, isGood: null },
-    { id: 'battery', label: { fr: 'Batterie', en: 'Battery' }, isGood: null },
-    { id: 'chain', label: { fr: 'Chaîne', en: 'Chain' }, isGood: null },
-    { id: 'seat', label: { fr: 'Selle', en: 'Seat' }, isGood: null },
-    { id: 'handlebars', label: { fr: 'Guidon', en: 'Handlebars' }, isGood: null },
-    { id: 'frame', label: { fr: 'Cadre', en: 'Frame' }, isGood: null }
-  ];
-
-  // Ajouter les équipements spécifiques du vélo
-  const equipmentItems: InspectionItem[] = (bikeEquipment || []).map(equipId => ({
-    id: equipId,
-    label: equipmentLabels[equipId] || { fr: equipId, en: equipId },
-    isGood: null
-  }));
-
-  const [inspectionItems, setInspectionItems] = useState<InspectionItem[]>([
-    ...baseItems,
-    ...equipmentItems
-  ]);
-
+  const [currentSubscription, setCurrentSubscription] = useState<any>(null);
+  const [inspectionItems, setInspectionItems] = useState<InspectionItem[]>([]);
   const [notes, setNotes] = useState('');
   const [photos, setPhotos] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    loadCurrentSubscription();
+    initializeInspectionItems();
+  }, []);
+
+  const loadCurrentSubscription = async () => {
+    try {
+      setIsLoading(true);
+      const subscription = await subscriptionService.getCurrentSubscription();
+      setCurrentSubscription(subscription);
+    } catch (error) {
+      console.error('Error loading subscription:', error);
+      setCurrentSubscription(null);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const initializeInspectionItems = () => {
+    const equipmentLabels: Record<string, { fr: string; en: string }> = {
+      headlight: { fr: 'Phares avant', en: 'Headlight' },
+      taillight: { fr: 'Feu arrière', en: 'Taillight' },
+      basket: { fr: 'Panier', en: 'Basket' },
+      rack: { fr: 'Porte-bagages', en: 'Rack' },
+      bell: { fr: 'Sonnette', en: 'Bell' },
+      mudguards: { fr: 'Garde-boue', en: 'Mudguards' },
+      lock: { fr: 'Antivol', en: 'Lock' },
+      reflectors: { fr: 'Réflecteurs', en: 'Reflectors' },
+    };
+
+    const baseItems: InspectionItem[] = [
+      { id: 'brakes', label: { fr: 'Freins', en: 'Brakes' }, isGood: null },
+      { id: 'tires', label: { fr: 'Pneus', en: 'Tires' }, isGood: null },
+      { id: 'battery', label: { fr: 'Batterie', en: 'Battery' }, isGood: null },
+      { id: 'chain', label: { fr: 'Chaîne', en: 'Chain' }, isGood: null },
+      { id: 'seat', label: { fr: 'Selle', en: 'Seat' }, isGood: null },
+      { id: 'handlebars', label: { fr: 'Guidon', en: 'Handlebars' }, isGood: null },
+      { id: 'frame', label: { fr: 'Cadre', en: 'Frame' }, isGood: null }
+    ];
+
+    const equipmentItems: InspectionItem[] = (bikeEquipment || []).map(equipId => ({
+      id: equipId,
+      label: equipmentLabels[equipId] || { fr: equipId, en: equipId },
+      isGood: null
+    }));
+
+    setInspectionItems([...baseItems, ...equipmentItems]);
+  };
 
   const updateInspectionItem = (id: string, isGood: boolean) => {
     haptics.selection();
@@ -129,7 +160,19 @@ export function MobileBikeInspection({ bikeId, bikeName, inspectionType, bikeEqu
       condition: hasIssues ? 'damaged' : 'good',
       issues,
       notes,
-      photos
+      photos,
+      metadata: {
+        inspection: {
+          type: inspectionType,
+          condition: hasIssues ? 'damaged' : 'good',
+          issues,
+          notes,
+          photos,
+          inspectedAt: new Date().toISOString(),
+          hasIssues
+        },
+        paymentMethod: currentSubscription ? 'SUBSCRIPTION' : 'WALLET'
+      }
     };
 
     haptics.success();
@@ -170,6 +213,11 @@ export function MobileBikeInspection({ bikeId, bikeName, inspectionType, bikeEqu
             <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
               {bikeName}
             </Text>
+            {currentSubscription && (
+              <Text size="xs" color="#3b82f6" style={styles.mt4}>
+                Forfait actif: {currentSubscription.planName}
+              </Text>
+            )}
           </View>
         </View>
       </View>
@@ -402,7 +450,7 @@ export function MobileBikeInspection({ bikeId, bikeName, inspectionType, bikeEqu
           onPress={handleComplete}
           variant="primary"
           fullWidth
-          disabled={!allInspected || (hasIssues && !notes.trim())}
+          disabled={!allInspected || (hasIssues && !notes.trim()) || isLoading}
         >
           <Check size={16} color="white" />
           <Text style={styles.ml8} color="white">

@@ -13,9 +13,11 @@ import { bikeService } from '@/services/bikeService';
 import type { Bike, Area } from '@/services/bikeService';
 import { getGlobalStyles } from '@/styles/globalStyles';
 import { haptics } from '@/utils/haptics';
+import { OSMMap } from '@/components/bike/OSMMap';
 import { Battery, Building2, Filter, Home, MapPin, Navigation, Search, X, Zap, RotateCcw, MapPinIcon, CheckCircle } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
-import { Keyboard, RefreshControl, ScrollView, TouchableOpacity, TouchableWithoutFeedback, View, useWindowDimensions } from 'react-native';
+import { Keyboard, Platform, RefreshControl, ScrollView, TouchableOpacity, TouchableWithoutFeedback, View, useWindowDimensions } from 'react-native';
+import { check, PERMISSIONS, RESULTS, request } from 'react-native-permissions';
 import { useMobileI18n } from '@/lib/mobile-i18n';
 import { MobileHeader } from '@/components/layout/MobileHeader';
 
@@ -71,6 +73,24 @@ export function MobileBikeMap({ onNavigate }: MobileBikeMapProps) {
   }, []);
 
   useEffect(() => {
+    const requestLocationPermission = async () => {
+      if (Platform.OS === 'ios') {
+        const status = await request(PERMISSIONS.IOS.LOCATION_WHEN_IN_USE);
+        if (status === RESULTS.GRANTED) {
+          getUserLocation();
+        }
+      } else if (Platform.OS === 'android') {
+        const status = await request(PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION);
+        if (status === RESULTS.GRANTED) {
+          getUserLocation();
+        }
+      }
+    };
+    
+    requestLocationPermission();
+  }, []);
+
+  useEffect(() => {
     if (mapLoaded && bikes.length > 0) {
       updateMapView();
     }
@@ -86,12 +106,23 @@ export function MobileBikeMap({ onNavigate }: MobileBikeMapProps) {
           });
         },
         () => {
-          setUserLocation({ lat: 4.0511, lng: 9.7679 }); // Douala par défaut
-        }
+          // Douala par défaut
+          setUserLocation({ lat: 4.0511, lng: 9.7679 });
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
       );
     } else {
       setUserLocation({ lat: 4.0511, lng: 9.7679 });
     }
+  };
+
+  const getBikesWithValidCoords = (bikes: Bike[]) => {
+    return bikes.filter(bike => 
+      bike.latitude !== null && 
+      bike.longitude !== null &&
+      !isNaN(bike.latitude) && 
+      !isNaN(bike.longitude)
+    );
   };
 
   const loadAreas = async () => {
@@ -493,118 +524,11 @@ export function MobileBikeMap({ onNavigate }: MobileBikeMapProps) {
               { height: 350, backgroundColor: colorScheme === 'light' ? '#f8fafc' : '#1e293b' }
             ]}
           >
-            {/* Carte de fond */}
-            <View 
-              style={[
-                styles.absolute,
-                { top: 0, left: 0, right: 0, bottom: 0 },
-                {
-                  backgroundImage: 'linear-gradient(45deg, #f0f9ff 25%, transparent 25%), linear-gradient(-45deg, #f0f9ff 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #f0f9ff 75%), linear-gradient(-45deg, transparent 75%, #f0f9ff 75%)',
-                  backgroundSize: '20px 20px',
-                  backgroundPosition: '0 0, 0 10px, 10px -10px, -10px 0px'
-                }
-              ]}
+            <OSMMap
+              userLocation={referenceLocation}
+              bikes={getBikesWithValidCoords(filteredBikes)}
+              radius={maxDistance}
             />
-            
-            {/* 🗺️ VRAIES POSITIONS DES VÉLOS */}
-            {referenceLocation && filteredBikes.map((bike, index) => {
-              if (!bike.latitude || !bike.longitude) return null;
-              
-              // Calculer position relative sur l'écran
-              const deltaLat = bike.latitude - referenceLocation.lat;
-              const deltaLng = bike.longitude - referenceLocation.lng;
-              
-              // Conversion approximative pour affichage (1 degré ≈ 111km)
-              const scale = 350 / (maxDistance * 2);
-              const centerX = screenWidth / 2;
-              const centerY = 175;
-              
-              const x = centerX + (deltaLng * 111 * scale);
-              const y = centerY - (deltaLat * 111 * scale);
-              
-              const clampedX = Math.max(20, Math.min(screenWidth - 20, x));
-              const clampedY = Math.max(20, Math.min(330, y));
-
-              return (
-                <TouchableOpacity
-                  key={bike.id}
-                  onPress={() => {
-                    setSelectedBike(bike);
-                    haptics.light();
-                  }}
-                  style={[
-                    styles.absolute,
-                    {
-                      left: clampedX - 16,
-                      top: clampedY - 16,
-                      width: 32,
-                      height: 32,
-                      borderRadius: 16,
-                      backgroundColor: '#16a34a',
-                      borderWidth: 3,
-                      borderColor: 'white',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      shadowColor: '#000',
-                      shadowOffset: { width: 0, height: 2 },
-                      shadowOpacity: 0.3,
-                      shadowRadius: 4,
-                      elevation: 5,
-                    }
-                  ]}
-                >
-                  <Zap size={16} color="white" />
-                </TouchableOpacity>
-              );
-            })}
-
-            {/* Marqueur position utilisateur */}
-            {referenceLocation && (
-              <View style={[
-                styles.absolute,
-                { 
-                  left: screenWidth / 2 - 12, 
-                  top: 175 - 12,
-                  width: 24,
-                  height: 24,
-                  borderRadius: 12,
-                  backgroundColor: '#2563eb',
-                  borderWidth: 3,
-                  borderColor: 'white',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.3,
-                  shadowRadius: 4,
-                  elevation: 5,
-                }
-              ]}>
-                <View style={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: 4,
-                  backgroundColor: 'white',
-                }} />
-              </View>
-            )}
-
-            {/* Cercle de rayon */}
-            {referenceLocation && (
-              <View style={[
-                styles.absolute,
-                {
-                  left: screenWidth / 2 - (maxDistance * 350 / (maxDistance * 2)),
-                  top: 175 - (maxDistance * 350 / (maxDistance * 2)),
-                  width: (maxDistance * 350 / maxDistance),
-                  height: (maxDistance * 350 / maxDistance),
-                  borderRadius: (maxDistance * 350 / maxDistance) / 2,
-                  borderWidth: 2,
-                  borderColor: '#2563eb',
-                  opacity: 0.3,
-                }
-              ]} />
-            )}
 
             {/* Info overlay mise à jour */}
             <View style={[
