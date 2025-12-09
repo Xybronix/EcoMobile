@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable react-hooks/exhaustive-deps */
 // components/ui/slider.tsx
 import React from 'react';
 import { View, PanResponder, Animated, StyleSheet, GestureResponderEvent, PanResponderGestureState } from 'react-native';

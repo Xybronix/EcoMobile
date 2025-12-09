@@ -1,8 +1,8 @@
 // components/ui/PhoneInput.tsx
 import React, { useState, useCallback } from 'react';
-import { View, TextInput, TouchableOpacity, Text, ViewStyle, TextStyle, } from 'react-native';
-import CountryPicker, { Country, CountryCode, } from 'react-native-country-picker-modal';
-import { parsePhoneNumber, isValidPhoneNumber } from 'libphonenumber-js';
+import { View, TextInput, TouchableOpacity, Text, ViewStyle, TextStyle } from 'react-native';
+import CountryPicker, { Country, CountryCode } from 'react-native-country-picker-modal';
+import { isValidPhoneNumber } from 'libphonenumber-js';
 import { ChevronDown } from 'lucide-react-native';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { getGlobalStyles } from '@/styles/globalStyles';
@@ -36,73 +36,87 @@ export function PhoneInput({
   const colors = Colors[colorScheme];
 
   const [selectedCountry, setSelectedCountry] = useState<CountryCode>(defaultCountry);
+  const [countryCallingCode, setCountryCallingCode] = useState('237');
   const [showCountryPicker, setShowCountryPicker] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
 
-  // Obtenir les informations du pays
-  const getCountryInfo = useCallback((countryCode: CountryCode) => {
-    try {
-      const phoneNumber = parsePhoneNumber('+237', { defaultCountry: countryCode as any });
-      return {
-        callingCode: phoneNumber?.countryCallingCode || '237',
-        flag: countryCode,
-      };
-    } catch {
-      return {
-        callingCode: '237',
-        flag: countryCode,
-      };
-    }
-  }, []);
-
-  const countryInfo = getCountryInfo(selectedCountry);
-
   // Valider le numéro de téléphone
-  const validatePhoneNumber = useCallback((phone: string, country: CountryCode) => {
+  const validatePhoneNumber = useCallback((phone: string, countryCode: CountryCode, callingCode: string) => {
     if (!phone) return false;
     
     try {
-      // Retirer le code du pays s'il est déjà présent
-      const cleanPhone = phone.replace(/^\+?[0-9]{1,4}/, '');
-      const fullNumber = `+${countryInfo.callingCode}${cleanPhone}`;
+      const cleanPhone = phone.replace(/\D/g, '');
       
-      return isValidPhoneNumber(fullNumber);
+      if (!cleanPhone) return false;
+      
+      const fullNumber = `+${callingCode}${cleanPhone}`;
+      
+      return isValidPhoneNumber(fullNumber, countryCode as any);
     } catch {
       return false;
     }
-  }, [countryInfo.callingCode]);
+  }, []);
 
   const handleCountrySelect = useCallback((country: Country) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setSelectedCountry(country.cca2);
+    setCountryCallingCode(country.callingCode[0]);
     setShowCountryPicker(false);
-    
-    // Revalider le numéro avec le nouveau pays
-    const isValid = validatePhoneNumber(value, country.cca2);
+
+    // Recalculer le numéro complet avec le nouveau code pays
+    const cleanPhone = value.replace(/\D/g, '');
+    const fullNumber = `+${country.callingCode[0]}${cleanPhone}`;
+    onChangeText(fullNumber);
+
+    const isValid = validatePhoneNumber(value, country.cca2, country.callingCode[0]);
     onValidationChange?.(isValid);
-  }, [value, validatePhoneNumber, onValidationChange]);
+  }, [value, validatePhoneNumber, onChangeText, onValidationChange]);
 
   const handlePhoneChange = useCallback((text: string) => {
-    // Nettoyer le texte (garder seulement les chiffres et certains caractères)
-    const cleanedText = text.replace(/[^\d\s\-\(\)\+]/g, '');
-    onChangeText(cleanedText);
+    const cleanedText = text.replace(/\D/g, '');
     
-    // Valider le numéro
-    const isValid = validatePhoneNumber(cleanedText, selectedCountry);
+    // Construire le numéro complet avec le code pays
+    const fullNumber = `+${countryCallingCode}${cleanedText}`;
+    onChangeText(fullNumber);
+    
+    const isValid = validatePhoneNumber(cleanedText, selectedCountry, countryCallingCode);
     onValidationChange?.(isValid);
-  }, [selectedCountry, validatePhoneNumber, onChangeText, onValidationChange]);
+  }, [selectedCountry, countryCallingCode, validatePhoneNumber, onChangeText, onValidationChange]);
 
   const handleCountryPickerPress = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setShowCountryPicker(true);
   }, []);
 
-  // S'assurer que inputStyle est compatible avec TextStyle
+  // Extraire uniquement la partie locale du numéro pour l'affichage
+  const getDisplayPhoneNumber = (fullPhone: string) => {
+    if (!fullPhone.startsWith('+')) return fullPhone;
+    
+    // Retirer le code pays pour l'affichage dans l'input
+    const withoutPlus = fullPhone.substring(1);
+    const callingCodeLength = countryCallingCode.length;
+    
+    if (withoutPlus.startsWith(countryCallingCode)) {
+      return withoutPlus.substring(callingCodeLength);
+    }
+    
+    return fullPhone.substring(1);
+  };
+
+  const formatPhoneNumber = (phone: string) => {
+    const cleaned = phone.replace(/\D/g, '');
+    const match = cleaned.match(/^(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})$/);
+    if (match) {
+      return `${match[1]} ${match[2]} ${match[3]} ${match[4]} ${match[5]}`;
+    }
+    return phone;
+  };
+
   const inputStyle: TextStyle[] = [
     {
       ...styles.input as TextStyle,
       fontFamily: Fonts.regular,
-      paddingLeft: 80, // Espace pour le sélecteur de pays
+      paddingLeft: 120,
     },
     isFocused && (styles.inputFocused as TextStyle),
     error && (styles.inputError as TextStyle),
@@ -131,16 +145,22 @@ export function PhoneInput({
       >
         <CountryPicker
           countryCode={selectedCountry}
-          visible={showCountryPicker}
-          onSelect={handleCountrySelect}
-          onClose={() => setShowCountryPicker(false)}
           withFilter
           withFlag
           withCallingCode
           withEmoji={false}
+          onSelect={handleCountrySelect}
+          visible={showCountryPicker}
+          onClose={() => setShowCountryPicker(false)}
           containerButtonStyle={{
             flexDirection: 'row',
             alignItems: 'center',
+            padding: 0,
+            margin: 0,
+          }}
+          theme={{
+            onBackgroundTextColor: colors.text,
+            backgroundColor: colors.background,
           }}
         />
         <Text
@@ -152,7 +172,7 @@ export function PhoneInput({
             marginRight: 2,
           }}
         >
-          +{countryInfo.callingCode}
+          +{countryCallingCode}
         </Text>
         <ChevronDown size={16} color={colors.icon} />
       </TouchableOpacity>
@@ -160,7 +180,7 @@ export function PhoneInput({
       {/* Input de téléphone */}
       <TextInput
         style={inputStyle}
-        value={value}
+        value={formatPhoneNumber(getDisplayPhoneNumber(value))}
         onChangeText={handlePhoneChange}
         placeholder={placeholder}
         placeholderTextColor={colors.icon}
@@ -169,7 +189,7 @@ export function PhoneInput({
         editable={!disabled}
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
-        maxLength={15}
+        maxLength={20}
       />
     </View>
   );

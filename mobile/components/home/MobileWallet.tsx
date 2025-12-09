@@ -350,8 +350,10 @@ export function MobileWallet({ onBack, onNavigate }: MobileWalletProps) {
               onPress={() => setShowTopUpDialog(true)}
               style={{ backgroundColor: 'rgba(255, 255, 255, 0.2)', borderColor: 'rgba(255, 255, 255, 0.3)' }}
             >
-              <Plus size={20} color="#16a34a" />
-              <Text style={{ color: 'white', marginLeft: 8 }}>{t('wallet.topUp')}</Text>
+              <View style={[styles.row, styles.gap4, styles.alignCenter, styles.justifyCenter]}>
+                <Plus size={20} color="#16a34a" />
+                <Text style={{ color: 'white', marginLeft: 8 }}>{t('wallet.topUp')}</Text>
+              </View>
             </Button>
           </Card>
 
@@ -468,7 +470,7 @@ export function MobileWallet({ onBack, onNavigate }: MobileWalletProps) {
 
                     {/* Modal de modification pour les demandes en espèces */}
                     {editingCashRequest === transaction.id && (
-                      <Card style={[styles.mt12, styles.p12, { backgroundColor: '#f8fafc' }]}>
+                      <Card style={[styles.mt12, styles.p12, { backgroundColor: colorScheme==='light'? '#f8fafc' : '#1f2937' }]}>
                         <Text weight="medium" style={styles.mb8}>{t('wallet.modifyAmount')}</Text>
                         <TextInput
                           style={[styles.input, styles.mb12]}
@@ -477,7 +479,7 @@ export function MobileWallet({ onBack, onNavigate }: MobileWalletProps) {
                           keyboardType="numeric"
                           placeholder={t('wallet.newAmount')}
                         />
-                        <View style={[styles.row, styles.gap8, styles.justifyEnd]}>
+                        <View style={[styles.row, styles.gap8, styles.justifyCenter]}>
                           <Button
                             variant="secondary"
                             size="sm"

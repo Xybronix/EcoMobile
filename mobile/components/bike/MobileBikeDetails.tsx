@@ -189,10 +189,12 @@ export function MobileBikeDetails({ bike: initialBike, onBack, onStartRide, onNa
               variant={bike.batteryLevel > 50 ? 'default' : 'secondary'}
               style={{ backgroundColor: bike.batteryLevel > 50 ? '#16a34a' : '#f59e0b' }}
             >
-              <Battery size={16} color="white" />
-              <Text style={styles.ml4} color="white">
-                {bike.batteryLevel}%
-              </Text>
+              <View style={[styles.row, styles.gap4, styles.alignCenter, styles.justifyCenter]}>
+                <Battery size={16} color="white" />
+                <Text style={styles.ml4} color="white">
+                  {bike.batteryLevel}%
+                </Text>
+              </View>
             </Badge>
           </View>
           {bike.status !== 'AVAILABLE' && (
@@ -371,10 +373,12 @@ export function MobileBikeDetails({ bike: initialBike, onBack, onStartRide, onNa
                 }}
                 disabled={!depositInfo?.canUseService}
               >
-                <Unlock size={20} color="white" />
-                <Text style={styles.ml8} color="white" size="lg">
-                  {depositInfo?.canUseService ? t('map.unlock') : t('bike.details.unlockBlocked')}
-                </Text>
+                <View style={[styles.row, styles.gap8]}>
+                  <Unlock size={20} color="white" />
+                  <Text style={styles.ml8} color="white" size="lg">
+                    {depositInfo?.canUseService ? t('map.unlock') : t('bike.details.unlockBlocked')}
+                  </Text>
+                </View>
               </Button>
 
               {/* Reserve Button */}
@@ -395,10 +399,12 @@ export function MobileBikeDetails({ bike: initialBike, onBack, onStartRide, onNa
                 }}
                 disabled={!depositInfo?.canUseService}
               >
-                <Calendar size={20} color={depositInfo?.canUseService ? "#16a34a" : "#9ca3af"} />
-                <Text style={styles.ml8} color={depositInfo?.canUseService ? "#16a34a" : "#9ca3af"} size="lg">
-                  {depositInfo?.canUseService ? t('reservation.reserveBike') : t('bike.details.reservationBlocked')}
-                </Text>
+                <View style={[styles.row, styles.gap8]}>
+                  <Calendar size={20} color={depositInfo?.canUseService ? "#16a34a" : "#9ca3af"} />
+                  <Text style={styles.ml8} color={depositInfo?.canUseService ? "#16a34a" : "#9ca3af"} size="lg">
+                    {depositInfo?.canUseService ? t('reservation.reserveBike') : t('bike.details.reservationBlocked')}
+                  </Text>
+                </View>
               </Button>
 
               {/* Warning for blocked actions */}

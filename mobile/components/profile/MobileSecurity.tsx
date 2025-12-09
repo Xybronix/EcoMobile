@@ -7,7 +7,7 @@ import { getGlobalStyles } from '@/styles/globalStyles';
 import { haptics } from '@/utils/haptics';
 import { AlertTriangle, ArrowLeft, Eye, EyeOff, Lock, Shield, Smartphone } from 'lucide-react-native';
 import React, { useState } from 'react';
-import { ActivityIndicator, Modal, ScrollView, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Modal, ScrollView, TouchableOpacity, View, Switch } from 'react-native';
 import { useMobileI18n } from '@/lib/mobile-i18n';
 
 interface MobileSecurityProps {
@@ -370,8 +370,6 @@ export function MobileSecurity({ onNavigate }: MobileSecurityProps) {
                 <View style={[styles.row, styles.alignCenter, styles.gap12]}>
                   <View 
                     style={[
-                      styles.w12,
-                      styles.h12,
                       styles.roundedFull,
                       styles.alignCenter,
                       styles.justifyCenter
@@ -394,36 +392,16 @@ export function MobileSecurity({ onNavigate }: MobileSecurityProps) {
                     </Text>
                   </View>
                 </View>
-                <TouchableOpacity
-                  onPress={() => {
+                <Switch
+                  value={twoFactorAuth}
+                  onValueChange={(value) => {
                     haptics.light();
-                    setTwoFactorAuth(!twoFactorAuth);
+                    setTwoFactorAuth(value);
                   }}
-                  style={[
-                    styles.w12,
-                    styles.h8,
-                    styles.roundedFull,
-                    styles.relative,
-                    {
-                      backgroundColor: twoFactorAuth ? '#16a34a' : 
-                        colorScheme === 'light' ? '#d1d5db' : '#4b5563',
-                    }
-                  ]}
-                >
-                  <View 
-                    style={[
-                      styles.absolute,
-                      styles.w8,
-                      styles.h8,
-                      styles.roundedFull,
-                      {
-                        backgroundColor: 'white',
-                        left: twoFactorAuth ? 18 : 0,
-                        transform: [{ translateX: twoFactorAuth ? 0 : -6 }],
-                      }
-                    ]} 
-                  />
-                </TouchableOpacity>
+                  trackColor={{ false: colorScheme === 'light' ? '#d1d5db' : '#4b5563', true: '#16a34a' }}
+                  thumbColor="white"
+                  ios_backgroundColor={colorScheme === 'light' ? '#d1d5db' : '#4b5563'}
+                />
               </View>
 
               <View style={{ 
@@ -441,8 +419,6 @@ export function MobileSecurity({ onNavigate }: MobileSecurityProps) {
                 <View style={[styles.row, styles.alignCenter, styles.gap12]}>
                   <View 
                     style={[
-                      styles.w12,
-                      styles.h12,
                       styles.roundedFull,
                       styles.alignCenter,
                       styles.justifyCenter
@@ -465,36 +441,16 @@ export function MobileSecurity({ onNavigate }: MobileSecurityProps) {
                     </Text>
                   </View>
                 </View>
-                <TouchableOpacity
-                  onPress={() => {
+                <Switch
+                  value={biometricAuth}
+                  onValueChange={(value) => {
                     haptics.light();
-                    setBiometricAuth(!biometricAuth);
+                    setBiometricAuth(value);
                   }}
-                  style={[
-                    styles.w12,
-                    styles.h8,
-                    styles.roundedFull,
-                    styles.relative,
-                    {
-                      backgroundColor: biometricAuth ? '#16a34a' : 
-                        colorScheme === 'light' ? '#d1d5db' : '#4b5563',
-                    }
-                  ]}
-                >
-                  <View 
-                    style={[
-                      styles.absolute,
-                      styles.w8,
-                      styles.h8,
-                      styles.roundedFull,
-                      {
-                        backgroundColor: 'white',
-                        left: biometricAuth ? 18 : 0,
-                        transform: [{ translateX: biometricAuth ? 0 : -6 }],
-                      }
-                    ]} 
-                  />
-                </TouchableOpacity>
+                  trackColor={{ false: colorScheme === 'light' ? '#d1d5db' : '#4b5563', true: '#16a34a' }}
+                  thumbColor="white"
+                  ios_backgroundColor={colorScheme === 'light' ? '#d1d5db' : '#4b5563'}
+                />
               </View>
             </View>
           </View>
@@ -517,12 +473,9 @@ export function MobileSecurity({ onNavigate }: MobileSecurityProps) {
                 <View style={[styles.row, styles.alignCenter, styles.gap12]}>
                   <View 
                     style={[
-                      styles.w12,
-                      styles.h12,
                       styles.roundedFull,
                       styles.alignCenter,
-                      styles.justifyCenter,
-                      { backgroundColor: '#fef2f2' }
+                      styles.justifyCenter
                     ]}
                   >
                     <AlertTriangle size={20} color="#dc2626" />

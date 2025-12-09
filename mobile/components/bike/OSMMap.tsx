@@ -1,8 +1,9 @@
-import React, { useRef, useEffect } from 'react';
-import { View, StyleSheet, Text } from 'react-native';
-import MapView, { Marker, Circle, UrlTile } from 'react-native-maps';
+/* eslint-disable react-hooks/exhaustive-deps */
+// components/bike/OSMMap.tsx
+import React, { useMemo } from 'react';
+import { View, StyleSheet, Text, ScrollView, Dimensions } from 'react-native';
+import { Svg, Circle, G, Text as SvgText } from 'react-native-svg';
 
-// Définir le type Bike compatible avec votre service
 interface Bike {
   id: string;
   latitude: number | null;
@@ -10,8 +11,6 @@ interface Bike {
   batteryLevel: number;
   code: string;
   distance?: number;
-  model?: string;
-  locationName?: string;
 }
 
 interface OSMMapProps {
@@ -21,10 +20,10 @@ interface OSMMapProps {
 }
 
 export function OSMMap({ userLocation, bikes, radius }: OSMMapProps) {
-  const mapRef = useRef<MapView>(null);
+  const { width, height } = Dimensions.get('window');
   
-  // URL OSM gratuite
-  const OSM_TILE_URL = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+  // Coordonnées par défaut
+  const center = userLocation || { lat: 4.0511, lng: 9.7679 };
   
   // Filtrer les vélos avec coordonnées valides
   const bikesWithCoords = bikes.filter(b => 
@@ -33,114 +32,165 @@ export function OSMMap({ userLocation, bikes, radius }: OSMMapProps) {
     !isNaN(b.latitude) && 
     !isNaN(b.longitude)
   );
-  
-  // Coordonnées par défaut (Douala)
-  const defaultLocation = {
-    latitude: 4.0511,
-    longitude: 9.7679,
-  };
-  
-  // Centrer la carte
-  useEffect(() => {
-    if (userLocation && mapRef.current && userLocation.lat && userLocation.lng) {
-      mapRef.current.animateToRegion({
-        latitude: userLocation.lat,
-        longitude: userLocation.lng,
-        latitudeDelta: Math.max(radius * 0.02, 0.01),
-        longitudeDelta: Math.max(radius * 0.02, 0.01),
-      }, 1000);
-    }
-  }, [userLocation, radius]);
 
-  // Déterminer la région initiale
-  const initialRegion = userLocation?.lat && userLocation?.lng 
-    ? {
-        latitude: userLocation.lat,
-        longitude: userLocation.lng,
-        latitudeDelta: 0.05,
-        longitudeDelta: 0.05,
-      }
-    : {
-        latitude: defaultLocation.latitude,
-        longitude: defaultLocation.longitude,
-        latitudeDelta: 0.1,
-        longitudeDelta: 0.1,
+  // Convertir les coordonnées GPS en coordonnées SVG (simplifié)
+  const scale = 10000; // Facteur d'échelle
+  
+  const userPos = {
+    x: width / 2,
+    y: height / 2,
+  };
+
+  // Calculer les positions des vélos
+  const bikePositions = useMemo(() => {
+    return bikesWithCoords.map(bike => {
+      if (!bike.latitude || !bike.longitude) return null;
+      
+      // Conversion simplifiée (pour une vraie app, utiliser une vraie projection)
+      const dx = (bike.longitude - center.lng) * scale;
+      const dy = (center.lat - bike.latitude) * scale;
+      
+      return {
+        id: bike.id,
+        x: userPos.x + dx,
+        y: userPos.y + dy,
+        batteryLevel: bike.batteryLevel,
+        code: bike.code,
       };
+    }).filter(Boolean);
+  }, [bikesWithCoords, center, userPos, scale]);
 
   return (
     <View style={styles.container}>
-      <MapView
-        ref={mapRef}
-        style={styles.map}
-        initialRegion={initialRegion}
-        showsUserLocation={false}
-        showsMyLocationButton={true}
-        showsCompass={true}
-        zoomEnabled={true}
-        scrollEnabled={true}
-        rotateEnabled={true}
+      {/* Carte SVG simplifiée */}
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ width: width * 2, height: height * 2 }}
       >
-        {/* Tuiles OSM */}
-        <UrlTile
-          urlTemplate={OSM_TILE_URL}
-          maximumZ={19}
-          flipY={false}
-          zIndex={-1}
-        />
-
-        {/* Cercle de rayon */}
-        {userLocation?.lat && userLocation?.lng && radius > 0 && (
-          <Circle
-            center={{
-              latitude: userLocation.lat,
-              longitude: userLocation.lng,
-            }}
-            radius={radius * 1000}
-            strokeWidth={1}
-            strokeColor="#3b82f6"
-            fillColor="rgba(59, 130, 246, 0.1)"
-          />
-        )}
-
-        {/* Marqueur utilisateur */}
-        {userLocation?.lat && userLocation?.lng && (
-          <Marker
-            coordinate={{
-              latitude: userLocation.lat,
-              longitude: userLocation.lng,
-            }}
-            title="Vous êtes ici"
-            pinColor="#3b82f6"
-          />
-        )}
-
-        {/* Marqueurs vélos */}
-        {bikesWithCoords.map((bike) => {
-          if (bike.latitude === null || bike.longitude === null) return null;
-          
-          let batteryColor = '#16a34a';
-          if (bike.batteryLevel <= 50) batteryColor = '#f59e0b';
-          if (bike.batteryLevel <= 20) batteryColor = '#ef4444';
-          
-          return (
-            <Marker
-              key={bike.id}
-              coordinate={{
-                latitude: bike.latitude,
-                longitude: bike.longitude,
-              }}
-              title={`Vélo ${bike.code}`}
-              description={`Batterie: ${bike.batteryLevel}%`}
-            >
-              <View style={styles.bikeMarker}>
-                <View style={[styles.bikeInner, { backgroundColor: batteryColor }]}>
-                  <Text style={styles.batteryText}>{bike.batteryLevel}%</Text>
-                </View>
-              </View>
-            </Marker>
-          );
-        })}
-      </MapView>
+        <ScrollView 
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ width: width * 2, height: height * 2 }}
+        >
+          <Svg width={width * 2} height={height * 2}>
+            {/* Fond de la carte */}
+            <G>
+              <Circle
+                cx={userPos.x}
+                cy={userPos.y}
+                r={radius * 500} // Cercle de recherche
+                fill="rgba(59, 130, 246, 0.1)"
+                stroke="#3b82f6"
+                strokeWidth="1"
+              />
+              
+              {/* Marqueur utilisateur */}
+              <Circle
+                cx={userPos.x}
+                cy={userPos.y}
+                r="12"
+                fill="#3b82f6"
+                stroke="white"
+                strokeWidth="2"
+              />
+              
+              <SvgText
+                x={userPos.x}
+                y={userPos.y - 15}
+                textAnchor="middle"
+                fill="#3b82f6"
+                fontSize="12"
+                fontWeight="bold"
+              >
+                Vous
+              </SvgText>
+              
+              {/* Marqueurs vélos */}
+              {bikePositions.map(bike => {
+                if (!bike) return null;
+                
+                let batteryColor = '#16a34a';
+                if (bike.batteryLevel <= 50) batteryColor = '#f59e0b';
+                if (bike.batteryLevel <= 20) batteryColor = '#ef4444';
+                
+                return (
+                  <G key={bike.id}>
+                    <Circle
+                      cx={bike.x}
+                      cy={bike.y}
+                      r="15"
+                      fill={batteryColor}
+                      stroke="white"
+                      strokeWidth="2"
+                    />
+                    <SvgText
+                      x={bike.x}
+                      y={bike.y + 5}
+                      textAnchor="middle"
+                      fill="white"
+                      fontSize="10"
+                      fontWeight="bold"
+                    >
+                      {bike.batteryLevel}%
+                    </SvgText>
+                    <SvgText
+                      x={bike.x}
+                      y={bike.y - 20}
+                      textAnchor="middle"
+                      fill="#111827"
+                      fontSize="9"
+                    >
+                      {bike.code}
+                    </SvgText>
+                  </G>
+                );
+              })}
+              
+              {/* Grille de fond */}
+              {Array.from({ length: 10 }).map((_, i) => (
+                <React.Fragment key={`grid-${i}`}>
+                  <SvgText
+                    x={i * 100}
+                    y={20}
+                    fill="#9ca3af"
+                    fontSize="10"
+                  >
+                    {(i * 0.01).toFixed(2)}°
+                  </SvgText>
+                  <SvgText
+                    y={i * 100}
+                    x={20}
+                    fill="#9ca3af"
+                    fontSize="10"
+                  >
+                    {(i * 0.01).toFixed(2)}°
+                  </SvgText>
+                </React.Fragment>
+              ))}
+            </G>
+          </Svg>
+        </ScrollView>
+      </ScrollView>
+      
+      {/* Légende */}
+      <View style={styles.legend}>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendDot, { backgroundColor: '#3b82f6' }]} />
+          <Text style={styles.legendText}>Votre position</Text>
+        </View>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendDot, { backgroundColor: '#16a34a' }]} />
+          <Text style={styles.legendText}>Batterie &gt; 50%</Text>
+        </View>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendDot, { backgroundColor: '#f59e0b' }]} />
+          <Text style={styles.legendText}>Batterie 20-50%</Text>
+        </View>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendDot, { backgroundColor: '#ef4444' }]} />
+          <Text style={styles.legendText}>Batterie &lt; 20%</Text>
+        </View>
+      </View>
     </View>
   );
 }
@@ -148,36 +198,39 @@ export function OSMMap({ userLocation, bikes, radius }: OSMMapProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#f8fafc',
   },
-  map: {
-    width: '100%',
-    height: '100%',
-  },
-  bikeMarker: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'white',
-    alignItems: 'center',
-    justifyContent: 'center',
+  legend: {
+    position: 'absolute',
+    bottom: 16,
+    left: 16,
+    right: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 12,
+    padding: 12,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 4,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  bikeInner: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+  legendItem: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    marginRight: 16,
+    marginBottom: 4,
   },
-  batteryText: {
-    color: 'white',
-    fontSize: 10,
-    fontWeight: 'bold',
+  legendDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 6,
+  },
+  legendText: {
+    fontSize: 12,
+    color: '#374151',
   },
 });

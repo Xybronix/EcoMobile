@@ -98,7 +98,7 @@ export default function MobileLogin({ onNavigate }: MobileLoginProps) {
             <Bike color="white" size={32} />
           </View>
           <Text variant="title" color="#16a34a" style={styles.mb8}>
-            Eco-Mobile
+            FreeBike
           </Text>
           <Text variant="subtitle">
             {t('auth.yourElectricMobility')}

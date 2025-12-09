@@ -17,7 +17,7 @@ import { OSMMap } from '@/components/bike/OSMMap';
 import { Battery, Building2, Filter, Home, MapPin, Navigation, Search, X, Zap, RotateCcw, MapPinIcon, CheckCircle } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { Keyboard, Platform, RefreshControl, ScrollView, TouchableOpacity, TouchableWithoutFeedback, View, useWindowDimensions } from 'react-native';
-import { check, PERMISSIONS, RESULTS, request } from 'react-native-permissions';
+import * as Location from 'expo-location';
 import { useMobileI18n } from '@/lib/mobile-i18n';
 import { MobileHeader } from '@/components/layout/MobileHeader';
 
@@ -73,45 +73,29 @@ export function MobileBikeMap({ onNavigate }: MobileBikeMapProps) {
   }, []);
 
   useEffect(() => {
-    const requestLocationPermission = async () => {
-      if (Platform.OS === 'ios') {
-        const status = await request(PERMISSIONS.IOS.LOCATION_WHEN_IN_USE);
-        if (status === RESULTS.GRANTED) {
-          getUserLocation();
-        }
-      } else if (Platform.OS === 'android') {
-        const status = await request(PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION);
-        if (status === RESULTS.GRANTED) {
-          getUserLocation();
-        }
-      }
-    };
-    
-    requestLocationPermission();
-  }, []);
-
-  useEffect(() => {
     if (mapLoaded && bikes.length > 0) {
       updateMapView();
     }
   }, [bikes, searchLocation, userLocation, mapLoaded]);
 
-  const getUserLocation = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setUserLocation({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-          });
-        },
-        () => {
-          // Douala par défaut
-          setUserLocation({ lat: 4.0511, lng: 9.7679 });
-        },
-        { enableHighAccuracy: true, timeout: 10000 }
-      );
-    } else {
+  const getUserLocation = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      
+      if (status === 'granted') {
+        const location = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.High,
+        });
+        
+        setUserLocation({
+          lat: location.coords.latitude,
+          lng: location.coords.longitude,
+        });
+      } else {
+        setUserLocation({ lat: 4.0511, lng: 9.7679 });
+      }
+    } catch (error) {
+      console.error('Erreur de géolocalisation:', error);
       setUserLocation({ lat: 4.0511, lng: 9.7679 });
     }
   };

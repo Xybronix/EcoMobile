@@ -1,3 +1,4 @@
+// app/(tabs)/map.tsx
 import { MobileBikeMap } from '@/components/bike/MobileBikeMap';
 import { useRouter } from 'expo-router';
 import React from 'react';

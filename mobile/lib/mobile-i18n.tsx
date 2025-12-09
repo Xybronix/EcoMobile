@@ -678,7 +678,7 @@ const translations: Translations = {
 
   // Chat
   'chat.title': { fr: 'Chat Support', en: 'Support Chat' },
-  'chat.support': { fr: 'Support Eco-Mobile', en: 'Eco-Mobile Support' },
+  'chat.support': { fr: 'Support FreeBike', en: 'FreeBike Support' },
   'chat.online': { fr: 'En ligne', en: 'Online' },
   'chat.offline': { fr: 'Hors ligne', en: 'Offline' },
   'chat.typing': { fr: 'En train d\'écrire...', en: 'Typing...' },
