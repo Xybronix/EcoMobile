@@ -394,12 +394,9 @@ export default function MobileProfile({ onNavigate }: MobileProfileProps) {
                     >
                       <View 
                         style={[
-                          styles.w12,
-                          styles.h12,
                           styles.roundedFull,
                           styles.alignCenter,
-                          styles.justifyCenter,
-                          { backgroundColor: colorScheme === 'light' ? '#f3f4f6' : '#374151' }
+                          styles.justifyCenter
                         ]}
                       >
                         <Icon size={20} color={item.color} />
@@ -556,7 +553,11 @@ export default function MobileProfile({ onNavigate }: MobileProfileProps) {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogCancel
+              onPress={() => setShowLogoutDialog(false)}
+            >
+              {t('common.cancel')}
+            </AlertDialogCancel>
             <AlertDialogAction
               onPress={handleLogout}
               style={{ backgroundColor: '#dc2626' }}

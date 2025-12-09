@@ -21,8 +21,6 @@ export function Card({
   ...props 
 }: CardProps) {
   const colorScheme = useColorScheme();
-  const styles = getGlobalStyles(colorScheme);
-  const colors = Colors[colorScheme === 'dark' ? 'dark' : 'light'];
 
   const getPaddingStyle = (): ViewStyle => {
     switch (padding) {

@@ -45,7 +45,7 @@ interface DropdownMenuItemProps {
 interface DropdownMenuContextType {
   open: boolean;
   setOpen: (open: boolean) => void;
-  triggerRef: React.RefObject<View>;
+  triggerRef: React.RefObject<View | null>;
   contentPosition: { x: number; y: number; width: number };
   setContentPosition: (position: { x: number; y: number; width: number }) => void;
 }
@@ -300,13 +300,3 @@ export function DropdownMenuSeparator() {
   );
 }
 
-// Export des autres composants (simplifiés pour React Native)
-export {
-  DropdownMenu as default,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuGroup,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-};

@@ -82,13 +82,13 @@ export function MobileQRScanner({ onBikeFound, onBack }: MobileQRScannerProps) {
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList style={{ marginBottom: 24 }}>
             <TabsTrigger value="scan" style={styles.row}>
-              <Camera size={16} color="currentColor" />
+              <Camera size={18} color="currentColor" />
               <Text style={styles.ml8}>
                 {t('qr.scan')}
               </Text>
             </TabsTrigger>
             <TabsTrigger value="manual" style={styles.row}>
-              <Type size={16} color="currentColor" />
+              <Type size={18} color="currentColor" />
               <Text style={styles.ml8}>
                 {t('qr.manual')}
               </Text>
@@ -190,10 +190,12 @@ export function MobileQRScanner({ onBikeFound, onBack }: MobileQRScannerProps) {
                   fullWidth
                   style={{ height: 56 }}
                 >
-                  <Zap size={20} color="white" />
-                  <Text style={styles.ml8} color="white" size="lg">
-                    {isSearching ? t('common.loading') : t('common.confirm')}
-                  </Text>
+                  <View style={[styles.row, styles.gap4, styles.alignCenter, styles.justifyCenter]}>
+                    <Zap size={20} color="white" />
+                    <Text style={styles.ml8} color="white" size="lg">
+                      {isSearching ? t('common.loading') : t('common.confirm')}
+                    </Text>
+                  </View>
                 </Button>
               </View>
             </View>

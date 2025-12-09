@@ -6,6 +6,8 @@ import {
   Platform,
   ViewStyle,
   ScrollViewProps,
+  StyleSheet,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -18,43 +20,76 @@ interface KeyboardAvoidingContainerProps extends ScrollViewProps {
   keyboardVerticalOffset?: number;
   style?: ViewStyle;
   contentContainerStyle?: ViewStyle;
+  enableOnAndroid?: boolean;
 }
 
 export function KeyboardAvoidingContainer({
   children,
   safeArea = true,
-  behavior = Platform.OS === 'ios' ? 'padding' : 'height',
-  keyboardVerticalOffset = Platform.OS === 'ios' ? 0 : 0,
+  behavior = Platform.select({
+    ios: 'padding',
+    android: 'height',
+    default: 'height',
+  }),
+  keyboardVerticalOffset = Platform.select({
+    ios: 0,
+    android: 0,
+    default: 0,
+  }),
   style,
   contentContainerStyle,
+  enableOnAndroid = true,
   ...scrollProps
 }: KeyboardAvoidingContainerProps) {
   const colorScheme = useColorScheme();
   const styles = getGlobalStyles(colorScheme);
 
-  const Container = safeArea ? SafeAreaView : React.Fragment;
-  const containerProps = safeArea ? { style: styles.containerSafe } : {};
+  const useKeyboardAvoiding = Platform.OS === 'ios' || enableOnAndroid;
+
+  const Container = safeArea ? SafeAreaView : View;
+  const containerProps = safeArea 
+    ? { style: [styles.containerSafe, style] } 
+    : { style: [localStyles.container, style] };
+
+  const renderContent = () => (
+    <ScrollView
+      style={styles.scrollView}
+      contentContainerStyle={[
+        styles.scrollContentPadded,
+        contentContainerStyle,
+      ]}
+      keyboardShouldPersistTaps="handled"
+      showsVerticalScrollIndicator={false}
+      {...scrollProps}
+    >
+      {children}
+    </ScrollView>
+  );
 
   return (
     <Container {...containerProps}>
-      <KeyboardAvoidingView
-        style={[styles.containerKeyboard, style]}
-        behavior={behavior}
-        keyboardVerticalOffset={keyboardVerticalOffset}
-      >
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={[
-            styles.scrollContentPadded,
-            contentContainerStyle,
-          ]}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-          {...scrollProps}
+      {useKeyboardAvoiding ? (
+        <KeyboardAvoidingView
+          style={localStyles.keyboardAvoidingView}
+          behavior={behavior}
+          keyboardVerticalOffset={keyboardVerticalOffset}
+          enabled={useKeyboardAvoiding}
         >
-          {children}
-        </ScrollView>
-      </KeyboardAvoidingView>
+          {renderContent()}
+        </KeyboardAvoidingView>
+      ) : (
+        renderContent()
+      )}
     </Container>
   );
 }
+
+const localStyles = StyleSheet.create({
+  keyboardAvoidingView: {
+    flex: 1,
+    width: '100%',
+  },
+  container: {
+    flex: 1,
+  },
+});

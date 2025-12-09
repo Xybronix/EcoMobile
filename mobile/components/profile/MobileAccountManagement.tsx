@@ -259,12 +259,12 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
             <AlertTriangle size={20} color="#f59e0b" />
             <View style={styles.flex1}>
               <Text size="sm" color="#92400e" weight="bold">
-                🚫 {t('accountManagement.serviceBlocked')}
+                {t('accountManagement.serviceBlocked')}
               </Text>
               <Text size="sm" color="#92400e" style={styles.mt4}>
-                {`${t('accountManagement.requiredMinimum')}: ${ depositInfo.requiredDeposit }`}
-                {'\n'}{`${t('accountManagement.currentAmount')}: ${ depositInfo.currentDeposit }`}
-                {'\n'}{`${t('accountManagement.missingAmount')}: ${ depositInfo.requiredDeposit - depositInfo.currentDeposit }`}
+                {`${t('accountManagement.requiredMinimum')} ${ depositInfo.requiredDeposit }`}
+                {'\n'}{`${t('accountManagement.currentAmount')} ${ depositInfo.currentDeposit }`}
+                {'\n'}{`${t('accountManagement.missingAmount')} ${ depositInfo.requiredDeposit - depositInfo.currentDeposit }`}
               </Text>
               <Button
                 variant="outline"
@@ -286,7 +286,7 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
             <AlertTriangle size={20} color="#dc2626" />
             <View style={styles.flex1}>
               <Text size="sm" color="#991b1b" weight="bold">
-                ⚠️ {`${t('accountManagement.negativeBalance')} ${ depositInfo.negativeBalance }`}
+                {`${t('accountManagement.negativeBalance')} ${ depositInfo.negativeBalance }`}
               </Text>
               <Text size="xs" color="#991b1b" style={styles.mt4}>
                 {t('wallet.insufficientBalance')}
@@ -304,20 +304,24 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
             onPress={() => onNavigate('wallet-topup')}
             style={[styles.flex1, styles.row]}
           >
-            <CreditCard size={16} color={colorScheme === 'light' ? '#111827' : '#f9fafb'} />
-            <Text style={styles.ml8} color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
-              {t('accountManagement.rechargeWallet')}
-            </Text>
+            <View style={[styles.row, styles.gap4, styles.alignCenter, styles.justifyCenter]}>
+              <CreditCard size={18} color={colorScheme === 'light' ? '#111827' : '#f9fafb'} />
+              <Text style={styles.ml8} color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
+                {t('accountManagement.rechargeWallet')}
+              </Text>
+            </View>
           </Button>
           <Button
             variant="outline"
             onPress={() => onNavigate('recharge-deposit')}
             style={[styles.flex1, styles.row]}
           >
-            <Shield size={16} color={colorScheme === 'light' ? '#111827' : '#f9fafb'} />
-            <Text style={styles.ml8} color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
-              {t('accountManagement.deposit')}
-            </Text>
+            <View style={[styles.row, styles.gap4, styles.alignCenter, styles.justifyCenter]}>
+              <Shield size={18} color={colorScheme === 'light' ? '#111827' : '#f9fafb'} />
+              <Text style={styles.ml8} color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
+                {t('accountManagement.deposit')}
+              </Text>
+            </View>
           </Button>
         </View>
         <Button
@@ -325,10 +329,12 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
           onPress={() => onNavigate('create-incident')}
           style={[styles.row]}
         >
-          <AlertTriangle size={16} color={colorScheme === 'light' ? '#111827' : '#f9fafb'} />
-          <Text style={styles.ml8} color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
-            {t('accountManagement.reportProblem')}
-          </Text>
+          <View style={[styles.row, styles.gap4, styles.alignCenter, styles.justifyCenter]}>
+            <AlertTriangle size={18} color={colorScheme === 'light' ? '#111827' : '#f9fafb'} />
+            <Text style={styles.ml8} color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
+              {t('accountManagement.reportProblem')}
+            </Text>
+          </View>
         </Button>
       </View>
     </View>
@@ -578,7 +584,7 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
           {incident.refundAmount > 0 && (
             <View style={[styles.row, styles.alignCenter, styles.gap4, styles.mb8]}>
               <Text size="sm" color="#16a34a" weight="bold">
-                {`${t('accountManagement.refundAmount')}: ${(incident.refundAmount)}`}
+                {`${t('accountManagement.refundAmount')} ${(incident.refundAmount)}`}
               </Text>
             </View>
           )}
@@ -586,7 +592,7 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
           {incident.adminNote && (
             <View style={[styles.p12, styles.rounded8, { backgroundColor: colorScheme === 'light' ? '#f9fafb' : '#374151' }]}>
               <Text size="xs" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
-                {`${t('accountManagement.adminNote')}: ${ incident.adminNote }`}
+                {`${t('accountManagement.adminNote')} ${ incident.adminNote }`}
               </Text>
             </View>
           )}
