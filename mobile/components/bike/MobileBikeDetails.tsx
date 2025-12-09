@@ -108,30 +108,25 @@ export function MobileBikeDetails({ bike: initialBike, onBack, onStartRide, onNa
       return;
     }
 
-    if (priceInfo?.willBeCharged && user.wallet.balance < priceInfo.amount) {
-      haptics.error();
-      toast.error(t('wallet.insufficientBalance'));
-      onNavigate?.('wallet');
-      return;
-    }
-
     try {
+      const walletBalance = await walletService.getBalance();
+      
+      if (priceInfo?.willBeCharged && walletBalance.balance < priceInfo.amount) {
+        haptics.error();
+        toast.error(t('wallet.insufficientBalance'));
+        onNavigate?.('wallet');
+        return;
+      }
+      
       haptics.light();
       
       onNavigate?.('bike-inspection', {
         bikeId: bike.id,
         bikeName: `${bike.code} - ${bike.model}`,
         inspectionType: 'pickup',
-        onInspectionComplete: async (inspectionData: any) => {
-          try {
-            const request = await bikeRequestService.createUnlockRequest(bike.id, inspectionData.metadata);
-            
-            toast.success(t('unlock.requestSent'));
-            
-            // Naviguer vers les demandes
+        onInspectionComplete: async (result: any) => {
+          if (result.type === 'unlock_request_sent') {
             onNavigate?.('account-management', { activeTab: 'requests' });
-          } catch (error: any) {
-            toast.error(error.message || 'Erreur lors de la demande');
           }
         }
       });

@@ -9,9 +9,11 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { getGlobalStyles } from '@/styles/globalStyles';
 import { haptics } from '@/utils/haptics';
 import { subscriptionService } from '@/services/subscriptionService';
+import { bikeRequestService } from '@/services/bikeRequestService';
+import * as ImagePicker from 'expo-image-picker';
 import { AlertTriangle, ArrowLeft, Camera, Check, X } from 'lucide-react-native';
 import React, { useState, useEffect } from 'react';
-import { ScrollView, TouchableOpacity, View } from 'react-native';
+import { ScrollView, TouchableOpacity, View, Alert } from 'react-native';
 import { useMobileI18n } from '@/lib/mobile-i18n';
 
 interface MobileBikeInspectionProps {
@@ -19,7 +21,7 @@ interface MobileBikeInspectionProps {
   bikeName: string;
   inspectionType: 'pickup' | 'return';
   bikeEquipment?: string[];
-  onComplete: (data: InspectionData) => void;
+  onComplete: (data: InspectionData | { type: string; data: InspectionData }) => void;
   onBack: () => void;
 }
 
@@ -58,6 +60,7 @@ export function MobileBikeInspection({ bikeId, bikeName, inspectionType, bikeEqu
   const [notes, setNotes] = useState('');
   const [photos, setPhotos] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     loadCurrentSubscription();
@@ -117,14 +120,65 @@ export function MobileBikeInspection({ bikeId, bikeName, inspectionType, bikeEqu
     );
   };
 
-  const handleAddPhoto = () => {
-    if (photos.length < 5) {
-      haptics.light();
-      const newPhotos = [...photos, `photo-${Date.now()}.jpg`];
-      setPhotos(newPhotos);
-    } else {
+  const showPhotoOptions = () => {
+    Alert.alert(
+      'Ajouter une photo',
+      'Choisissez une option',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        { text: 'Appareil photo', onPress: () => handleAddPhoto('camera') },
+        { text: 'Galerie', onPress: () => handleAddPhoto('library') }
+      ]
+    );
+  };
+
+  const handleAddPhoto = async (source: 'camera' | 'library') => {
+    if (photos.length >= 5) {
       haptics.error();
       toast.error(t('inspection.maxPhotos'));
+      return;
+    }
+
+    try {
+      haptics.light();
+      
+      if (source === 'camera') {
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        if (status !== 'granted') {
+          toast.error('Permission caméra requise');
+          return;
+        }
+      } else {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+          toast.error('Permission galerie requise');
+          return;
+        }
+      }
+
+      const options = {
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3] as [number, number],
+        quality: 0.8,
+      };
+
+      let result;
+      if (source === 'camera') {
+        result = await ImagePicker.launchCameraAsync(options);
+      } else {
+        result = await ImagePicker.launchImageLibraryAsync(options);
+      }
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const photoUri = result.assets[0].uri;
+        const newPhotos = [...photos, photoUri];
+        setPhotos(newPhotos);
+      }
+      
+    } catch (error) {
+      console.error('Erreur lors de la capture de photo:', error);
+      toast.error('Erreur lors de la capture de photo');
     }
   };
 
@@ -134,8 +188,7 @@ export function MobileBikeInspection({ bikeId, bikeName, inspectionType, bikeEqu
     setPhotos(newPhotos);
   };
 
-  const handleComplete = () => {
-    // Check if all items have been inspected
+  const handleComplete = async () => {
     const allInspected = inspectionItems.every(item => item.isGood !== null);
     
     if (!allInspected) {
@@ -156,27 +209,46 @@ export function MobileBikeInspection({ bikeId, bikeName, inspectionType, bikeEqu
       return;
     }
 
-    const data: InspectionData = {
-      condition: hasIssues ? 'damaged' : 'good',
-      issues,
-      notes,
-      photos,
-      metadata: {
-        inspection: {
-          type: inspectionType,
-          condition: hasIssues ? 'damaged' : 'good',
-          issues,
-          notes,
-          photos,
-          inspectedAt: new Date().toISOString(),
-          hasIssues
-        },
-        paymentMethod: currentSubscription ? 'SUBSCRIPTION' : 'WALLET'
-      }
-    };
+    if (isSubmitting) return;
+    
+    setIsSubmitting(true);
 
-    haptics.success();
-    onComplete(data);
+    try {
+      const inspectionData = {
+        condition: hasIssues ? 'damaged' : 'good',
+        issues,
+        notes,
+        photos,
+        metadata: {
+          inspection: {
+            type: inspectionType,
+            condition: hasIssues ? 'damaged' : 'good',
+            issues,
+            notes,
+            photos,
+            inspectedAt: new Date().toISOString(),
+            hasIssues
+          },
+          paymentMethod: currentSubscription ? 'SUBSCRIPTION' : 'WALLET'
+        }
+      };
+
+      if (inspectionType === 'pickup') {
+        await bikeRequestService.createUnlockRequest(bikeId, inspectionData.metadata);
+        
+        haptics.success();
+        toast.success(t('unlock.requestSent'));
+        onComplete({type: 'unlock_request_sent', data: inspectionData});
+      } else {
+        onComplete(inspectionData);
+      }
+      
+    } catch (error: any) {
+      haptics.error();
+      toast.error(error.message || 'Erreur lors de la demande');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const allInspected = inspectionItems.every(item => item.isGood !== null);
@@ -409,7 +481,7 @@ export function MobileBikeInspection({ bikeId, bikeName, inspectionType, bikeEqu
                   ]}
                 >
                   <Text size="xs" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
-                    {t('inspection.photo')} {index + 1}
+                    Photo {index + 1}
                   </Text>
                   <TouchableOpacity
                     onPress={() => handleRemovePhoto(index)}
@@ -433,13 +505,15 @@ export function MobileBikeInspection({ bikeId, bikeName, inspectionType, bikeEqu
             {photos.length < 5 && (
               <Button 
                 variant="secondary" 
-                onPress={handleAddPhoto}
+                onPress={showPhotoOptions}
                 fullWidth
               >
-                <Camera size={16} color={colorScheme === 'light' ? '#111827' : '#f9fafb'} />
-                <Text style={styles.ml8} color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
-                  {t('inspection.addPhoto')}
-                </Text>
+                <View style={[styles.row, styles.gap4, styles.alignCenter]}>
+                  <Camera size={16} color={colorScheme === 'light' ? '#111827' : '#f9fafb'} />
+                  <Text style={styles.ml8} color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
+                    {t('inspection.addPhoto')}
+                  </Text>
+                </View>
               </Button>
             )}
           </Card>
@@ -450,16 +524,24 @@ export function MobileBikeInspection({ bikeId, bikeName, inspectionType, bikeEqu
           onPress={handleComplete}
           variant="primary"
           fullWidth
-          disabled={!allInspected || (hasIssues && !notes.trim()) || isLoading}
+          disabled={!allInspected || (hasIssues && !notes.trim()) || isLoading || isSubmitting}
         >
-          <Check size={16} color="white" />
-          <Text style={styles.ml8} color="white">
-            {t(`inspection.${inspectionType === 'pickup' ? 'startRide' : 'returnBike'}`)}
-          </Text>
+          <View style={[styles.row, styles.gap4, styles.alignCenter]}>
+            <Check size={16} color="white" />
+            <Text style={styles.ml8} color="white">
+              {isSubmitting ? 
+                'Envoi en cours...' : 
+                t(`inspection.${inspectionType === 'pickup' ? 'sendUnlockRequest' : 'returnBike'}`)
+              }
+            </Text>
+          </View>
         </Button>
 
         <Text size="xs" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={styles.textCenter}>
-          {t(`inspection.confirm${inspectionType === 'pickup' ? 'Pickup' : 'Return'}`)}
+          {inspectionType === 'pickup' ? 
+            'En validant, vous envoyez une demande de déverrouillage qui sera examinée par un administrateur.' :
+            'En validant, vous confirmez le retour du vélo.'
+          }
         </Text>
       </ScrollView>
     </View>

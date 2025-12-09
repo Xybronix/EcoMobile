@@ -281,10 +281,12 @@ export function MobileRechargeDeposit({ onBack, onSuccess }: MobileRechargeDepos
               opacity: (isProcessing || (!selectedAmount && !customAmount) || walletBalance < (selectedAmount || parseInt(customAmount) || 0)) ? 0.6 : 1
             }}
           >
-            <Shield size={16} color="white" />
-            <Text style={styles.ml8} color="white">
-              {isProcessing ? t('wallet.recharging') : `${t('wallet.rechargeAmount')} ${(selectedAmount || customAmount || 0).toLocaleString()} XOF`}
-            </Text>
+            <View style={[styles.row, styles.gap8, styles.alignCenter]}>
+              <Shield size={16} color="white" />
+              <Text style={styles.ml8} color="white">
+                {isProcessing ? t('wallet.recharging') : `${t('wallet.rechargeAmount')} ${(selectedAmount || customAmount || 0).toLocaleString()} XOF`}
+              </Text>
+            </View>
           </Button>
 
           {(walletBalance < (selectedAmount || parseInt(customAmount) || 0)) && (
@@ -293,10 +295,12 @@ export function MobileRechargeDeposit({ onBack, onSuccess }: MobileRechargeDepos
               onPress={() => onBack()}
               fullWidth
             >
-              <Wallet size={16} color="#16a34a" />
-              <Text style={styles.ml8} color="#16a34a">
-                {t('wallet.topUpWalletFirst')}
-              </Text>
+              <View style={[styles.row, styles.gap8]}>
+                <Wallet size={16} color="#16a34a" />
+                <Text style={styles.ml8} color="#16a34a">
+                  {t('wallet.topUpWalletFirst')}
+                </Text>
+              </View>
             </Button>
           )}
         </View>

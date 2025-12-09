@@ -128,13 +128,19 @@ export class BikeActionService {
     page?: number;
     limit?: number;
   }): Promise<UnlockRequest[]> {
-    const response = await apiClient.get<PaginatedRequests<UnlockRequest>>('/bike-requests/unlock/pending', params);
+    const response = await apiClient.get<PaginatedRequests<UnlockRequest>>('/api/v1/bike-requests/unlock/pending', params);
     
     if (!response.success || !response.data) {
       throw new Error(response.error || 'Erreur lors de la récupération des demandes de déverrouillage');
     }
 
-    return Array.isArray(response.data) ? response.data : response.data.requests || [];
+    if (Array.isArray(response.data)) {
+      return response.data;
+    } else if (response.data.requests) {
+      return response.data.requests;
+    } else {
+      return [];
+    }
   }
 
   /**
@@ -144,13 +150,19 @@ export class BikeActionService {
     page?: number;
     limit?: number;
   }): Promise<LockRequest[]> {
-    const response = await apiClient.get<PaginatedRequests<LockRequest>>('/bike-requests/lock/pending', params);
+    const response = await apiClient.get<PaginatedRequests<LockRequest>>('/api/v1/bike-requests/lock/pending', params);
     
     if (!response.success || !response.data) {
       throw new Error(response.error || 'Erreur lors de la récupération des demandes de verrouillage');
     }
 
-    return Array.isArray(response.data) ? response.data : response.data.requests || [];
+    if (Array.isArray(response.data)) {
+      return response.data;
+    } else if (response.data.requests) {
+      return response.data.requests;
+    } else {
+      return [];
+    }
   }
 
   /**

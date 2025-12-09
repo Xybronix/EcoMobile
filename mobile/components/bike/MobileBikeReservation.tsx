@@ -62,7 +62,6 @@ export function MobileBikeReservation({ bike, onBack, onReservationComplete }: M
       return;
     }
 
-    // Vérifier que la date est dans les 15 prochaines minutes
     const now = new Date();
     const fifteenMinutesLater = new Date(now.getTime() + 15 * 60 * 1000);
     
@@ -74,14 +73,13 @@ export function MobileBikeReservation({ bike, onBack, onReservationComplete }: M
     try {
       setIsSubmitting(true);
       
-      // Formater la date pour l'API
       const startDate = selectedDateTime.toISOString().split('T')[0];
       const startTime = selectedDateTime.toTimeString().split(' ')[0].substring(0, 5);
 
       await reservationService.createReservation({
         bikeId: bike.id,
-        planId: 'default', // Plan par défaut
-        packageType: 'hourly', // Toujours horaire
+        planId: 'default',
+        packageType: 'hourly',
         startDate,
         startTime
       });
@@ -278,10 +276,12 @@ export function MobileBikeReservation({ bike, onBack, onReservationComplete }: M
             opacity: (isSubmitting || !selectedDateTime) ? 0.6 : 1
           }}
         >
-          <Check size={16} color="white" />
-          <Text style={styles.ml8} color="white">
-            {isSubmitting ? 'Réservation en cours...' : 'Confirmer la réservation'}
-          </Text>
+          <View style={[styles.row, styles.gap8, styles.alignCenter]}>
+            <Check size={16} color="white" />
+            <Text style={styles.ml8} color="white">
+              {isSubmitting ? 'Réservation en cours...' : 'Confirmer la réservation'}
+            </Text>
+          </View>
         </Button>
       </ScrollView>
     </View>
