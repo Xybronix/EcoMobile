@@ -12,8 +12,8 @@ export function Hero() {
       {/* Background Image */}
       <div className="absolute inset-0 z-0">
         <ImageWithFallback
-          src="https://images.unsplash.com/photo-1621856364155-3c77e1bed23d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&ixlib=rb-4.0.3&q=80&w=2070"
-          alt="Black person riding a green bike in the city"
+          src="https://media.istockphoto.com/id/1999953241/photo/coworkers-riding-a-bicycle-at-public-park.jpg?s=612x612&w=0&k=20&c=w78vE8_f55FE-hus6rfW58JKI9mS2vNAp3n03f__TII="
+          alt="Electric bike in city"
           className="w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-transparent" />
