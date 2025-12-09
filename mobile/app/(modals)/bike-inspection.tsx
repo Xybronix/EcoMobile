@@ -9,25 +9,31 @@ export default function BikeInspectionScreen() {
   const bikeId = params.bikeId as string;
   const bikeName = params.bikeName as string;
   const inspectionType = params.inspectionType as 'pickup' | 'return';
+  const onInspectionComplete = params.onInspectionComplete ? eval(`(${params.onInspectionComplete})`) : null;
 
   const handleBack = () => {
     router.back();
   };
 
   const handleComplete = (data: any) => {
-    if (inspectionType === 'pickup') {
+    if (onInspectionComplete) {
+      onInspectionComplete(data);
+    } else if (inspectionType === 'pickup') {
       router.navigate({
-        pathname: '/(modals)/ride-in-progress',
-        params: { 
-          bikeData: JSON.stringify({
-            id: bikeId,
-            name: bikeName,
-            // autres données du vélo...
-          })
-        }
+        pathname: '/(modals)/account-management',
+        params: { activeTab: 'requests' }
       });
     } else {
-      router.navigate('/(tabs)/home');
+      const hasIssues = data.issues && data.issues.length > 0;
+      
+      if (hasIssues) {
+        router.navigate({
+          pathname: '/(modals)/account-management',
+          params: { activeTab: 'incidents' }
+        });
+      } else {
+        router.navigate('/(tabs)/home');
+      }
     }
   };
 

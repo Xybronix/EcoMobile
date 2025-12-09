@@ -269,6 +269,59 @@ class BikeRequestService {
     }
   }
 
+  /**
+   * Supprimer une demande de déverrouillage
+   */
+  async deleteUnlockRequest(requestId: string): Promise<void> {
+    const headers = await this.getAuthHeaders();
+    
+    try {
+      const response = await fetch(`${this.baseUrl}/unlock/${requestId}`, {
+        method: 'DELETE',
+        headers,
+      });
+
+      await handleApiResponse(response);
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new Error(this.getErrorMessage(error));
+      }
+      throw new Error('network_error');
+    }
+  }
+
+  /**
+   * Supprimer une demande de verrouillage
+   */
+  async deleteLockRequest(requestId: string): Promise<void> {
+    const headers = await this.getAuthHeaders();
+    
+    try {
+      const response = await fetch(`${this.baseUrl}/lock/${requestId}`, {
+        method: 'DELETE',
+        headers,
+      });
+
+      await handleApiResponse(response);
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new Error(this.getErrorMessage(error));
+      }
+      throw new Error('network_error');
+    }
+  }
+
+  /**
+   * Méthode utilitaire pour supprimer une demande
+   */
+  async deleteRequest(type: 'unlock' | 'lock', requestId: string): Promise<void> {
+    if (type === 'unlock') {
+      return this.deleteUnlockRequest(requestId);
+    } else {
+      return this.deleteLockRequest(requestId);
+    }
+  }
+
   private getErrorMessage(error: ApiError): string {
     switch (error.status) {
       case 400:

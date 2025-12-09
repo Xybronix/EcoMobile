@@ -13,7 +13,10 @@ export default function BikeReservationScreen() {
   };
 
   const handleReservationComplete = () => {
-    router.navigate('/(tabs)/map');
+    router.navigate({
+      pathname: '/(modals)/account-management',
+      params: { activeTab: 'reservations' }
+    });
   };
 
   if (!bikeData) {

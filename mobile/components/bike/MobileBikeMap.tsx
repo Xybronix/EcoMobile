@@ -663,8 +663,10 @@ export function MobileBikeMap({ onNavigate }: MobileBikeMapProps) {
                 : 'Vélos disponibles à proximité'}
             </Text>
             <Badge variant="secondary">
-              <Zap size={12} color="currentColor" style={{marginRight: 10}} />
-              <Text style={styles.ml4}>{filteredBikes.length}</Text>
+              <View style={[styles.row, styles.gap4, styles.alignCenter]}>
+                <Zap size={12} color="currentColor" style={{marginRight: 10}} />
+                <Text>{filteredBikes.length}</Text>
+              </View>
             </Badge>
           </View>
 
@@ -675,34 +677,42 @@ export function MobileBikeMap({ onNavigate }: MobileBikeMapProps) {
                 <Text size="sm" color={colors.primary}>Filtres actifs:</Text>
                 {searchMode === 'area' && (
                   <Badge variant="secondary" style={{ backgroundColor: colors.primary + '20' }}>
-                    <Building2 size={10} color={colors.primary} />
-                    <Text size="xs" color={colors.primary} style={styles.ml4}>
-                      {areas.find(a => a.key === selectedArea)?.name}
-                    </Text>
+                    <View style={[styles.row, styles.gap4, styles.alignCenter]}>
+                      <Building2 size={10} color={colors.primary} />
+                      <Text size="xs" color={colors.primary}>
+                        {areas.find(a => a.key === selectedArea)?.name}
+                      </Text>
+                    </View>
                   </Badge>
                 )}
                 {maxDistance !== 2 && (
                   <Badge variant="secondary" style={{ backgroundColor: colors.primary + '20' }}>
-                    <MapPin size={10} color={colors.primary} />
-                    <Text size="xs" color={colors.primary} style={styles.ml4}>
-                      {DISTANCE_PRESETS.find(d => d.value === maxDistance)?.label}
-                    </Text>
+                    <View style={[styles.row, styles.gap4, styles.alignCenter]}>
+                      <MapPin size={10} color={colors.primary} />
+                      <Text size="xs" color={colors.primary}>
+                        {DISTANCE_PRESETS.find(d => d.value === maxDistance)?.label}
+                      </Text>
+                    </View>
                   </Badge>
                 )}
                 {minBattery > 0 && (
                   <Badge variant="secondary" style={{ backgroundColor: colors.primary + '20' }}>
-                    <Battery size={10} color={colors.primary} />
-                    <Text size="xs" color={colors.primary} style={styles.ml4}>
-                      {minBattery}%+
-                    </Text>
+                    <View style={[styles.row, styles.gap4, styles.alignCenter]}>
+                      <Battery size={10} color={colors.primary} />
+                      <Text size="xs" color={colors.primary}>
+                        {minBattery}%+
+                      </Text>
+                    </View>
                   </Badge>
                 )}
                 <TouchableOpacity onPress={resetAllFilters}>
                   <Badge variant="secondary" style={{ backgroundColor: '#ef444420' }}>
-                    <X size={10} color="#ef4444" />
-                    <Text size="xs" color="#ef4444" style={styles.ml4}>
-                      Effacer
-                    </Text>
+                    <View style={[styles.row, styles.gap4, styles.alignCenter]}>
+                      <X size={10} color="#ef4444" />
+                      <Text size="xs" color="#ef4444" style={styles.ml4}>
+                        Effacer
+                      </Text>
+                    </View>
                   </Badge>
                 </TouchableOpacity>
               </View>
@@ -731,8 +741,10 @@ export function MobileBikeMap({ onNavigate }: MobileBikeMapProps) {
                     {t('map.adjustFilters')}
                   </Text>
                   <Button onPress={() => setShowFilters(true)} variant="secondary">
-                    <Filter size={16} color="currentColor" />
-                    <Text style={styles.ml8}>{t('map.modifyFilters')}</Text>
+                    <View style={[styles.row, styles.gap8, styles.alignCenter]}>
+                      <Filter size={16} color="currentColor" />
+                      <Text style={styles.ml8}>{t('map.modifyFilters')}</Text>
+                    </View>
                   </Button>
                 </View>
               </View>
@@ -770,10 +782,12 @@ export function MobileBikeMap({ onNavigate }: MobileBikeMapProps) {
                             </Text>
                           </View>
                           <Badge variant={bike.batteryLevel > 50 ? 'default' : 'secondary'}>
-                            <Battery size={12} color={bike.batteryLevel > 50 ? 'white' : '#111827'} />
-                            <Text style={styles.ml4} color={bike.batteryLevel > 50 ? 'white' : '#111827'}>
-                              {bike.batteryLevel}%
-                            </Text>
+                            <View style={[styles.row, styles.gap8, styles.alignCenter]}>
+                              <Battery size={12} color={bike.batteryLevel > 50 ? 'white' : '#111827'} />
+                              <Text style={styles.ml4} color={bike.batteryLevel > 50 ? 'white' : '#111827'}>
+                                {bike.batteryLevel}%
+                              </Text>
+                            </View>
                           </Badge>
                         </View>
 

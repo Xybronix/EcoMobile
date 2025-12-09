@@ -1,3 +1,4 @@
+/* eslint-disable react/no-unescaped-entities */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable react-hooks/exhaustive-deps */
 import { Button } from '@/components/ui/Button';
@@ -6,13 +7,15 @@ import { Label } from '@/components/ui/Label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
 import { Text } from '@/components/ui/Text';
 import { toast } from '@/components/ui/Toast';
+import { useCustomModals } from '@/components/ui/CustomModals';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { getGlobalStyles } from '@/styles/globalStyles';
 import { haptics } from '@/utils/haptics';
 import { walletService } from '@/services/walletService';
 import { incidentService } from '@/services/incidentService';
 import { bikeRequestService } from '@/services/bikeRequestService';
-import { Wallet, CreditCard, Clock, Shield, AlertTriangle, ArrowLeft, Lock, Unlock, FileText } from 'lucide-react-native';
+import { reservationService } from '@/services/reservationService';
+import { Calendar, Wallet, CreditCard, Clock, Shield, AlertTriangle, ArrowLeft, Lock, Unlock, FileText, MapPin, Trash2 } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { View, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
 import { useMobileI18n } from '@/lib/mobile-i18n';
@@ -27,14 +30,22 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
   const { t } = useMobileI18n();
   const colorScheme = useColorScheme();
   const styles = getGlobalStyles(colorScheme);
+
+  const {
+    ConfirmModalComponent,
+    showConfirmModal,
+    InfoModalComponent,
+    showInfoModal
+  } = useCustomModals();
   
-  const [activeTab, setActiveTab] = useState<'overview' | 'transactions' | 'requests' | 'incidents'>(initialTab as any);
+  const [activeTab, setActiveTab] = useState<'overview' | 'transactions' | 'requests' | 'incidents' | 'reservations'>(initialTab as any);
   const [isLoading, setIsLoading] = useState(false);
   const [walletData, setWalletData] = useState<any>(null);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [incidents, setIncidents] = useState<any[]>([]);
   const [unlockRequests, setUnlockRequests] = useState<any[]>([]);
   const [lockRequests, setLockRequests] = useState<any[]>([]);
+  const [reservations, setReservations] = useState<any[]>([]);
   const [currentSubscription, setCurrentSubscription] = useState<any>(null);
   const [depositInfo, setDepositInfo] = useState<any>(null);
   
@@ -49,6 +60,8 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
   useEffect(() => {
     if (activeTab === 'requests') {
       loadRequests();
+    } else if (activeTab === 'reservations') {
+      loadReservations();
     }
   }, [activeTab]);
 
@@ -96,6 +109,16 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
     } catch (error) {
       console.error('Error loading requests:', error);
       toast.error(t('common.error'));
+    }
+  };
+
+  const loadReservations = async () => {
+    try {
+      const userReservations = await reservationService.getUserReservations();
+      setReservations(userReservations || []);
+    } catch (error) {
+      console.error('Error loading reservations:', error);
+      toast.error('Erreur lors du chargement des réservations');
     }
   };
 
@@ -151,6 +174,341 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
       'other': t('incident.other')
     };
     return typeMap[type] || type;
+  };
+
+  const getReservationStatusColor = (reservation: any) => {
+    const now = new Date();
+    const startDate = new Date(reservation.startDate);
+    const endDate = new Date(reservation.endDate);
+
+    if (reservation.status === 'CANCELLED') return '#dc2626';
+    if (endDate < now) return '#6b7280';
+    if (startDate <= now && endDate >= now) return '#16a34a';
+    if (startDate > now) return '#f59e0b';
+    return '#6b7280';
+  };
+
+  const getReservationStatusText = (reservation: any) => {
+    const now = new Date();
+    const startDate = new Date(reservation.startDate);
+    const endDate = new Date(reservation.endDate);
+
+    if (reservation.status === 'CANCELLED') return 'Annulée';
+    if (endDate < now) return 'Terminée';
+    if (startDate <= now && endDate >= now) return 'En cours';
+    if (startDate > now) return 'À venir';
+    return 'Inconnue';
+  };
+
+  const handleDeleteRequest = async (request: any, type: 'unlock' | 'lock') => {
+    if (request.status !== 'PENDING') {
+      showInfoModal(
+        'Suppression impossible',
+        <Text color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
+          Seules les demandes en attente peuvent être supprimées.
+        </Text>
+      );
+      return;
+    }
+
+    showConfirmModal(
+      'Supprimer la demande',
+      `Êtes-vous sûr de vouloir supprimer cette demande de ${type === 'unlock' ? 'déverrouillage' : 'verrouillage'} ?`,
+      async () => {
+        try {
+          await bikeRequestService.deleteRequest(type, request.id);
+          toast.success('Demande supprimée avec succès');
+          loadRequests();
+        } catch (error: any) {
+          toast.error(error.message || 'Erreur lors de la suppression');
+        }
+      },
+      'danger'
+    );
+  };
+
+  const handleDeleteReservation = async (reservationId: string, reservation: any) => {
+    if (reservation.status !== 'ACTIVE') {
+      showInfoModal(
+        'Annulation impossible',
+        <Text color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
+          Seules les réservations actives peuvent être annulées.
+        </Text>
+      );
+      return;
+    }
+
+    showConfirmModal(
+      'Annuler la réservation',
+      `Êtes-vous sûr de vouloir annuler cette réservation ?\n\nVélo: ${reservation.bike?.code}\nDate: ${new Date(reservation.startDate).toLocaleDateString()}\n\nCette action est irréversible.`,
+      async () => {
+        try {
+          await reservationService.cancelReservation(reservationId);
+          toast.success('Réservation annulée avec succès');
+          loadReservations();
+          loadAccountData();
+        } catch (error: any) {
+          toast.error(error.message || 'Erreur lors de l\'annulation');
+        }
+      },
+      'warning'
+    );
+  };
+
+  const showRequestDetails = (request: any, type: 'unlock' | 'lock') => {
+    const requestContent = (
+      <View style={styles.gap16}>
+        {/* Informations de base */}
+        <View style={styles.gap8}>
+          <Text size="sm" color="#6b7280">Vélo:</Text>
+          <Text variant="body">{request.bike?.code || 'N/A'}</Text>
+        </View>
+        
+        <View style={styles.gap8}>
+          <Text size="sm" color="#6b7280">Date:</Text>
+          <Text variant="body">
+            {new Date(request.requestedAt || request.createdAt).toLocaleString('fr-FR')}
+          </Text>
+        </View>
+
+        <View style={styles.gap8}>
+          <Text size="sm" color="#6b7280">Statut:</Text>
+          <View style={styles.row}>
+            <Text 
+              size="sm" 
+              color={getStatusColor(request.status)}
+              style={[styles.px12, styles.py4, styles.rounded8, { backgroundColor: `${getStatusColor(request.status)}20` }]}
+            >
+              {getStatusText(request.status)}
+            </Text>
+          </View>
+        </View>
+
+        {/* Inspection data si disponible */}
+        {request.metadata?.inspection && (
+          <View style={styles.gap8}>
+            <Text size="sm" color="#6b7280">Rapport d'inspection:</Text>
+            <View style={[styles.p12, styles.rounded8, { backgroundColor: colorScheme === 'light' ? '#f9fafb' : '#374151' }]}>
+              <Text size="sm">État: {request.metadata.inspection.condition}</Text>
+              {request.metadata.inspection.issues?.length > 0 && (
+                <View style={styles.mt8}>
+                  <Text size="xs" color="#dc2626">Problèmes signalés:</Text>
+                  {request.metadata.inspection.issues.map((issue: string, index: number) => (
+                    <Text key={index} size="xs" color="#dc2626">• {issue}</Text>
+                  ))}
+                </View>
+              )}
+              {request.metadata.inspection.notes && (
+                <View style={styles.mt8}>
+                  <Text size="xs" color="#6b7280">Notes: {request.metadata.inspection.notes}</Text>
+                </View>
+              )}
+            </View>
+          </View>
+        )}
+
+        {/* Notes admin */}
+        {request.adminNote && (
+          <View style={styles.gap8}>
+            <Text size="sm" color="#6b7280">Note administrative:</Text>
+            <Text size="sm" color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
+              {request.adminNote}
+            </Text>
+          </View>
+        )}
+
+        {/* Raison du rejet */}
+        {request.rejectionReason && (
+          <View style={styles.gap8}>
+            <Text size="sm" color="#dc2626">Raison du rejet:</Text>
+            <Text size="sm" color="#dc2626">
+              {request.rejectionReason}
+            </Text>
+          </View>
+        )}
+
+        {/* Actions */}
+        {request.status === 'PENDING' && (
+          <Button
+            variant="outline"
+            onPress={() => handleDeleteRequest(request, type)}
+            style={[styles.mt16, { borderColor: '#dc2626' }]}
+            fullWidth
+          >
+            <View style={[styles.row, styles.alignCenter, styles.gap8]}>
+              <Trash2 size={16} color="#dc2626" />
+              <Text color="#dc2626">Supprimer la demande</Text>
+            </View>
+          </Button>
+        )}
+      </View>
+    );
+
+    showInfoModal(
+      `Détails de la demande - ${type === 'unlock' ? 'Déverrouillage' : 'Verrouillage'}`,
+      requestContent
+    );
+  };
+
+  const showReservationDetails = (reservation: any) => {
+    const startDate = new Date(reservation.startDate);
+    const endDate = new Date(reservation.endDate);
+    const now = new Date();
+    
+    const isActive = reservation.status === 'ACTIVE';
+    const isUpcoming = startDate > now;
+    const isOngoing = startDate <= now && endDate >= now;
+    const isPast = endDate < now;
+    
+    let statusText = '';
+    let statusColor = '';
+    
+    if (reservation.status === 'CANCELLED') {
+      statusText = 'Annulée';
+      statusColor = '#dc2626';
+    } else if (isPast) {
+      statusText = 'Terminée';
+      statusColor = '#6b7280';
+    } else if (isOngoing) {
+      statusText = 'En cours';
+      statusColor = '#16a34a';
+    } else if (isUpcoming) {
+      statusText = 'À venir';
+      statusColor = '#f59e0b';
+    }
+
+    const reservationContent = (
+      <View style={styles.gap16}>
+        {/* Informations de base */}
+        <View style={styles.gap12}>
+          <View style={styles.gap4}>
+            <Text size="sm" color="#6b7280">Vélo:</Text>
+            <Text variant="body">{reservation.bike?.code} - {reservation.bike?.model}</Text>
+          </View>
+          
+          <View style={styles.gap4}>
+            <Text size="sm" color="#6b7280">Type de forfait:</Text>
+            <Text variant="body">{reservation.packageType}</Text>
+          </View>
+
+          <View style={styles.gap4}>
+            <Text size="sm" color="#6b7280">Période:</Text>
+            <Text variant="body">
+              Du {startDate.toLocaleDateString('fr-FR')} à {startDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+              {'\n'}au {endDate.toLocaleDateString('fr-FR')} à {endDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+            </Text>
+          </View>
+
+          <View style={styles.gap4}>
+            <Text size="sm" color="#6b7280">Statut:</Text>
+            <View style={styles.row}>
+              <Text 
+                size="sm" 
+                color={statusColor}
+                style={[styles.px12, styles.py4, styles.rounded8, { backgroundColor: `${statusColor}20` }]}
+              >
+                {statusText}
+              </Text>
+            </View>
+          </View>
+
+          {/* Localisation du vélo si disponible */}
+          {reservation.bike?.latitude && reservation.bike?.longitude && (
+            <View style={styles.gap4}>
+              <Text size="sm" color="#6b7280">Localisation du vélo:</Text>
+              <TouchableOpacity 
+                onPress={() => {
+                  const url = `https://www.google.com/maps/dir/?api=1&destination=${reservation.bike.latitude},${reservation.bike.longitude}`;
+                }}
+                style={[styles.row, styles.alignCenter, styles.gap4]}
+              >
+                <MapPin size={16} color="#16a34a" />
+                <Text size="sm" color="#16a34a">Voir sur la carte</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+
+        {/* Plan tarifaire si disponible */}
+        {reservation.plan && (
+          <View style={[styles.p12, styles.rounded8, { backgroundColor: colorScheme === 'light' ? '#f0fdf4' : '#14532d' }]}>
+            <Text size="sm" color="#16a34a" weight="bold">Plan: {reservation.plan.name}</Text>
+            {reservation.plan.hourlyRate && (
+              <Text size="xs" color="#16a34a">Tarif: {reservation.plan.hourlyRate} XOF/h</Text>
+            )}
+          </View>
+        )}
+
+        {/* Informations de temps restant pour les réservations actives */}
+        {isUpcoming && (
+          <View style={[styles.p12, styles.rounded8, { backgroundColor: '#fef3c7' }]}>
+            <Text size="sm" color="#92400e" weight="bold">
+              Commence dans: {Math.ceil((startDate.getTime() - now.getTime()) / (1000 * 60 * 60))} heure(s)
+            </Text>
+          </View>
+        )}
+
+        {isOngoing && (
+          <View style={[styles.p12, styles.rounded8, { backgroundColor: '#f0fdf4' }]}>
+            <Text size="sm" color="#16a34a" weight="bold">
+              Se termine dans: {Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60))} heure(s)
+            </Text>
+          </View>
+        )}
+
+        {/* Actions */}
+        <View style={styles.gap8}>
+          {reservation.status === 'ACTIVE' && isUpcoming && (
+            <Button
+              variant="outline"
+              onPress={() => handleDeleteReservation(reservation.id, reservation)}
+              style={[{ borderColor: '#f59e0b' }]}
+              fullWidth
+            >
+              <View style={[styles.row, styles.alignCenter, styles.gap8]}>
+                <Trash2 size={16} color="#f59e0b" />
+                <Text color="#f59e0b">Annuler la réservation</Text>
+              </View>
+            </Button>
+          )}
+
+          {isOngoing && (
+            <Button
+              variant="primary"
+              onPress={() => {
+                // Naviguer vers les détails du vélo pour le déverrouiller
+                onNavigate('bike-details', { bikeData: reservation.bike });
+              }}
+              fullWidth
+            >
+              <View style={[styles.row, styles.alignCenter, styles.gap8]}>
+                <Unlock size={16} color="white" />
+                <Text color="white">Utiliser le vélo</Text>
+              </View>
+            </Button>
+          )}
+
+          <Button
+            variant="outline"
+            onPress={() => {
+              // Naviguer vers les détails du vélo
+              onNavigate('bike-details', { bikeData: reservation.bike });
+            }}
+            fullWidth
+          >
+            <View style={[styles.row, styles.alignCenter, styles.gap8]}>
+              <MapPin size={16} color={colorScheme === 'light' ? '#111827' : '#f9fafb'} />
+              <Text color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>Voir le vélo</Text>
+            </View>
+          </Button>
+        </View>
+      </View>
+    );
+
+    showInfoModal(
+      'Détails de la réservation',
+      reservationContent
+    );
   };
 
   const filteredTransactions = transactions.filter(transaction => {
@@ -446,7 +804,7 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
       {unlockRequests.length > 0 && (
         <View style={styles.gap12}>
           <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={styles.mb4}>
-            🔓 {`${t('accountManagement.unlockRequests')}: ${ unlockRequests.length }`}
+            {`${t('accountManagement.unlockRequests')}: ${ unlockRequests.length }`}
           </Text>
           {unlockRequests.map((request) => (
             <Card key={request.id} style={styles.p16}>
@@ -472,13 +830,25 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
                     )}
                   </View>
                 </View>
-                <Text 
-                  size="xs" 
-                  color={getStatusColor(request.status)}
-                  weight="bold"
-                >
-                  {getStatusText(request.status)}
-                </Text>
+                <View style={styles.alignEnd}>
+                  <Text 
+                    size="xs" 
+                    color={getStatusColor(request.status)}
+                    weight="bold"
+                  >
+                    {getStatusText(request.status)}
+                  </Text>
+                  {request.status === 'PENDING' && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onPress={() => handleDeleteRequest(request, 'unlock')}
+                      style={[styles.mt8, { borderColor: '#dc2626' }]}
+                    >
+                      <Text color="#dc2626" size="xs">Supprimer</Text>
+                    </Button>
+                  )}
+                </View>
               </View>
             </Card>
           ))}
@@ -489,7 +859,7 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
       {lockRequests.length > 0 && (
         <View style={styles.gap12}>
           <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={styles.mb4}>
-            🔒 {`${t('accountManagement.lockRequests')} ${ lockRequests.length }`}
+            {`${t('accountManagement.lockRequests')} ${ lockRequests.length }`}
           </Text>
           {lockRequests.map((request) => (
             <Card key={request.id} style={styles.p16}>
@@ -518,13 +888,25 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
                     )}
                   </View>
                 </View>
-                <Text 
-                  size="xs" 
-                  color={getStatusColor(request.status)}
-                  weight="bold"
-                >
-                  {getStatusText(request.status)}
-                </Text>
+                <View style={styles.alignEnd}>
+                  <Text 
+                    size="xs" 
+                    color={getStatusColor(request.status)}
+                    weight="bold"
+                  >
+                    {getStatusText(request.status)}
+                  </Text>
+                  {request.status === 'PENDING' && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onPress={() => handleDeleteRequest(request, 'lock')}
+                      style={[styles.mt8, { borderColor: '#dc2626' }]}
+                    >
+                      <Text color="#dc2626" size="xs">Supprimer</Text>
+                    </Button>
+                  )}
+                </View>
               </View>
             </Card>
           ))}
@@ -537,6 +919,185 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
           <Text color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
             {t('accountManagement.noRequests')}
           </Text>
+        </Card>
+      )}
+    </View>
+  );
+
+  const renderReservations = () => (
+    <View style={styles.gap16}>
+      <View style={[styles.row, styles.spaceBetween, styles.alignCenter]}>
+        <Text variant="body" color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
+          Mes réservations
+        </Text>
+        <Button
+          variant="primary"
+          size="sm"
+          onPress={() => onNavigate('bike-map')}
+        >
+          <Text color="white">Nouvelle réservation</Text>
+        </Button>
+      </View>
+
+      {/* Statistiques rapides */}
+      <View style={[styles.row, styles.gap8]}>
+        <Card style={[styles.flex1, styles.p12, styles.alignCenter]}>
+          <Text size="lg" color="#f59e0b" weight="bold">
+            {reservations.filter(r => {
+              const now = new Date();
+              const startDate = new Date(r.startDate);
+              return r.status === 'ACTIVE' && startDate > now;
+            }).length}
+          </Text>
+          <Text size="xs" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={styles.textCenter}>
+            À venir
+          </Text>
+        </Card>
+        <Card style={[styles.flex1, styles.p12, styles.alignCenter]}>
+          <Text size="lg" color="#16a34a" weight="bold">
+            {reservations.filter(r => {
+              const now = new Date();
+              const startDate = new Date(r.startDate);
+              const endDate = new Date(r.endDate);
+              return r.status === 'ACTIVE' && startDate <= now && endDate >= now;
+            }).length}
+          </Text>
+          <Text size="xs" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={styles.textCenter}>
+            En cours
+          </Text>
+        </Card>
+        <Card style={[styles.flex1, styles.p12, styles.alignCenter]}>
+          <Text size="lg" color="#6b7280" weight="bold">
+            {reservations.filter(r => {
+              const now = new Date();
+              const endDate = new Date(r.endDate);
+              return endDate < now || r.status === 'CANCELLED';
+            }).length}
+          </Text>
+          <Text size="xs" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={styles.textCenter}>
+            Terminées
+          </Text>
+        </Card>
+      </View>
+
+      {/* Liste des réservations */}
+      <View style={styles.gap12}>
+        {reservations.length > 0 ? (
+          reservations
+            .sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime())
+            .map((reservation) => {
+              const statusColor = getReservationStatusColor(reservation);
+              const statusText = getReservationStatusText(reservation);
+              const startDate = new Date(reservation.startDate);
+              const now = new Date();
+              const isUpcoming = startDate > now && reservation.status === 'ACTIVE';
+              const isOngoing = startDate <= now && new Date(reservation.endDate) >= now && reservation.status === 'ACTIVE';
+
+              return (
+                <Card key={reservation.id} style={styles.p16}>
+                  <TouchableOpacity
+                    onPress={() => showReservationDetails(reservation)}
+                    style={[styles.row, styles.spaceBetween, styles.alignCenter]}
+                  >
+                    <View style={[styles.row, styles.alignCenter, styles.gap12]}>
+                      <Calendar size={20} color={statusColor} />
+                      <View style={styles.flex1}>
+                        <Text variant="body" color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
+                          {reservation.bike?.code} - {reservation.packageType}
+                        </Text>
+                        <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
+                          {startDate.toLocaleDateString('fr-FR')} à {startDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                        </Text>
+                        
+                        {/* Informations supplémentaires basées sur le statut */}
+                        {isUpcoming && (
+                          <Text size="xs" color="#f59e0b" style={styles.mt4}>
+                            Commence dans {Math.ceil((startDate.getTime() - now.getTime()) / (1000 * 60 * 60))}h
+                          </Text>
+                        )}
+                        {isOngoing && (
+                          <Text size="xs" color="#16a34a" style={styles.mt4}>
+                            Réservation active - Vélo disponible
+                          </Text>
+                        )}
+                      </View>
+                    </View>
+                    
+                    <View style={styles.alignEnd}>
+                      <Text 
+                        size="xs" 
+                        color={statusColor}
+                        weight="bold"
+                        style={[styles.px8, styles.py4, styles.rounded4, { backgroundColor: `${statusColor}20` }]}
+                      >
+                        {statusText}
+                      </Text>
+                      
+                      {/* Actions rapides */}
+                      <View style={[styles.row, styles.gap4, styles.mt8]}>
+                        {isOngoing && (
+                          <TouchableOpacity
+                            onPress={(e) => {
+                              e.stopPropagation();
+                              onNavigate('bike-details', { bikeData: reservation.bike });
+                            }}
+                            style={[styles.px8, styles.py4, styles.rounded4, { backgroundColor: '#16a34a' }]}
+                          >
+                            <Unlock size={12} color="white" />
+                          </TouchableOpacity>
+                        )}
+                        
+                        {isUpcoming && (
+                          <TouchableOpacity
+                            onPress={(e) => {
+                              e.stopPropagation();
+                              handleDeleteReservation(reservation.id, reservation);
+                            }}
+                            style={[styles.px8, styles.py4, styles.rounded4, { backgroundColor: '#f59e0b' }]}
+                          >
+                            <Trash2 size={12} color="white" />
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                </Card>
+              );
+            })
+        ) : (
+          <Card style={[styles.p32, styles.alignCenter]}>
+            <Calendar size={32} color={colorScheme === 'light' ? '#9ca3af' : '#6b7280'} style={styles.mb8} />
+            <Text color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={styles.mb16}>
+              Aucune réservation trouvée
+            </Text>
+            <Button
+              variant="primary"
+              onPress={() => onNavigate('bike-map')}
+            >
+              <Text color="white">Faire une réservation</Text>
+            </Button>
+          </Card>
+        )}
+      </View>
+
+      {/* Conseil pour les réservations */}
+      {reservations.some(r => {
+        const now = new Date();
+        const startDate = new Date(r.startDate);
+        return r.status === 'ACTIVE' && startDate > now;
+      }) && (
+        <Card style={[styles.p16, { backgroundColor: '#eff6ff', borderColor: '#3b82f6' }]}>
+          <View style={[styles.row, styles.gap12]}>
+            <Text style={{ fontSize: 16 }}>💡</Text>
+            <View style={styles.flex1}>
+              <Text size="sm" color="#1e40af" weight="bold">
+                Conseil
+              </Text>
+              <Text size="sm" color="#1e40af" style={styles.mt4}>
+                Vous pouvez annuler votre réservation jusqu'à 30 minutes avant l'heure prévue.
+              </Text>
+            </View>
+          </View>
         </Card>
       )}
     </View>
@@ -641,6 +1202,7 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
     { key: 'overview', label: t('accountManagement.tabs.overview'), icon: Wallet },
     { key: 'transactions', label: t('accountManagement.tabs.transactions'), icon: CreditCard },
     { key: 'requests', label: t('accountManagement.tabs.requests'), icon: Clock },
+    { key: 'reservations', label: 'Réservations', icon: Calendar },
     { key: 'incidents', label: t('accountManagement.tabs.incidents'), icon: AlertTriangle }
   ];
 
@@ -745,8 +1307,11 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
         {activeTab === 'overview' && renderOverview()}
         {activeTab === 'transactions' && renderTransactions()}
         {activeTab === 'requests' && renderRequests()}
+        {activeTab === 'reservations' && renderReservations()}
         {activeTab === 'incidents' && renderIncidents()}
       </ScrollView>
+      <ConfirmModalComponent />
+      <InfoModalComponent />
     </View>
   );
 }

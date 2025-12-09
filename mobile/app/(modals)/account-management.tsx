@@ -42,12 +42,34 @@ export default function AccountManagementScreen() {
           params: { incidentId: data?.incidentId }
         });
         break;
+      case 'bike-map':
+        router.navigate('/(tabs)/map');
+        break;
+      case 'bike-details':
+        router.navigate({
+          pathname: '/(modals)/bike-details',
+          params: { bikeData: JSON.stringify(data?.bikeData) }
+        });
+        break;
+      case 'ride-in-progress':
+        router.navigate({
+          pathname: '/(modals)/ride-in-progress',
+          params: { bikeData: JSON.stringify(data?.bikeData) }
+        });
+        break;
+      case 'home':
+        router.navigate('/(tabs)/home');
+        break;
       default:
         console.log(`Navigation to ${screen} not implemented`);
     }
   };
 
   return (
-    <MobileAccountManagement onBack={handleBack} onNavigate={handleNavigate} initialTab={initialTab}/>
+    <MobileAccountManagement 
+      onBack={handleBack} 
+      onNavigate={handleNavigate} 
+      initialTab={initialTab}
+    />
   );
 }
