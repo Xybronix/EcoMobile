@@ -14,9 +14,9 @@ import type { Bike, Area } from '@/services/bikeService';
 import { getGlobalStyles } from '@/styles/globalStyles';
 import { haptics } from '@/utils/haptics';
 import { OSMMap } from '@/components/bike/OSMMap';
-import { Battery, Building2, Filter, Home, MapPin, Navigation, Search, X, Zap, RotateCcw, MapPinIcon, CheckCircle } from 'lucide-react-native';
-import React, { useEffect, useState } from 'react';
-import { Keyboard, Platform, RefreshControl, ScrollView, TouchableOpacity, TouchableWithoutFeedback, View, useWindowDimensions } from 'react-native';
+import { Battery, Building2, Filter, Home, MapPin, Navigation, Search, X, Zap, RotateCcw, MapPinIcon, CheckCircle, ZoomIn, ZoomOut, RotateCw } from 'lucide-react-native';
+import React, { useEffect, useState, useRef } from 'react';
+import { Keyboard, RefreshControl, ScrollView, TouchableOpacity, TouchableWithoutFeedback, View, useWindowDimensions } from 'react-native';
 import * as Location from 'expo-location';
 import { useMobileI18n } from '@/lib/mobile-i18n';
 import { MobileHeader } from '@/components/layout/MobileHeader';
@@ -47,6 +47,7 @@ export function MobileBikeMap({ onNavigate }: MobileBikeMapProps) {
   const styles = getGlobalStyles(colorScheme);
   const colors = Colors[colorScheme === 'dark' ? 'dark' : 'light'];
   const { width: screenWidth } = useWindowDimensions();
+  const mapRef = useRef<any>(null);
   
   const [selectedBike, setSelectedBike] = useState<Bike | null>(null);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
@@ -58,6 +59,8 @@ export function MobileBikeMap({ onNavigate }: MobileBikeMapProps) {
   const [areaSearchQuery, setAreaSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [mapZoom, setMapZoom] = useState(14);
+  const [showBikeDetails, setShowBikeDetails] = useState(false);
   
   // États des filtres améliorés
   const [searchMode, setSearchMode] = useState<'proximity' | 'area'>('proximity');
@@ -146,6 +149,12 @@ export function MobileBikeMap({ onNavigate }: MobileBikeMapProps) {
     }
   };
 
+  const handleBikePressOnMap = (bike: any) => {
+    haptics.medium();
+    //setSelectedBike(bike as Bike);
+    //setShowBikeDetails(true);
+  };
+
   const updateMapView = () => {
     setMapLoaded(true);
   };
@@ -162,6 +171,37 @@ export function MobileBikeMap({ onNavigate }: MobileBikeMapProps) {
         Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
+  };
+
+  // Fonction pour recentrer sur l'utilisateur
+  const centerOnUser = () => {
+    if (userLocation && mapRef.current) {
+      mapRef.current.centerOnUser();
+      haptics.light();
+    }
+  };
+
+  // Fonctions de zoom
+  const zoomIn = () => {
+    if (mapRef.current) {
+      mapRef.current.zoomIn();
+      haptics.light();
+    }
+  };
+
+  const zoomOut = () => {
+    if (mapRef.current) {
+      mapRef.current.zoomOut();
+      haptics.light();
+    }
+  };
+
+  // Fonction pour basculer entre les styles de carte
+  const toggleMapStyle = () => {
+    if (mapRef.current) {
+      mapRef.current.toggleMapStyle();
+      haptics.light();
+    }
   };
 
   const referenceLocation = searchMode === 'area' && searchLocation 
@@ -240,9 +280,9 @@ export function MobileBikeMap({ onNavigate }: MobileBikeMapProps) {
           }}
         />
 
-        {/* Filter Sheet Amélioré */}
+        {/* Filter Sheet */}
         <Sheet open={showFilters} onOpenChange={setShowFilters}>
-          <SheetContent side="bottom" style={{ height: '85%' }}>
+          <SheetContent side="bottom" style={{ height: '85%', zIndex: 1000 }}>
             <SheetHeader>
               <SheetTitle>
                 {t('map.filters.title')}
@@ -252,8 +292,8 @@ export function MobileBikeMap({ onNavigate }: MobileBikeMapProps) {
               </SheetDescription>
             </SheetHeader>
 
-            <ScrollView style={{ flex: 1, marginTop: 24 }} showsVerticalScrollIndicator={false}>
-              <View style={{ gap: 24, paddingBottom: 100 }}>
+            <ScrollView style={{ flex: 1, marginTop: 10 }} showsVerticalScrollIndicator={false}>
+              <View style={{ gap: 24, paddingBottom: 100, marginRight: 10, marginLeft: 10 }}>
                 {/* Mode de recherche */}
                 <View style={{ gap: 12 }}>
                   <Label>
@@ -265,10 +305,12 @@ export function MobileBikeMap({ onNavigate }: MobileBikeMapProps) {
                       onPress={resetToProximity}
                       style={{ flex: 1 }}
                     >
-                      <Navigation size={16} color="currentColor" />
-                      <Text style={styles.ml8}>
-                        {t('map.filters.nearby')}
-                      </Text>
+                      <View style={[styles.row, styles.gap4, styles.alignCenter]}>
+                        <Navigation size={16} color="currentColor" />
+                        <Text style={styles.ml8}>
+                          {t('map.filters.nearby')}
+                        </Text>
+                      </View>
                     </Button>
                     <Button
                       variant={searchMode === 'area' ? 'primary' : 'secondary'}
@@ -278,10 +320,12 @@ export function MobileBikeMap({ onNavigate }: MobileBikeMapProps) {
                       }}
                       style={{ flex: 1 }}
                     >
-                      <Building2 size={16} color="currentColor" />
-                      <Text style={styles.ml8}>
-                        {t('map.filters.byArea')}
-                      </Text>
+                      <View style={[styles.row, styles.gap4, styles.alignCenter]}>
+                        <Building2 size={16} color="currentColor" />
+                        <Text style={styles.ml8}>
+                          {t('map.filters.byArea')}
+                        </Text>
+                      </View>
                     </Button>
                   </View>
                 </View>
@@ -390,8 +434,10 @@ export function MobileBikeMap({ onNavigate }: MobileBikeMapProps) {
                       {t('map.filters.maxDistance')}
                     </Label>
                     <Badge variant="secondary">
-                      <MapPinIcon size={12} color="currentColor" />
-                      <Text style={styles.ml4}>{DISTANCE_PRESETS.find(d => d.value === maxDistance)?.label || `${maxDistance}km`}</Text>
+                      <View style={[styles.row, styles.gap4, styles.alignCenter]}>
+                        <MapPinIcon size={12} color="currentColor" />
+                        <Text style={styles.ml4}>{DISTANCE_PRESETS.find(d => d.value === maxDistance)?.label || `${maxDistance}km`}</Text>
+                      </View>
                     </Badge>
                   </View>
                   <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
@@ -434,8 +480,10 @@ export function MobileBikeMap({ onNavigate }: MobileBikeMapProps) {
                       {t('map.filters.minBattery')}
                     </Label>
                     <Badge variant="secondary">
-                      <Battery size={12} color="currentColor" />
-                      <Text style={styles.ml4}>{BATTERY_LEVELS.find(b => b.value === minBattery)?.label || `${minBattery}%`}</Text>
+                      <View style={[styles.row, styles.gap4, styles.alignCenter]}>
+                        <Battery size={14} color="currentColor" />
+                        <Text style={styles.ml4}>{BATTERY_LEVELS.find(b => b.value === minBattery)?.label || `${minBattery}%`}</Text>
+                      </View>
                     </Badge>
                   </View>
                   <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
@@ -478,8 +526,10 @@ export function MobileBikeMap({ onNavigate }: MobileBikeMapProps) {
                     onPress={resetAllFilters}
                     style={{ flex: 1 }}
                   >
-                    <RotateCcw size={16} color="currentColor" />
-                    <Text style={styles.ml8}>{t('common.reset')}</Text>
+                    <View style={[styles.row, styles.gap4, styles.alignCenter]}>
+                      <RotateCcw size={16} color="currentColor" />
+                      <Text style={styles.ml8}>{t('common.reset')}</Text>
+                    </View>
                   </Button>
                   <Button 
                     variant="primary"
@@ -490,8 +540,10 @@ export function MobileBikeMap({ onNavigate }: MobileBikeMapProps) {
                     }}
                     style={{ flex: 1 }}
                   >
-                    <Filter size={16} color="currentColor" />
-                    <Text style={styles.ml8}>{t('common.apply')}</Text>
+                    <View style={[styles.row, styles.gap4, styles.alignCenter]}>
+                      <Filter size={16} color="currentColor" />
+                      <Text style={styles.ml8}>{t('common.apply')}</Text>
+                    </View>
                   </Button>
                 </View>
               </View>
@@ -499,9 +551,93 @@ export function MobileBikeMap({ onNavigate }: MobileBikeMapProps) {
           </SheetContent>
         </Sheet>
 
-        {/* Carte Interactive Améliorée */}
+        {/* Sheet pour les détails du vélo */}
+        <Sheet open={showBikeDetails} onOpenChange={setShowBikeDetails}>
+          <SheetContent side="bottom" style={{ height: '60%' }}>
+            {selectedBike && (
+              <>
+                <SheetHeader>
+                  <SheetTitle>
+                    Vélo {selectedBike.code}
+                  </SheetTitle>
+                  <SheetDescription>
+                    {selectedBike.model} • {selectedBike.distance?.toFixed(1)} km de vous
+                  </SheetDescription>
+                </SheetHeader>
+
+                <View style={{ flex: 1, paddingTop: 24, gap: 20 }}>
+                  <View style={[styles.row, { gap: 16 }]}>
+                    <View style={[styles.flex1, styles.card, { padding: 16, alignItems: 'center' }]}>
+                      <Battery size={24} color={selectedBike.batteryLevel > 50 ? '#16a34a' : selectedBike.batteryLevel > 20 ? '#f59e0b' : '#ef4444'} />
+                      <Text variant="body" style={{ marginTop: 8 }}>
+                        {selectedBike.batteryLevel}%
+                      </Text>
+                      <Text size="sm" color="#6b7280">
+                        Batterie
+                      </Text>
+                    </View>
+
+                    <View style={[styles.flex1, styles.card, { padding: 16, alignItems: 'center' }]}>
+                      <MapPin size={24} color="#6b7280" />
+                      <Text variant="body" style={{ marginTop: 8 }}>
+                        {selectedBike.distance?.toFixed(1)} km
+                      </Text>
+                      <Text size="sm" color="#6b7280">
+                        Distance
+                      </Text>
+                    </View>
+
+                    <View style={[styles.flex1, styles.card, { padding: 16, alignItems: 'center' }]}>
+                      <Zap size={24} color="#5D5CDE" />
+                      <Text variant="body" style={{ marginTop: 8 }}>
+                        {selectedBike.currentPricing?.hourlyRate || '--'} XOF
+                      </Text>
+                      <Text size="sm" color="#6b7280">
+                        /heure
+                      </Text>
+                    </View>
+                  </View>
+
+                  {selectedBike.locationName && (
+                    <View style={[styles.card, { padding: 16 }]}>
+                      <Text size="sm" color="#6b7280" style={{ marginBottom: 4 }}>
+                        Localisation
+                      </Text>
+                      <Text variant="body">
+                        {selectedBike.locationName}
+                      </Text>
+                    </View>
+                  )}
+
+                  <View style={{ marginTop: 'auto', gap: 12, paddingBottom: 20 }}>
+                    <Button
+                      variant="primary"
+                      onPress={() => {
+                        setShowBikeDetails(false);
+                        haptics.success();
+                        onNavigate('bike-details', selectedBike);
+                      }}
+                      style={{ height: 54 }}
+                    >
+                      <Text color="white">Déverrouiller ce vélo</Text>
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      onPress={() => setShowBikeDetails(false)}
+                      style={{ height: 54 }}
+                    >
+                      <Text>Annuler</Text>
+                    </Button>
+                  </View>
+                </View>
+              </>
+            )}
+          </SheetContent>
+        </Sheet>
+
+        {/* Carte Interactive Complètement Améliorée */}
         <View style={styles.relative}>
-          {/* Carte Interactive avec vraies positions */}
+          {/* Carte Interactive avec vraies fonctionnalités */}
           <View 
             style={[
               styles.wT100,
@@ -509,9 +645,13 @@ export function MobileBikeMap({ onNavigate }: MobileBikeMapProps) {
             ]}
           >
             <OSMMap
+              ref={mapRef}
               userLocation={referenceLocation}
               bikes={getBikesWithValidCoords(filteredBikes)}
               radius={maxDistance}
+              onBikePress={handleBikePressOnMap}
+              onMapReady={() => setMapLoaded(true)}
+              colorScheme={colorScheme}
             />
 
             {/* Info overlay mise à jour */}
@@ -565,13 +705,11 @@ export function MobileBikeMap({ onNavigate }: MobileBikeMapProps) {
             </View>
           </View>
 
-          {/* Map Controls */}
+          {/* Contrôles de carte améliorés */}
           <View style={[styles.absolute, { top: 16, right: 16 }, { gap: 8 }]}>
+            {/* Bouton de géolocalisation */}
             <TouchableOpacity
-              onPress={() => {
-                getUserLocation();
-                haptics.light();
-              }}
+              onPress={centerOnUser}
               style={[
                 { width: 48, height: 48 },
                 styles.rounded24,
@@ -585,6 +723,58 @@ export function MobileBikeMap({ onNavigate }: MobileBikeMapProps) {
             >
               <Navigation size={20} color={colorScheme === 'light' ? '#111827' : '#f9fafb'} />
             </TouchableOpacity>
+
+            {/* Contrôles de zoom */}
+            <TouchableOpacity
+              onPress={zoomIn}
+              style={[
+                { width: 48, height: 48 },
+                styles.rounded24,
+                styles.alignCenter,
+                styles.justifyCenter,
+                styles.shadow,
+                {
+                  backgroundColor: colorScheme === 'light' ? 'white' : '#374151',
+                }
+              ]}
+            >
+              <ZoomIn size={20} color={colorScheme === 'light' ? '#111827' : '#f9fafb'} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={zoomOut}
+              style={[
+                { width: 48, height: 48 },
+                styles.rounded24,
+                styles.alignCenter,
+                styles.justifyCenter,
+                styles.shadow,
+                {
+                  backgroundColor: colorScheme === 'light' ? 'white' : '#374151',
+                }
+              ]}
+            >
+              <ZoomOut size={20} color={colorScheme === 'light' ? '#111827' : '#f9fafb'} />
+            </TouchableOpacity>
+
+            {/* Bouton pour changer le style de carte */}
+            <TouchableOpacity
+              onPress={toggleMapStyle}
+              style={[
+                { width: 48, height: 48 },
+                styles.rounded24,
+                styles.alignCenter,
+                styles.justifyCenter,
+                styles.shadow,
+                {
+                  backgroundColor: colorScheme === 'light' ? 'white' : '#374151',
+                }
+              ]}
+            >
+              <RotateCw size={20} color={colorScheme === 'light' ? '#111827' : '#f9fafb'} />
+            </TouchableOpacity>
+
+            {/* Bouton de filtres */}
             <TouchableOpacity
               onPress={() => {
                 haptics.light();
