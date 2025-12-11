@@ -13,7 +13,7 @@ import { bikeRequestService } from '@/services/bikeRequestService';
 import * as ImagePicker from 'expo-image-picker';
 import { AlertTriangle, ArrowLeft, Camera, Check, X } from 'lucide-react-native';
 import React, { useState, useEffect } from 'react';
-import { ScrollView, TouchableOpacity, View, Alert } from 'react-native';
+import { ScrollView, TouchableOpacity, View, Alert, Image } from 'react-native';
 import { useMobileI18n } from '@/lib/mobile-i18n';
 
 interface MobileBikeInspectionProps {
@@ -48,6 +48,7 @@ interface InspectionItem {
   id: string;
   label: { fr: string; en: string };
   isGood: boolean | null;
+  required: boolean;
 }
 
 export function MobileBikeInspection({ bikeId, bikeName, inspectionType, bikeEquipment, onComplete, onBack }: MobileBikeInspectionProps) {
@@ -92,23 +93,27 @@ export function MobileBikeInspection({ bikeId, bikeName, inspectionType, bikeEqu
       reflectors: { fr: 'Réflecteurs', en: 'Reflectors' },
     };
 
-    const baseItems: InspectionItem[] = [
-      { id: 'brakes', label: { fr: 'Freins', en: 'Brakes' }, isGood: null },
-      { id: 'tires', label: { fr: 'Pneus', en: 'Tires' }, isGood: null },
-      { id: 'battery', label: { fr: 'Batterie', en: 'Battery' }, isGood: null },
-      { id: 'chain', label: { fr: 'Chaîne', en: 'Chain' }, isGood: null },
-      { id: 'seat', label: { fr: 'Selle', en: 'Seat' }, isGood: null },
-      { id: 'handlebars', label: { fr: 'Guidon', en: 'Handlebars' }, isGood: null },
-      { id: 'frame', label: { fr: 'Cadre', en: 'Frame' }, isGood: null }
+    const requiredItems: InspectionItem[] = [
+      { id: 'brakes', label: { fr: 'Freins', en: 'Brakes' }, isGood: null, required: true },
+      { id: 'tires', label: { fr: 'Pneus', en: 'Tires' }, isGood: null, required: true },
+      { id: 'battery', label: { fr: 'Batterie', en: 'Battery' }, isGood: null, required: true },
+      { id: 'chain', label: { fr: 'Chaîne', en: 'Chain' }, isGood: null, required: true },
+    ];
+
+    const optionalItems: InspectionItem[] = [
+      { id: 'seat', label: { fr: 'Selle', en: 'Seat' }, isGood: null, required: false },
+      { id: 'handlebars', label: { fr: 'Guidon', en: 'Handlebars' }, isGood: null, required: false },
+      { id: 'frame', label: { fr: 'Cadre', en: 'Frame' }, isGood: null, required: false }
     ];
 
     const equipmentItems: InspectionItem[] = (bikeEquipment || []).map(equipId => ({
       id: equipId,
       label: equipmentLabels[equipId] || { fr: equipId, en: equipId },
-      isGood: null
+      isGood: null,
+      required: false
     }));
 
-    setInspectionItems([...baseItems, ...equipmentItems]);
+    setInspectionItems([...requiredItems, ...optionalItems, ...equipmentItems]);
   };
 
   const updateInspectionItem = (id: string, isGood: boolean) => {
@@ -121,15 +126,27 @@ export function MobileBikeInspection({ bikeId, bikeName, inspectionType, bikeEqu
   };
 
   const showPhotoOptions = () => {
-    Alert.alert(
-      'Ajouter une photo',
-      'Choisissez une option',
-      [
-        { text: 'Annuler', style: 'cancel' },
-        { text: 'Appareil photo', onPress: () => handleAddPhoto('camera') },
-        { text: 'Galerie', onPress: () => handleAddPhoto('library') }
-      ]
-    );
+    const isWeb = typeof window !== 'undefined' && 
+    (window.navigator.userAgent.includes('Windows') || 
+     window.navigator.userAgent.includes('Mac') || 
+     window.navigator.userAgent.includes('Linux') ||
+     window.navigator.platform.includes('Win') ||
+     window.navigator.platform.includes('Mac') ||
+     window.navigator.platform.includes('Linux'));
+    
+    if (isWeb) {
+      handleAddPhoto('library');
+    } else {
+      Alert.alert(
+        'Ajouter une photo',
+        'Choisissez une option',
+        [
+          { text: 'Annuler', style: 'cancel' },
+          { text: 'Appareil photo', onPress: () => handleAddPhoto('camera') },
+          { text: 'Galerie', onPress: () => handleAddPhoto('library') }
+        ]
+      );
+    }
   };
 
   const handleAddPhoto = async (source: 'camera' | 'library') => {
@@ -141,6 +158,39 @@ export function MobileBikeInspection({ bikeId, bikeName, inspectionType, bikeEqu
 
     try {
       haptics.light();
+
+      const isWeb = typeof window !== 'undefined';
+
+      if (isWeb && source === 'library') {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.multiple = false;
+        input.onchange = (event: Event) => {
+          const target = event.target as HTMLInputElement;
+          if (target.files && target.files[0]) {
+            const file = target.files[0];
+            
+            const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+            if (!validImageTypes.includes(file.type)) {
+              toast.error('Seuls les fichiers images sont autorisés (JPEG, PNG, GIF, WebP)');
+              return;
+            }
+            
+            const maxSize = 5 * 1024 * 1024;
+            if (file.size > maxSize) {
+              toast.error('La taille de l\'image ne doit pas dépasser 5 Mo');
+              return;
+            }
+            
+            const photoUrl = URL.createObjectURL(file);
+            const newPhotos = [...photos, photoUrl];
+            setPhotos(newPhotos);
+          }
+        };
+        input.click();
+        return;
+      }
       
       if (source === 'camera') {
         const { status } = await ImagePicker.requestCameraPermissionsAsync();
@@ -171,6 +221,16 @@ export function MobileBikeInspection({ bikeId, bikeName, inspectionType, bikeEqu
       }
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        
+        if (asset.fileSize) {
+          const maxSize = 5 * 1024 * 1024;
+          if (asset.fileSize > maxSize) {
+            toast.error('La taille de l\'image ne doit pas dépasser 5 Mo');
+            return;
+          }
+        }
+        
         const photoUri = result.assets[0].uri;
         const newPhotos = [...photos, photoUri];
         setPhotos(newPhotos);
@@ -189,23 +249,31 @@ export function MobileBikeInspection({ bikeId, bikeName, inspectionType, bikeEqu
   };
 
   const handleComplete = async () => {
-    const allInspected = inspectionItems.every(item => item.isGood !== null);
+    const requiredInspected = inspectionItems
+      .filter(item => item.required)
+      .every(item => item.isGood !== null);
     
-    if (!allInspected) {
+    if (!requiredInspected) {
       haptics.error();
-      toast.error(t('inspection.allItemsRequired'));
+      toast.error(t('inspection.requiredItems'));
       return;
     }
 
-    const issues = inspectionItems
-      .filter(item => !item.isGood)
+    const requiredIssues = inspectionItems
+      .filter(item => item.required && !item.isGood)
       .map(item => item.label[language]);
 
-    const hasIssues = issues.length > 0;
+    const optionalIssues = inspectionItems
+      .filter(item => !item.required && !item.isGood)
+      .map(item => item.label[language]);
 
-    if (hasIssues && !notes.trim()) {
+    const allIssues = [...requiredIssues, ...optionalIssues];
+    const hasRequiredIssues = requiredIssues.length > 0;
+    const hasAnyIssues = allIssues.length > 0;
+
+    if (hasRequiredIssues && !notes.trim()) {
       haptics.error();
-      toast.error(t('inspection.notesRequired'));
+      toast.error(t('inspection.notesRequiredForIssues'));
       return;
     }
 
@@ -215,19 +283,20 @@ export function MobileBikeInspection({ bikeId, bikeName, inspectionType, bikeEqu
 
     try {
       const inspectionData = {
-        condition: hasIssues ? 'damaged' : 'good',
-        issues,
+        condition: hasRequiredIssues ? 'damaged' : (hasAnyIssues ? 'acceptable' : 'good'),
+        issues: allIssues,
         notes,
         photos,
         metadata: {
           inspection: {
             type: inspectionType,
-            condition: hasIssues ? 'damaged' : 'good',
-            issues,
+            condition: hasRequiredIssues ? 'damaged' : (hasAnyIssues ? 'acceptable' : 'good'),
+            issues: allIssues,
             notes,
             photos,
             inspectedAt: new Date().toISOString(),
-            hasIssues
+            hasIssues: hasAnyIssues,
+            hasCriticalIssues: hasRequiredIssues
           },
           paymentMethod: currentSubscription ? 'SUBSCRIPTION' : 'WALLET'
         }
@@ -251,8 +320,18 @@ export function MobileBikeInspection({ bikeId, bikeName, inspectionType, bikeEqu
     }
   };
 
+  const requiredItems = inspectionItems.filter(item => item.required);
+  const optionalItems = inspectionItems.filter(item => !item.required);
+  
+  const requiredInspected = requiredItems.every(item => item.isGood !== null);
   const allInspected = inspectionItems.every(item => item.isGood !== null);
-  const hasIssues = inspectionItems.some(item => item.isGood === false);
+  
+  const requiredIssues = requiredItems.filter(item => item.isGood === false);
+  const optionalIssues = optionalItems.filter(item => item.isGood === false);
+  const allIssues = [...requiredIssues, ...optionalIssues];
+  
+  const hasRequiredIssues = requiredIssues.length > 0;
+  const hasAnyIssues = allIssues.length > 0;
 
   return (
     <View style={styles.container}>
@@ -300,12 +379,18 @@ export function MobileBikeInspection({ bikeId, bikeName, inspectionType, bikeEqu
         showsVerticalScrollIndicator={false}
       >
         {/* Info Alert */}
-        <Card style={[styles.p16, { backgroundColor: colorScheme === 'light' ? '#eff6ff' : '#1e3a8a', borderColor: '#3b82f6' }]}>
+        <Card style={[styles.p16, { backgroundColor: colorScheme === 'light' ? '#1e40af' : '#1e3a8a', borderColor: '#3b82f6' }]}>
           <View style={[styles.row, styles.gap12]}>
-            <AlertTriangle size={20} color="#3b82f6" style={{ marginTop: 2 }} />
+            <AlertTriangle size={20} color="#fbbf24" style={{ marginTop: 2 }} />
             <View style={styles.flex1}>
-              <Text size="sm" color="#1e40af">
+              <Text size="sm" color="#fbbf24" style={{ fontWeight: 'bold' }}>
                 {t(`inspection.description.${inspectionType}`)}
+              </Text>
+              <Text size="xs" color="#fef3c7" style={styles.mt4}>
+                {inspectionType === 'pickup' 
+                  ? 'Notez les éventuels problèmes pour documenter l\'état du vélo. Seuls les éléments marqués (*) sont obligatoires pour le déverrouillage.'
+                  : 'Documentez l\'état du vélo au moment du retour.'
+                }
               </Text>
             </View>
           </View>
@@ -313,144 +398,212 @@ export function MobileBikeInspection({ bikeId, bikeName, inspectionType, bikeEqu
 
         {/* Inspection Items */}
         <Card style={styles.p16}>
-          <Text variant="body" color={colorScheme === 'light' ? '#111827' : '#f9fafb'} style={styles.mb16}>
-            {t('inspection.checkItems')}
-          </Text>
+          <View style={[styles.row, styles.spaceBetween, styles.alignCenter, styles.mb16]}>
+            <Text variant="body" color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
+              {t('inspection.checkItems')}
+            </Text>
+            <Text size="xs" color={colorScheme === 'light' ? '#4b5563' : '#9ca3af'}>
+              (*) = obligatoire
+            </Text>
+          </View>
           <View style={styles.gap12}>
-            {inspectionItems.map((item) => (
-              <View 
-                key={item.id} 
-                style={[
-                  styles.row, 
-                  styles.spaceBetween, 
-                  styles.alignCenter, 
-                  styles.p12, 
-                  styles.rounded8,
-                  { backgroundColor: colorScheme === 'light' ? '#f9fafb' : '#374151' }
-                ]}
-              >
-                <Text size="sm" color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
-                  {item.label[language]}
+            {/* Section des éléments obligatoires */}
+            {requiredItems.length > 0 && (
+              <View style={styles.mb8}>
+                <Text size="xs" color="#dc2626" style={[styles.mb8]}>
+                  Éléments essentiels *
                 </Text>
-                <View style={[styles.row, styles.gap8]}>
-                  <TouchableOpacity
-                    onPress={() => updateInspectionItem(item.id, true)}
-                    style={[
-                      styles.w40,
-                      styles.h40,
-                      styles.rounded20,
-                      styles.alignCenter,
-                      styles.justifyCenter,
-                      {
-                        backgroundColor: item.isGood === true
-                          ? '#16a34a'
-                          : (colorScheme === 'light' ? '#e5e7eb' : '#4b5563')
-                      }
-                    ]}
-                  >
-                    <Check 
-                      size={20} 
-                      color={item.isGood === true ? 'white' : (colorScheme === 'light' ? '#6b7280' : '#9ca3af')} 
-                    />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => updateInspectionItem(item.id, false)}
-                    style={[
-                      styles.w40,
-                      styles.h40,
-                      styles.rounded20,
-                      styles.alignCenter,
-                      styles.justifyCenter,
-                      {
-                        backgroundColor: item.isGood === false
-                          ? '#ef4444'
-                          : (colorScheme === 'light' ? '#e5e7eb' : '#4b5563')
-                      }
-                    ]}
-                  >
-                    <X 
-                      size={20} 
-                      color={item.isGood === false ? 'white' : (colorScheme === 'light' ? '#6b7280' : '#9ca3af')} 
-                    />
-                  </TouchableOpacity>
-                </View>
+                {requiredItems.map((item) => (
+                  <InspectionItemRow
+                    key={item.id}
+                    item={item}
+                    language={language}
+                    colorScheme={colorScheme}
+                    updateInspectionItem={updateInspectionItem}
+                    styles={styles}
+                  />
+                ))}
               </View>
-            ))}
+            )}
+
+            {/* Section des éléments optionnels */}
+            {optionalItems.length > 0 && (
+              <View>
+                <Text size="xs" color={colorScheme === 'light' ? '#4b5563' : '#9ca3af'} style={[styles.mb8]}>
+                  Éléments non essentiels
+                </Text>
+                {optionalItems.map((item) => (
+                  <InspectionItemRow
+                    key={item.id}
+                    item={item}
+                    language={language}
+                    colorScheme={colorScheme}
+                    updateInspectionItem={updateInspectionItem}
+                    styles={styles}
+                  />
+                ))}
+              </View>
+            )}
           </View>
         </Card>
 
         {/* Progress */}
         <Card style={styles.p16}>
           <View style={[styles.row, styles.spaceBetween, styles.alignCenter, styles.mb8]}>
-            <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
-              {t('inspection.progress')}
-            </Text>
             <Text size="sm" color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
-              {inspectionItems.filter(item => item.isGood !== null).length} / {inspectionItems.length}
+              Progression
             </Text>
+            <View style={[styles.row, styles.gap8]}>
+              <Text size="sm" color="#dc2626">
+                {requiredItems.filter(item => item.isGood !== null).length}/{requiredItems.length} *
+              </Text>
+              <Text size="sm" color={colorScheme === 'light' ? '#4b5563' : '#9ca3af'}>
+                ({allInspected ? 'Complet' : 'Optionnel'})
+              </Text>
+            </View>
           </View>
-          <View 
-            style={[
-              styles.wT100,
-              { height: 8 },
-              styles.rounded4,
-              { backgroundColor: colorScheme === 'light' ? '#e5e7eb' : '#4b5563' }
-            ]}
-          >
+          
+          {/* Barre de progression pour les éléments requis */}
+          <View style={styles.mb4}>
+            <View style={[styles.row, styles.spaceBetween, styles.mb4]}>
+              <Text size="xs" color="#dc2626">Essentiels</Text>
+              <Text size="xs" color="#dc2626">
+                {requiredItems.filter(item => item.isGood !== null).length}/{requiredItems.length}
+              </Text>
+            </View>
             <View 
               style={[
-                { height: 8 },
+                styles.wT100,
+                { height: 6 },
                 styles.rounded4,
-                { 
-                  backgroundColor: '#16a34a',
-                  width: `${(inspectionItems.filter(item => item.isGood !== null).length / inspectionItems.length) * 100}%`
-                }
+                { backgroundColor: colorScheme === 'light' ? '#e5e7eb' : '#4b5563' }
               ]}
-            />
+            >
+              <View 
+                style={[
+                  { height: 6 },
+                  styles.rounded4,
+                  { 
+                    backgroundColor: requiredInspected ? '#16a34a' : '#dc2626',
+                    width: `${(requiredItems.filter(item => item.isGood !== null).length / requiredItems.length) * 100}%`
+                  }
+                ]}
+              />
+            </View>
+          </View>
+
+          <View style={styles.mb16} />
+
+          {/* Barre de progression pour les éléments optionnels */}
+          <View>
+            <View style={[styles.row, styles.spaceBetween, styles.mb4]}>
+              <Text size="xs" color={colorScheme === 'light' ? '#4b5563' : '#9ca3af'}>Optionnels</Text>
+              <Text size="xs" color={colorScheme === 'light' ? '#4b5563' : '#9ca3af'}>
+                {optionalItems.filter(item => item.isGood !== null).length}/{optionalItems.length}
+              </Text>
+            </View>
+            <View 
+              style={[
+                styles.wT100,
+                { height: 6 },
+                styles.rounded4,
+                { backgroundColor: colorScheme === 'light' ? '#e5e7eb' : '#4b5563' }
+              ]}
+            >
+              <View 
+                style={[
+                  { height: 6 },
+                  styles.rounded4,
+                  { 
+                    backgroundColor: '#3b82f6',
+                    width: `${(optionalItems.filter(item => item.isGood !== null).length / Math.max(optionalItems.length, 1)) * 100}%`
+                  }
+                ]}
+              />
+            </View>
           </View>
         </Card>
 
         {/* Issues Alert */}
-        {hasIssues && (
-          <Card style={[styles.p16, { backgroundColor: colorScheme === 'light' ? '#fef3c7' : '#92400e', borderColor: '#f59e0b' }]}>
+        {hasAnyIssues && (
+          <Card style={[styles.p16, { 
+            backgroundColor: colorScheme === 'light' ? '#fef3c7' : '#cf580e94', 
+            borderColor: hasRequiredIssues ? '#dc2626' : '#f59e0b' 
+          }]}>
             <View style={[styles.row, styles.gap12]}>
-              <AlertTriangle size={20} color="#f59e0b" style={{ marginTop: 2 }} />
+              <AlertTriangle 
+                size={20} 
+                color={hasRequiredIssues ? '#dc2626' : '#f59e0b'} 
+                style={{ marginTop: 2 }} 
+              />
               <View style={styles.flex1}>
-                <Text size="sm" color="#92400e" style={styles.mb4}>
-                  {t('inspection.issues')} :
+                <Text size="sm" color={hasRequiredIssues ? '#ffffff' : '#ffffff'} style={[styles.mb4]}>
+                  {hasRequiredIssues 
+                    ? 'Problèmes critiques détectés *' 
+                    : 'Problèmes mineurs détectés'}
                 </Text>
-                <View style={styles.gap4}>
-                  {inspectionItems
-                    .filter(item => item.isGood === false)
-                    .map(item => (
-                      <Text key={item.id} size="sm" color="#92400e">
+                
+                {/* Problèmes critiques */}
+                {hasRequiredIssues && (
+                  <View style={styles.mb8}>
+                    <Text size="xs" color="#ffffff" style={[styles.mb4]}>
+                      Éléments essentiels :
+                    </Text>
+                    {requiredIssues.map(item => (
+                      <Text key={item.id} size="sm" color="#ffffff" style={styles.ml4}>
+                        • {item.label[language]} *
+                      </Text>
+                    ))}
+                  </View>
+                )}
+
+                {/* Problèmes mineurs */}
+                {optionalIssues.length > 0 && (
+                  <View>
+                    <Text size="xs" color="#ffffff" style={[styles.mb4]}>
+                      Éléments non essentiels :
+                    </Text>
+                    {optionalIssues.map(item => (
+                      <Text key={item.id} size="sm" color="#ffffff" style={styles.ml4}>
                         • {item.label[language]}
                       </Text>
                     ))}
-                </View>
+                  </View>
+                )}
               </View>
             </View>
           </Card>
         )}
 
         {/* Notes */}
-        {(hasIssues || allInspected) && (
+        {(hasAnyIssues || allInspected) && (
           <Card style={styles.p16}>
-            <Label>{t('inspection.notes')} {hasIssues && '*'}</Label>
+            <Label>
+              {t('inspection.notes')} 
+              {hasRequiredIssues && <Text color="#dc2626"> *</Text>}
+            </Label>
             <Textarea
               value={notes}
               onChangeText={setNotes}
-              placeholder={hasIssues 
-                ? t('inspection.notesPlaceholderRequired')
-                : t('inspection.notesPlaceholderOptional')}
+              placeholder={hasRequiredIssues 
+                ? 'Description des problèmes critiques (obligatoire)'
+                : (hasAnyIssues 
+                    ? 'Description des problèmes (recommandé)'
+                    : t('inspection.notesPlaceholderOptional')
+                  )}
               style={[
                 styles.mt8,
-                hasIssues && !notes.trim() && { borderColor: '#f59e0b', borderWidth: 2 }
+                hasRequiredIssues && !notes.trim() && { borderColor: '#dc2626', borderWidth: 2 }
               ]}
             />
-            {hasIssues && !notes.trim() && (
-              <Text size="xs" color="#f59e0b" style={styles.mt4}>
-                {t('inspection.notesRequired')}
+            {hasRequiredIssues && !notes.trim() && (
+              <Text size="xs" color="#dc2626" style={styles.mt4}>
+                Une description est requise pour les problèmes critiques
+              </Text>
+            )}
+            {!hasRequiredIssues && hasAnyIssues && notes.trim() && (
+              <Text size="xs" color="#16a34a" style={styles.mt4}>
+                Merci pour votre retour détaillé
               </Text>
             )}
           </Card>
@@ -459,11 +612,14 @@ export function MobileBikeInspection({ bikeId, bikeName, inspectionType, bikeEqu
         {/* Photos */}
         {allInspected && (
           <Card style={styles.p16}>
-            <Label>{t('inspection.photos')} {hasIssues && `(${t('inspection.recommended')})`}</Label>
-            <Text size="xs" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={[styles.mt4, styles.mb12]}>
-              {hasIssues 
-                ? t('inspection.photosHelpRequired')
-                : t('inspection.photosHelpOptional')}
+            <Label>{t('inspection.photos')} {hasAnyIssues && `(${t('inspection.recommended')})`}</Label>
+            <Text size="xs" color={colorScheme === 'light' ? '#111827' : '#f9fafb'} style={[styles.mt4, styles.mb12]}>
+              {hasRequiredIssues 
+                ? 'Des photos sont nécessaires pour documenter les problèmes critiques'
+                : (hasAnyIssues 
+                    ? 'Des photos sont recommandées pour documenter les problèmes'
+                    : 'Photos optionnelles pour documenter l\'état du vélo'
+                  )}
             </Text>
             
             {/* Photo Grid */}
@@ -480,9 +636,24 @@ export function MobileBikeInspection({ bikeId, bikeName, inspectionType, bikeEqu
                     { backgroundColor: colorScheme === 'light' ? '#f3f4f6' : '#374151' }
                   ]}
                 >
-                  <Text size="xs" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
-                    Photo {index + 1}
-                  </Text>
+                  {photo ? (
+                    <Image
+                      source={{ uri: photo }}
+                      style={[
+                        styles.wT100,
+                        styles.hT100,
+                        styles.rounded8,
+                        { resizeMode: 'cover' }
+                      ]}
+                    />
+                  ) : (
+                    <View style={[styles.alignCenter, styles.justifyCenter, styles.wT100, styles.hT100]}>
+                      <Text size="xs" color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
+                        Photo {index + 1}
+                      </Text>
+                    </View>
+                  )}
+
                   <TouchableOpacity
                     onPress={() => handleRemovePhoto(index)}
                     style={[
@@ -503,18 +674,24 @@ export function MobileBikeInspection({ bikeId, bikeName, inspectionType, bikeEqu
             </View>
 
             {photos.length < 5 && (
-              <Button 
-                variant="secondary" 
-                onPress={showPhotoOptions}
-                fullWidth
-              >
-                <View style={[styles.row, styles.gap4, styles.alignCenter]}>
-                  <Camera size={16} color={colorScheme === 'light' ? '#111827' : '#f9fafb'} />
-                  <Text style={styles.ml8} color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
-                    {t('inspection.addPhoto')}
-                  </Text>
-                </View>
-              </Button>
+              <>
+                <Button 
+                  variant="secondary" 
+                  onPress={showPhotoOptions}
+                  style={styles.mb8}
+                  fullWidth
+                >
+                  <View style={[styles.row, styles.gap4, styles.alignCenter]}>
+                    <Camera size={16} color={colorScheme === 'light' ? '#111827' : '#f9fafb'} />
+                    <Text style={styles.ml8} color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
+                      {t('inspection.addPhoto')}
+                    </Text>
+                  </View>
+                </Button>
+                <Text size="xs" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={styles.textCenter}>
+                  Formats supportés : JPEG, PNG, GIF, WebP • Max 5 Mo
+                </Text>
+              </>
             )}
           </Card>
         )}
@@ -524,7 +701,7 @@ export function MobileBikeInspection({ bikeId, bikeName, inspectionType, bikeEqu
           onPress={handleComplete}
           variant="primary"
           fullWidth
-          disabled={!allInspected || (hasIssues && !notes.trim()) || isLoading || isSubmitting}
+          disabled={!requiredInspected || (hasRequiredIssues && !notes.trim()) || isLoading || isSubmitting}
         >
           <View style={[styles.row, styles.gap4, styles.alignCenter]}>
             <Check size={16} color="white" />
@@ -544,6 +721,81 @@ export function MobileBikeInspection({ bikeId, bikeName, inspectionType, bikeEqu
           }
         </Text>
       </ScrollView>
+    </View>
+  );
+}
+
+interface InspectionItemRowProps {
+  item: InspectionItem;
+  language: 'fr' | 'en';
+  colorScheme: string;
+  updateInspectionItem: (id: string, isGood: boolean) => void;
+  styles: any;
+}
+
+function InspectionItemRow({ item, language, colorScheme, updateInspectionItem, styles }: InspectionItemRowProps) {
+  return (
+    <View 
+      style={[
+        styles.row, 
+        styles.spaceBetween, 
+        styles.alignCenter, 
+        styles.p12, 
+        styles.rounded8,
+        styles.mb8,
+        { backgroundColor: colorScheme === 'light' ? '#f9fafb' : '#374151' }
+      ]}
+    >
+      <View style={[styles.row, styles.alignCenter, styles.gap8]}>
+        <Text size="sm" color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
+          {item.label[language]}
+        </Text>
+        {item.required && (
+          <Text size="xs" color="#dc2626">*</Text>
+        )}
+      </View>
+      <View style={[styles.row, styles.gap8]}>
+        <TouchableOpacity
+          onPress={() => updateInspectionItem(item.id, true)}
+          style={[
+            styles.w40,
+            styles.h40,
+            styles.rounded20,
+            styles.alignCenter,
+            styles.justifyCenter,
+            {
+              backgroundColor: item.isGood === true
+                ? '#16a34a'
+                : (colorScheme === 'light' ? '#e5e7eb' : '#4b5563')
+            }
+          ]}
+        >
+          <Check 
+            size={20} 
+            color={item.isGood === true ? 'white' : (colorScheme === 'light' ? '#111827' : '#9ca3af')} 
+          />
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => updateInspectionItem(item.id, false)}
+          style={[
+            styles.w40,
+            styles.h40,
+            styles.rounded20,
+            styles.alignCenter,
+            styles.justifyCenter,
+            {
+              backgroundColor: item.isGood === false
+                ? '#ef4444'
+                : (colorScheme === 'light' ? '#e5e7eb' : '#4b5563')
+            }
+          ]}
+        >
+          <X 
+            size={20} 
+            color={item.isGood === false ? 'white' : (colorScheme === 'light' ? '#111827' : '#9ca3af')} 
+          />
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
