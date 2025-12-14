@@ -1,4 +1,5 @@
 import { MobileForgotPassword } from '@/components/auth/MobileForgotPassword';
+import { PageTitle } from '@/components/ui/PageTitle';
 import { useRouter } from 'expo-router';
 
 export default function ForgotPasswordScreen() {
@@ -17,5 +18,13 @@ export default function ForgotPasswordScreen() {
     }
   };
 
-  return <MobileForgotPassword onNavigate={handleNavigate} />;
+  return (
+    <>
+      <PageTitle 
+        titleFr="Mot de passe oublié"
+        titleEn="Forgot Password"
+      />
+      <MobileForgotPassword onNavigate={handleNavigate} />
+    </>
+  );
 }

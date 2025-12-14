@@ -1,4 +1,5 @@
 import { MobileSecurity } from '@/components/profile/MobileSecurity';
+import { PageTitle } from '@/components/ui/PageTitle';
 import { useRouter } from 'expo-router';
 import React from 'react';
 
@@ -15,5 +16,13 @@ export default function SecurityScreen() {
     }
   };
 
-  return <MobileSecurity onNavigate={handleNavigate} />;
+  return (
+    <>
+      <PageTitle 
+        titleFr="Sécurité"
+        titleEn="Security"
+      />
+      <MobileSecurity onNavigate={handleNavigate} />
+    </>
+  );
 }

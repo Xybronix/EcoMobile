@@ -1,5 +1,6 @@
 import { MobileQRScanner } from '@/components/bike/MobileQRScanner';
 import type { Bike } from '@/lib/mobile-types';
+import { PageTitle } from '@/components/ui/PageTitle';
 import { useRouter } from 'expo-router';
 import React from 'react';
 
@@ -17,5 +18,13 @@ export default function ScanScreen() {
     router.back();
   };
 
-  return <MobileQRScanner onBikeFound={handleBikeFound} onBack={handleBack} />;
+  return (
+    <>
+      <PageTitle 
+        titleFr="Scan"
+        titleEn="Scan"
+      />
+      <MobileQRScanner onBikeFound={handleBikeFound} onBack={handleBack} />
+    </>
+  );
 }

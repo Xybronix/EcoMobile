@@ -1,4 +1,5 @@
 import { MobileBikeDetails } from '@/components/bike/MobileBikeDetails';
+import { PageTitle } from '@/components/ui/PageTitle';
 import type { Bike } from '@/services/bikeService';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React from 'react';
@@ -51,11 +52,12 @@ export default function BikeDetailsScreen() {
   }
 
   return (
-    <MobileBikeDetails 
-      bike={bikeData}
-      onBack={handleBack}
-      onStartRide={handleStartRide}
-      onNavigate={handleNavigate}
-    />
+    <>
+      <PageTitle 
+        titleFr="Inspection du vélo"
+        titleEn="Bike Inspection"
+      />
+      <MobileBikeDetails bike={bikeData} onBack={handleBack} onStartRide={handleStartRide} onNavigate={handleNavigate} />
+    </>
   );
 }

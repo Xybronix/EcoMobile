@@ -1,4 +1,5 @@
 import { MobileChat } from '@/components/profile/MobileChat';
+import { PageTitle } from '@/components/ui/PageTitle';
 import { useRouter } from 'expo-router';
 import React from 'react';
 
@@ -15,5 +16,13 @@ export default function ChatScreen() {
     }
   };
 
-  return <MobileChat onNavigate={handleNavigate} />;
+  return (
+    <>
+      <PageTitle 
+        titleFr="Support de Chat"
+        titleEn="Chat Support"
+      />
+      <MobileChat onNavigate={handleNavigate} />
+    </>
+  );
 }

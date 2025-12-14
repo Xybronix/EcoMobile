@@ -1,4 +1,5 @@
 import { MobileRideInProgress } from '@/components/ride/MobileRideInProgress';
+import { PageTitle } from '@/components/ui/PageTitle';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React from 'react';
 
@@ -46,11 +47,12 @@ export default function RideInProgressScreen() {
   }
 
   return (
-    <MobileRideInProgress
-      bike={bikeData}
-      onEndRide={handleEndRide}
-      onReportIssue={handleReportIssue}
-      onNavigate={handleNavigate}
-    />
+    <>
+      <PageTitle 
+        titleFr="Trajet en cours"
+        titleEn="Ride in Progress"
+      />
+      <MobileRideInProgress bike={bikeData} onEndRide={handleEndRide} onReportIssue={handleReportIssue} onNavigate={handleNavigate} />
+    </>
   );
 }

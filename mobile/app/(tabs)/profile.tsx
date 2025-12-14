@@ -1,4 +1,5 @@
 import MobileProfile from '@/components/profile/MobileProfile';
+import { PageTitle } from '@/components/ui/PageTitle';
 import { useRouter } from 'expo-router';
 import React from 'react';
 
@@ -27,5 +28,13 @@ export default function ProfileScreen() {
     }
   };
 
-  return <MobileProfile onNavigate={handleNavigate} />;
+  return (
+    <>
+      <PageTitle 
+        titleFr="Profil"
+        titleEn="Profile"
+      />
+      <MobileProfile onNavigate={handleNavigate} />
+    </>
+  );
 }

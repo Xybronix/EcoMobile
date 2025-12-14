@@ -1,5 +1,6 @@
 // app/(tabs)/home.tsx
 import { MobileHome } from '@/components/home/MobileHome';
+import { PageTitle } from '@/components/ui/PageTitle';
 import { useRouter } from 'expo-router';
 import React from 'react';
 
@@ -40,5 +41,13 @@ export default function HomeScreen() {
     }
   };
 
-  return <MobileHome onNavigate={handleNavigate} />;
+  return (
+    <>
+      <PageTitle 
+        titleFr="Accueil"
+        titleEn="Home"
+      />
+      <MobileHome onNavigate={handleNavigate} />
+    </>
+  );
 }

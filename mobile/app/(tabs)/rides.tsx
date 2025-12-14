@@ -1,5 +1,6 @@
 import { MobileRideHistory } from '@/components/ride/MobileRideHistory';
 import type { Ride } from '@/lib/mobile-types';
+import { PageTitle } from '@/components/ui/PageTitle';
 import { useRouter } from 'expo-router';
 import React from 'react';
 
@@ -23,5 +24,13 @@ export default function RidesScreen() {
     }
   };
 
-  return <MobileRideHistory onRideDetails={handleRideDetails} onNavigate={handleNavigate} />;
+  return (
+    <>
+      <PageTitle 
+        titleFr="Trajets"
+        titleEn="Rides"
+      />
+      <MobileRideHistory onRideDetails={handleRideDetails} onNavigate={handleNavigate} />
+    </>
+  );
 }

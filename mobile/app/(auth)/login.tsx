@@ -1,6 +1,8 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import MobileLogin from '../../components/auth/MobileLogin';
+import { PageTitle } from '@/components/ui/PageTitle';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -26,5 +28,13 @@ export default function LoginScreen() {
     }
   };
 
-  return <MobileLogin onNavigate={handleNavigate} />;
+  return (
+    <>
+      <PageTitle 
+        titleFr="Se connecter"
+        titleEn="Login"
+      />
+      <MobileLogin onNavigate={handleNavigate} />
+    </>
+  );
 }

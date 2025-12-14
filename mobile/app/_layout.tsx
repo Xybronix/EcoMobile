@@ -1,9 +1,4 @@
-// app/_layout.tsx
-import {
-  DarkTheme,
-  DefaultTheme,
-  ThemeProvider,
-} from '@react-navigation/native';
+import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -13,8 +8,8 @@ import 'react-native-reanimated';
 import { View } from 'react-native';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { MobileAuthProvider } from '@/lib/mobile-auth';
 import { MobileI18nProvider } from '@/lib/mobile-i18n';
+import { MobileAuthProvider } from '@/lib/mobile-auth';
 import { Colors } from '@/constants/theme';
 import { ToastContainer } from '@/components/ui/ToastContainer';
 import "../global.css";

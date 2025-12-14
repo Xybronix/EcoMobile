@@ -1,5 +1,5 @@
-// app/(modals)/recharge-deposit.tsx
 import { MobileRechargeDeposit } from '@/components/home/MobileRechargeDeposit';
+import { PageTitle } from '@/components/ui/PageTitle';
 import { useRouter } from 'expo-router';
 import React from 'react';
 
@@ -18,9 +18,12 @@ export default function RechargeDepositScreen() {
   };
 
   return (
-    <MobileRechargeDeposit 
-      onBack={handleBack}
-      onSuccess={handleSuccess}
-    />
+    <>
+      <PageTitle 
+        titleFr="Recharger le dépôt"
+        titleEn="Recharge Deposit"
+      />
+      <MobileRechargeDeposit onBack={handleBack} onSuccess={handleSuccess} />
+    </>
   );
 }

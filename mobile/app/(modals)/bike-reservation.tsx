@@ -1,4 +1,5 @@
 import { MobileBikeReservation } from '@/components/bike/MobileBikeReservation';
+import { PageTitle } from '@/components/ui/PageTitle';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React from 'react';
 
@@ -24,10 +25,12 @@ export default function BikeReservationScreen() {
   }
 
   return (
-    <MobileBikeReservation 
-      bike={bikeData}
-      onBack={handleBack}
-      onReservationComplete={handleReservationComplete}
-    />
+    <>
+      <PageTitle 
+        titleFr="Réservation de vélo"
+        titleEn="Bike Reservation"
+      />
+      <MobileBikeReservation bike={bikeData} onBack={handleBack} onReservationComplete={handleReservationComplete} />
+    </>
   );
 }

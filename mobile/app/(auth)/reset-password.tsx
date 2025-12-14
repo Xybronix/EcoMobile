@@ -1,4 +1,5 @@
 import { MobileResetPassword } from '@/components/auth/MobileResetPassword';
+import { PageTitle } from '@/components/ui/PageTitle';
 import { useRouter } from 'expo-router';
 
 export default function ResetPasswordScreen() {
@@ -14,5 +15,13 @@ export default function ResetPasswordScreen() {
     }
   };
 
-  return <MobileResetPassword onNavigate={handleNavigate} />;
+  return (
+    <>
+      <PageTitle 
+        titleFr="Réinitialiser le mot de passe"
+        titleEn="Reset Password"
+      />
+      <MobileResetPassword onNavigate={handleNavigate} />
+    </>
+  );
 }

@@ -1,5 +1,5 @@
-// app/(modals)/create-incident.tsx
 import { MobileCreateIncident } from '@/components/incident/MobileCreateIncident';
+import { PageTitle } from '@/components/ui/PageTitle';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React from 'react';
 
@@ -17,11 +17,12 @@ export default function CreateIncidentScreen() {
   };
 
   return (
-    <MobileCreateIncident 
-      onBack={handleBack}
-      incidentId={incidentId}
-      rideId={rideId}
-      bikeId={bikeId}
-    />
+    <>
+      <PageTitle 
+        titleFr="Créer un incident"
+        titleEn="Create Incident"
+      />
+      <MobileCreateIncident onBack={handleBack} incidentId={incidentId} rideId={rideId} bikeId={bikeId} />
+    </>
   );
 }

@@ -1,4 +1,5 @@
 import { MobileBikeInspection } from '@/components/bike/MobileBikeInspection';
+import { PageTitle } from '@/components/ui/PageTitle';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React from 'react';
 
@@ -38,12 +39,12 @@ export default function BikeInspectionScreen() {
   };
 
   return (
-    <MobileBikeInspection
-      bikeId={bikeId}
-      bikeName={bikeName}
-      inspectionType={inspectionType}
-      onComplete={handleComplete}
-      onBack={handleBack}
-    />
+    <>
+      <PageTitle 
+        titleFr="Inspection du vélo"
+        titleEn="Bike Inspection"
+      />
+      <MobileBikeInspection bikeId={bikeId} bikeName={bikeName} inspectionType={inspectionType} onComplete={handleComplete} onBack={handleBack} />
+    </>
   );
 }

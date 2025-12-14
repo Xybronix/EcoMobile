@@ -1,5 +1,5 @@
-// app/(modals)/edit-incident.tsx
 import { MobileCreateIncident } from '@/components/incident/MobileCreateIncident';
+import { PageTitle } from '@/components/ui/PageTitle';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React from 'react';
 
@@ -19,9 +19,12 @@ export default function EditIncidentScreen() {
   }
 
   return (
-    <MobileCreateIncident 
-      onBack={handleBack}
-      incidentId={incidentId}
-    />
+    <>
+      <PageTitle 
+        titleFr="Modifier l'incident"
+        titleEn="Edit Incident"
+      />
+      <MobileCreateIncident onBack={handleBack} incidentId={incidentId} />
+    </>
   );
 }

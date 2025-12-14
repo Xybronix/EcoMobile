@@ -1,3 +1,4 @@
+import { Logo } from '@/components/ui/Logo';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { KeyboardAvoidingContainer } from '@/components/ui/KeyboardAvoidingContainer';
@@ -8,7 +9,7 @@ import { toast } from '@/components/ui/Toast';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { getGlobalStyles } from '@/styles/globalStyles';
 import { haptics } from '@/utils/haptics';
-import { ArrowLeft, Bike, Eye, EyeOff } from 'lucide-react-native';
+import { ArrowLeft, Eye, EyeOff } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { TouchableOpacity, View } from 'react-native';
 import { useMobileAuth } from '@/lib/mobile-auth';
@@ -143,8 +144,8 @@ export function MobileRegister({ onNavigate }: MobileRegisterProps) {
       <View style={[styles.formContainer, { maxWidth: 400, marginHorizontal: 'auto', width: '100%' }]}>
         {/* Logo & Title */}
         <View style={[styles.alignCenter, styles.mb24]}>
-          <View style={[styles.w64, styles.h64, { backgroundColor: '#16a34a' }, styles.rounded20, styles.alignCenter, styles.justifyCenter, styles.mb12]}>
-            <Bike color="white" size={24} />
+          <View style={[/*styles.w64, styles.h64, { backgroundColor: '#16a34a' }, styles.rounded20, styles.alignCenter, styles.justifyCenter,*/ styles.mb12]}>
+            <Logo size={70} color="#16a34a" />
           </View>
           <Text size="xl" weight="bold" color="primary" style={styles.mb8}>
             FreeBike
