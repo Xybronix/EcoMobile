@@ -1,5 +1,5 @@
-// app/(modals)/incident-details.tsx
 import { MobileIncidentDetails } from '@/components/incident/MobileIncidentDetails';
+import { PageTitle } from '@/components/ui/PageTitle';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React from 'react';
 
@@ -26,10 +26,12 @@ export default function IncidentDetailsScreen() {
   }
 
   return (
-    <MobileIncidentDetails 
-      incidentId={incidentId}
-      onBack={handleBack}
-      onEdit={handleEdit}
-    />
+    <>
+      <PageTitle 
+        titleFr="Détails de l'incident"
+        titleEn="Incident Details"
+      />
+      <MobileIncidentDetails incidentId={incidentId} onBack={handleBack} onEdit={handleEdit} />
+    </>
   );
 }

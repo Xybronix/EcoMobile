@@ -1,4 +1,5 @@
 import { MobileAccountManagement } from '@/components/profile/MobileAccountManagement';
+import { PageTitle } from '@/components/ui/PageTitle';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React from 'react';
 
@@ -66,10 +67,12 @@ export default function AccountManagementScreen() {
   };
 
   return (
-    <MobileAccountManagement 
-      onBack={handleBack} 
-      onNavigate={handleNavigate} 
-      initialTab={initialTab}
-    />
+    <>
+      <PageTitle 
+        titleFr="Gestion de compte"
+        titleEn="Account Management"
+      />
+      <MobileAccountManagement onBack={handleBack} onNavigate={handleNavigate} initialTab={initialTab} />
+    </>
   );
 }

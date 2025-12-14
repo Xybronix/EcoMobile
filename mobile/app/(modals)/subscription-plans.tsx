@@ -1,5 +1,5 @@
-// app/(modals)/subscription-plans.tsx
 import { MobileSubscriptionPlans } from '@/components/subscription/MobileSubscriptionPlans';
+import { PageTitle } from '@/components/ui/PageTitle';
 import { useRouter } from 'expo-router';
 import React from 'react';
 
@@ -30,9 +30,12 @@ export default function SubscriptionPlansScreen() {
   };
 
   return (
-    <MobileSubscriptionPlans 
-      onBack={handleBack} 
-      onNavigate={handleNavigate}
-    />
+    <>
+      <PageTitle 
+        titleFr="Plans d'abonnement"
+        titleEn="Subscription Plans"
+      />
+      <MobileSubscriptionPlans onBack={handleBack} onNavigate={handleNavigate} />
+    </>
   );
 }

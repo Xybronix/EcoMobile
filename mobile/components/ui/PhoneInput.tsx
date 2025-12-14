@@ -1,5 +1,4 @@
 /* eslint-disable react/no-unescaped-entities */
-// components/ui/PhoneInput.tsx
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { 
   View, 
@@ -424,6 +423,7 @@ export function PhoneInput({
 
             {/* Liste des pays */}
             <FlatList
+              showsVerticalScrollIndicator={false}
               data={filteredCountries}
               keyExtractor={(item) => item.code}
               renderItem={({ item }) => (

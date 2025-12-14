@@ -1,5 +1,6 @@
 import { useRouter } from 'expo-router';
 import { MobileRegister } from '../../components/auth/MobileRegister';
+import { PageTitle } from '@/components/ui/PageTitle';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -14,5 +15,13 @@ export default function RegisterScreen() {
     }
   };
 
-  return <MobileRegister onNavigate={handleNavigate} />;
+  return (
+    <>
+      <PageTitle 
+        titleFr="S'inscrire"
+        titleEn="Register"
+      />
+      <MobileRegister onNavigate={handleNavigate} />
+    </>
+  );
 }

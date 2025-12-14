@@ -1,10 +1,10 @@
-// components/mobile/MobileWelcome.tsx
+import { Logo } from '@/components/ui/Logo';
 import { Button } from '@/components/ui/Button';
 import { Text } from '@/components/ui/Text';
 import { toast } from '@/components/ui/Toast';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { getGlobalStyles } from '@/styles/globalStyles';
-import { ArrowRight, Bike, MapPin, Shield, Zap } from 'lucide-react-native';
+import { ArrowRight, MapPin, Shield, Zap } from 'lucide-react-native';
 import React from 'react';
 import { ScrollView, TouchableOpacity, View } from 'react-native';
 import { useMobileI18n } from '../lib/mobile-i18n';
@@ -96,15 +96,15 @@ export default function MobileWelcome({ onNavigate }: MobileWelcomeProps) {
       >
         {/* Header */}
         <View style={[styles.flex1, styles.alignCenter, styles.justifyCenter, styles.p24, styles.pt80]}>
-          <View style={[styles.w100, styles.h96, { backgroundColor: 'white', borderRadius: 48 }, styles.alignCenter, styles.justifyCenter, styles.mb24, styles.shadowLg]}>
-            <Bike color="#16a34a" size={48} />
+          <View /*style={[styles.w100, styles.h96, { backgroundColor: 'white', borderRadius: 48 }, styles.alignCenter, styles.justifyCenter, styles.mb24, styles.shadowLg]}*/ style={[styles.mb20]}>
+            <Logo size={100} color="white" />
           </View>
           
           <Text size="4xl" weight="bold" color="white" style={styles.mb16}>
             FreeBike
           </Text>
           
-          <Text size="lg" color="white" align="center" style={[styles.mb32, { opacity: 0.9, maxWidth: 300 }]}>
+          <Text size="lg" color="white" align="center" style={[styles.mb32, { opacity: 0.9, maxWidth: 400 }]}>
             {language === 'fr'
               ? 'Louez un vélo électrique en un clin d\'œil'
               : 'Rent an electric bike in a flash'}

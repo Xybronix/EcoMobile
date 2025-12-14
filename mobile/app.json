@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "Eco-Mobile",
-    "slug": "Eco-Mobile",
+    "name": "FreeBike",
+    "slug": "FreeBike",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
-    "scheme": "ecomobile",
+    "icon": "./assets/app-icon.png",
+    "scheme": "freebike",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "extra": {
@@ -22,14 +22,14 @@
         "NSCameraUsageDescription": "L'application a besoin d'accéder à votre caméra pour prendre une photo de profil.",
         "ITSAppUsesNonExemptEncryption": false
       },
-      "bundleIdentifier": "com.Xybronix.EcoMobile"
+      "bundleIdentifier": "com.Xybronix.FreeBike"
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/icon.png",
-        "backgroundImage": "./assets/icon.png",
-        "monochromeImage": "./assets/icon.png"
+        "backgroundColor": "#ffffff",
+        "foregroundImage": "./assets/app-icon-foreground.png"
+        //"backgroundImage": "./assets/icon.png",
+        //"monochromeImage": "./assets/icon.png"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
@@ -39,12 +39,12 @@
         "android.permission.WRITE_EXTERNAL_STORAGE",
         "android.permission.RECORD_AUDIO"
       ],
-      "package": "com.xybronix.EcoMobile",
+      "package": "com.xybronix.FreeBike",
       "versionCode": 1
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/icon.png"
+      "favicon": "./assets/app-icon.png"
     },
     "plugins": [
       "expo-router",
@@ -59,7 +59,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/icon.png",
+          "image": "./assets/app-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff",

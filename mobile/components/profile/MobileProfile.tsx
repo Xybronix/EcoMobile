@@ -10,7 +10,7 @@ import { haptics } from '@/utils/haptics';
 import { storeLanguage } from '@/utils/storage';
 import { Bell, ChevronRight, FileText, Globe, HelpCircle, LogOut, MessageCircle, Shield, User, Wallet } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
-import { RefreshControl, ScrollView, TouchableOpacity, View } from 'react-native';
+import { RefreshControl, ScrollView, Switch, TouchableOpacity, View } from 'react-native';
 import { useMobileAuth } from '@/lib/mobile-auth';
 import { useMobileI18n } from '@/lib/mobile-i18n';
 import { MobileHeader } from '@/components/layout/MobileHeader';
@@ -203,36 +203,16 @@ export default function MobileProfile({ onNavigate }: MobileProfileProps) {
           },
           color: '#d97706',
           rightElement: (
-            <TouchableOpacity
-              onPress={(e) => {
-                e.stopPropagation();
-                handleNotificationsToggle(!notifications);
+            <Switch
+              value={notifications}
+              onValueChange={(value) => {
+                haptics.light();
+                handleNotificationsToggle(value);
               }}
-              style={[
-                styles.w12,
-                styles.h8,
-                styles.roundedFull,
-                styles.relative,
-                {
-                  backgroundColor: notifications ? '#16a34a' : 
-                    colorScheme === 'light' ? '#d1d5db' : '#4b5563',
-                }
-              ]}
-            >
-              <View 
-                style={[
-                  styles.absolute,
-                  styles.w8,
-                  styles.h8,
-                  styles.roundedFull,
-                  {
-                    backgroundColor: 'white',
-                    left: notifications ? 18 : 0,
-                    transform: [{ translateX: notifications ? 0 : -6 }],
-                  }
-                ]} 
-              />
-            </TouchableOpacity>
+              trackColor={{ false: colorScheme === 'light' ? '#d1d5db' : '#4b5563', true: '#16a34a' }}
+              thumbColor="white"
+              ios_backgroundColor={colorScheme === 'light' ? '#d1d5db' : '#4b5563'}
+            />
           ),
         },
       ],

@@ -1,4 +1,5 @@
 import { MobileNotifications } from '@/components/profile/MobileNotifications';
+import { PageTitle } from '@/components/ui/PageTitle';
 import { useRouter } from 'expo-router';
 import React from 'react';
 
@@ -15,5 +16,13 @@ export default function NotificationsScreen() {
     }
   };
 
-  return <MobileNotifications onNavigate={handleNavigate} />;
+  return (
+    <>
+      <PageTitle 
+        titleFr="Notifications"
+        titleEn="Notifications"
+      />
+      <MobileNotifications onNavigate={handleNavigate} />
+    </>
+  );
 }

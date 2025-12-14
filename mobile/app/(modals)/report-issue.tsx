@@ -1,4 +1,5 @@
 import { MobileReportIssue } from '@/components/bike/MobileReportIssue';
+import { PageTitle } from '@/components/ui/PageTitle';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React from 'react';
 
@@ -14,10 +15,12 @@ export default function ReportIssueScreen() {
   };
 
   return (
-    <MobileReportIssue
-      bikeId={bikeId}
-      bikeName={bikeName}
-      onBack={handleBack}
-    />
+    <>
+      <PageTitle 
+        titleFr="Signaler un problème"
+        titleEn="Report an Issue"
+      />
+      <MobileReportIssue bikeId={bikeId} bikeName={bikeName} onBack={handleBack} />
+    </>
   );
 }

@@ -1,9 +1,10 @@
+import { Logo } from '@/components/ui/Logo';
 import { Text } from '@/components/ui/Text';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { notificationService } from '@/services/notificationService';
 import { getGlobalStyles } from '@/styles/globalStyles';
 import { haptics } from '@/utils/haptics';
-import { ArrowLeft, Bell, Bike, Menu, RefreshCw } from 'lucide-react-native';
+import { ArrowLeft, Bell, Menu, RefreshCw } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { TouchableOpacity, View } from 'react-native';
 import { useMobileI18n } from '@/lib/mobile-i18n';
@@ -76,7 +77,7 @@ export function MobileHeader({
     
     try {
       await refreshNotifications();
-      await onRefresh();
+      onRefresh();
     } catch (error) {
       console.error('❌ Error during refresh:', error);
     } finally {
@@ -126,7 +127,7 @@ export function MobileHeader({
           
           {/* Brand Logo and Name */}
           {showEcoMobileLogo && (
-            <View style={[styles.row, styles.alignCenter, styles.gap8]}>
+            <View style={[styles.row, styles.gap8]}>
               <View 
                 style={[
                   styles.w32,
@@ -134,10 +135,10 @@ export function MobileHeader({
                   styles.rounded16,
                   styles.alignCenter,
                   styles.justifyCenter,
-                  { backgroundColor: 'white' }
+                  /*{ backgroundColor: 'white' }*/
                 ]}
               >
-                <Bike size={20} color="#16a34a" />
+                <Logo size={60} color="white" />
               </View>
               {isHomePage && (
                 <Text variant="title" color="white" size="xl">

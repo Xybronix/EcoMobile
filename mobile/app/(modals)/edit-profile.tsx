@@ -1,4 +1,5 @@
 import MobileEditProfile from '@/components/profile/MobileEditProfile';
+import { PageTitle } from '@/components/ui/PageTitle';
 import { useRouter } from 'expo-router';
 import React from 'react';
 
@@ -15,5 +16,13 @@ export default function EditProfileScreen() {
     }
   };
 
-  return <MobileEditProfile onNavigate={handleNavigate} />;
+  return (
+    <>
+      <PageTitle 
+        titleFr="Modifier le profil"
+        titleEn="Edit Profile"
+      />
+      <MobileEditProfile onNavigate={handleNavigate} />
+    </>
+  );
 }

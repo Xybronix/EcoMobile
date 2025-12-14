@@ -1,4 +1,5 @@
 import { MobileWallet } from '@/components/home/MobileWallet';
+import { PageTitle } from '@/components/ui/PageTitle';
 import { useRouter } from 'expo-router';
 import React from 'react';
 
@@ -19,5 +20,13 @@ export default function WalletScreen() {
     }
   };
 
-  return <MobileWallet onBack={handleBack} onNavigate={handleNavigate} />;
+  return (
+    <>
+      <PageTitle 
+        titleFr="Portefeuille"
+        titleEn="Wallet"
+      />
+      <MobileWallet onBack={handleBack} onNavigate={handleNavigate} />
+    </>
+  );
 }

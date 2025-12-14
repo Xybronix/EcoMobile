@@ -1,5 +1,6 @@
 // app/(tabs)/map.tsx
 import { MobileBikeMap } from '@/components/bike/MobileBikeMap';
+import { PageTitle } from '@/components/ui/PageTitle';
 import { useRouter } from 'expo-router';
 import React from 'react';
 
@@ -22,5 +23,13 @@ export default function MapScreen() {
     }
   };
 
-  return <MobileBikeMap onNavigate={handleNavigate} />;
+  return (
+    <>
+      <PageTitle 
+        titleFr="Carte"
+        titleEn="Maps"
+      />
+      <MobileBikeMap onNavigate={handleNavigate} />
+    </>
+  );
 }

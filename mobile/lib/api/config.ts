@@ -2,14 +2,12 @@ import Constants from 'expo-constants';
 
 // Configuration dynamique selon l'environnement
 const getApiBaseUrl = () => {
-  return 'https://ecomobile-8bx0.onrender.com/api/v1';
-  /*
+  //return 'https://ecomobile-8bx0.onrender.com/api/v1';
   if (__DEV__) {
-    return 'http://10.201.154.189:5000/api/v1';
+    return 'http://10.80.81.189:5000/api/v1';
   }
   
   return Constants.expoConfig?.extra?.apiUrl || 'https://ecomobile-8bx0.onrender.com/api/v1';
-  */
 };
 
 const API_BASE_URL = getApiBaseUrl();
@@ -59,6 +57,7 @@ export const handleApiResponse = async (response: Response) => {
   try {
     return await response.json();
   } catch (error) {
-    throw new ApiError(500, 'Invalid JSON response from server', 'PARSE_ERROR');
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    throw new ApiError(500, 'Invalid JSON response from server :', errorMessage);
   }
 };
