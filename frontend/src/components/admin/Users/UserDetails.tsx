@@ -72,7 +72,18 @@ export function UserDetails() {
     try {
       setLoading(true);
       const userData = await userService.getUserById(userId);
-      setUser(userData);
+
+      let depositInfo = { currentDeposit: 0, requiredDeposit: 0, canUseService: false };
+      let walletBalance = { balance: 0, deposit: 0, negativeBalance: 0 };
+
+      const updatedUserData = {
+        ...userData,
+        depositBalance: depositInfo.currentDeposit || walletBalance.deposit || 0,
+        accountBalance: walletBalance.balance || 0,
+        negativeBalance: walletBalance.negativeBalance || 0
+      };
+
+      setUser(updatedUserData);
       
       const stats = userData.stats || {};
       
@@ -294,6 +305,22 @@ export function UserDetails() {
               <div>
                 <p className="text-sm text-gray-600">Caution</p>
                 <p className="text-2xl font-bold text-gray-900">{formatCurrency(user.depositBalance || 0)}</p>
+                {user?.stats?.wallet?.requiredDeposit && (
+                  <p className="text-xs text-gray-500">
+                    Requis: {formatCurrency(user.stats.wallet.requiredDeposit)}
+                  </p>
+                )}
+                {user?.stats?.wallet?.canUseService !== undefined && (
+                  <Badge className={`mt-1 ${
+                    user.stats.wallet.canUseService 
+                      ? 'bg-green-100 text-green-800' 
+                      : 'bg-red-100 text-red-800'
+                  }`}>
+                    {user.stats.wallet.canUseService 
+                      ? 'Caution suffisante' 
+                      : 'Caution insuffisante'}
+                  </Badge>
+                )}
               </div>
               <Shield className="w-8 h-8 text-blue-600" />
             </div>
