@@ -1,4 +1,3 @@
-// services/api/reservation.service.ts
 import { apiClient, getAuthToken } from './client';
 
 export interface Reservation {

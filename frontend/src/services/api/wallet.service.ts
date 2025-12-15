@@ -1,4 +1,3 @@
-// services/api/wallet.service.ts
 import { apiClient } from './client';
 
 export interface WalletBalance {
@@ -8,7 +7,7 @@ export interface WalletBalance {
 
 export interface Transaction {
   id: string;
-  type: 'DEPOSIT' | 'WITHDRAWAL' | 'RIDE_PAYMENT' | 'REFUND' | 'CASH_DEPOSIT';
+  type: 'DEPOSIT' | 'WITHDRAWAL' | 'RIDE_PAYMENT' | 'REFUND' | 'CASH_DEPOSIT' | 'DEPOSIT_RECHARGE' | 'DAMAGE_CHARGE' | 'SUBSCRIPTION_PAYMENT';
   amount: number;
   fees: number;
   totalAmount: number;

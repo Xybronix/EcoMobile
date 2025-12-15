@@ -26,6 +26,9 @@ const translations: Translations = {
   'auth.yourElectricMobility': { fr: 'Votre mobilité électrique', en: 'Your electric mobility' },
   'auth.confirmPassword': { fr: 'Confirmer le mot de passe', en: 'Confirm Password' },
   'auth.atLeast8Chars': { fr: 'Au moins 8 caractères', en: 'At least 8 characters' },
+  'auth.passwordMinLength': { fr: 'Au moins 8 caractères', en: 'At least 8 characters' },
+  'auth.passwordHasLowercase': { fr: 'Au moins 1 lettre minuscule', en: 'At least 1 lowercase letter' },
+  'auth.passwordHasUppercase': { fr: 'Au moins 1 lettre majuscule', en: 'At least 1 uppercase letter' },
   'auth.backToLogin': { fr: 'Retour à la connexion', en: 'Back to login' },
   'auth.emailSent': { fr: 'Email envoyé !', en: 'Email sent!' },
   'auth.checkInbox': { fr: 'Vérifiez votre boîte de réception et cliquez sur le lien pour réinitialiser votre mot de passe.', en: 'Check your inbox and click the link to reset your password.' },
@@ -49,6 +52,7 @@ const translations: Translations = {
   'validation.invalidPhone': { fr: 'Numéro de téléphone invalide', en: 'Invalid phone number' },
   'validation.passwordsNoMatch': { fr: 'Les mots de passe ne correspondent pas', en: 'Passwords do not match' },
   'validation.passwordMinLength': { fr: 'Le mot de passe doit contenir au moins 8 caractères', en: 'Password must be at least 8 characters' },
+  'validation.passwordRequirements': { fr: 'Le mot de passe doit contenir au moins 8 caractères, une majuscule et une minuscule', en: 'Password must contain at least 8 characters, one uppercase and one lowercase letter' },
   'validation.enterEmail': { fr: 'Veuillez saisir votre adresse email', en: 'Please enter your email address' },
 
   // Error messages

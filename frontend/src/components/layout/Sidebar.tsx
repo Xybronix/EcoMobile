@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Bike, Settings, ChevronDown, ChevronRight, Gauge, CreditCard, MessageSquare } from 'lucide-react';
+import { LayoutDashboard, Bike, Settings, ChevronDown, ChevronRight, Gauge, CreditCard, MessageSquare, X } from 'lucide-react';
 import { useTranslation } from '../../lib/i18n';
 import { useCompanyInfo } from '../../hooks/useCompanyInfo';
 import { ProtectedAccess } from '../shared/ProtectedAccess';
@@ -8,6 +8,8 @@ import { cn } from '../ui/utils';
 
 interface SidebarProps {
   isCollapsed: boolean;
+  isMobileMenuOpen: boolean;
+  onCloseMobileMenu: () => void;
 }
 
 interface MenuItem {
@@ -28,7 +30,7 @@ interface MenuItem {
   role?: string | string[];
 }
 
-export function Sidebar({ isCollapsed }: SidebarProps) {
+export function Sidebar({ isCollapsed, isMobileMenuOpen, onCloseMobileMenu }: SidebarProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
@@ -182,88 +184,140 @@ export function Sidebar({ isCollapsed }: SidebarProps) {
 
   const handleNavigation = (path: string) => {
     navigate(path);
+    // Fermer le menu mobile après navigation
+    onCloseMobileMenu();
   };
 
-  return (
-    <aside
-      className={cn(
-        'hidden md:flex md:flex-col bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-all duration-300 overflow-hidden',
-        isCollapsed ? 'w-20' : 'w-64'
-      )}
-    >
-      <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-green-600 rounded-lg flex items-center justify-center flex-shrink-0">
-            <Bike className="w-6 h-6 text-white" />
-          </div>
-          {!isCollapsed && (
-            <div>
-              <h1 className="text-xl font-bold text-green-600">{displayName}</h1>
-              <p className="text-gray-500 dark:text-gray-400 text-sm">Admin Dashboard</p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-        {menuGroups.map((item) => {
-          // Vérifier si l'utilisateur peut voir ce menu
-          if (item.resource && item.action) {
-            return (
-              <ProtectedAccess 
-                key={item.id}
-                mode="component" 
-                resource={item.resource} 
-                action={item.action}
-                showFallback={false}
-              >
-                <MenuItemComponent 
-                  item={item}
-                  isCollapsed={isCollapsed}
-                  isActive={isGroupActive(item)}
-                  isExpanded={isMenuExpanded(item.id)}
-                  onToggle={() => toggleMenu(item.id)}
-                  onNavigate={handleNavigation}
-                />
-              </ProtectedAccess>
-            );
-          }
-
-          if (item.role) {
-            return (
-              <ProtectedAccess 
-                key={item.id}
-                mode="component" 
-                requiredRole={item.role}
-                showFallback={false}
-              >
-                <MenuItemComponent 
-                  item={item}
-                  isCollapsed={isCollapsed}
-                  isActive={isGroupActive(item)}
-                  isExpanded={isMenuExpanded(item.id)}
-                  onToggle={() => toggleMenu(item.id)}
-                  onNavigate={handleNavigation}
-                />
-              </ProtectedAccess>
-            );
-          }
-
-          // Pour les items sans restrictions ou avec des sous-éléments
-          return (
+  const renderMenuItems = (isMobileVersion = false) => {
+    return menuGroups.map((item) => {
+      // Vérifier si l'utilisateur peut voir ce menu
+      if (item.resource && item.action) {
+        return (
+          <ProtectedAccess 
+            key={item.id}
+            mode="component" 
+            resource={item.resource} 
+            action={item.action}
+            showFallback={false}
+          >
             <MenuItemComponent 
-              key={item.id}
               item={item}
-              isCollapsed={isCollapsed}
+              isCollapsed={isMobileVersion ? false : isCollapsed}
               isActive={isGroupActive(item)}
               isExpanded={isMenuExpanded(item.id)}
               onToggle={() => toggleMenu(item.id)}
               onNavigate={handleNavigation}
+              isMobile={isMobileVersion}
             />
-          );
-        })}
-      </nav>
-    </aside>
+          </ProtectedAccess>
+        );
+      }
+
+      if (item.role) {
+        return (
+          <ProtectedAccess 
+            key={item.id}
+            mode="component" 
+            requiredRole={item.role}
+            showFallback={false}
+          >
+            <MenuItemComponent 
+              item={item}
+              isCollapsed={isMobileVersion ? false : isCollapsed}
+              isActive={isGroupActive(item)}
+              isExpanded={isMenuExpanded(item.id)}
+              onToggle={() => toggleMenu(item.id)}
+              onNavigate={handleNavigation}
+              isMobile={isMobileVersion}
+            />
+          </ProtectedAccess>
+        );
+      }
+
+      return (
+        <MenuItemComponent 
+          key={item.id}
+          item={item}
+          isCollapsed={isMobileVersion ? false : isCollapsed}
+          isActive={isGroupActive(item)}
+          isExpanded={isMenuExpanded(item.id)}
+          onToggle={() => toggleMenu(item.id)}
+          onNavigate={handleNavigation}
+          isMobile={isMobileVersion}
+        />
+      );
+    });
+  };
+
+  return (
+    <>
+      {/* Desktop Sidebar */}
+      <aside
+        className={cn(
+          'hidden md:flex md:flex-col bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-all duration-300 overflow-hidden',
+          isCollapsed ? 'w-20' : 'w-64'
+        )}
+      >
+        <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-green-600 rounded-lg flex items-center justify-center flex-shrink-0">
+              <Bike className="w-6 h-6 text-white" />
+            </div>
+            {!isCollapsed && (
+              <div>
+                <h1 className="text-xl font-bold text-green-600">{displayName}</h1>
+                <p className="text-gray-500 dark:text-gray-400 text-sm">Admin Dashboard</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+          {renderMenuItems(false)}
+        </nav>
+      </aside>
+
+      {/* Mobile Sidebar - No backdrop overlay */}
+      {isMobileMenuOpen && (
+        <div className="fixed inset-0 z-50 md:hidden">
+          {/* Invisible clickable area to close menu */}
+          <div 
+            className="fixed inset-0" 
+            onClick={onCloseMobileMenu}
+          />
+          
+          {/* Mobile Sidebar */}
+          <div className={cn(
+            'fixed inset-y-0 left-0 w-80 max-w-[85vw] bg-white dark:bg-gray-800 shadow-2xl transition-transform duration-300 ease-in-out transform translate-x-0'
+          )}>
+            {/* Mobile Header */}
+            <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-green-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Bike className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-xl font-bold text-green-600">{displayName}</h1>
+                  <p className="text-gray-500 dark:text-gray-400 text-sm">Admin Dashboard</p>
+                </div>
+              </div>
+              <button
+                onClick={onCloseMobileMenu}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                aria-label="Fermer le menu"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Mobile Navigation */}
+            <nav className="flex-1 p-4 space-y-1 overflow-y-auto max-h-[calc(100vh-120px)]">
+              {renderMenuItems(true)}
+            </nav>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -274,6 +328,7 @@ interface MenuItemComponentProps {
   isExpanded: boolean;
   onToggle: () => void;
   onNavigate: (path: string) => void;
+  isMobile: boolean;
 }
 
 function MenuItemComponent({ 
@@ -282,7 +337,8 @@ function MenuItemComponent({
   isActive, 
   isExpanded, 
   onToggle, 
-  onNavigate 
+  onNavigate,
+  isMobile 
 }: MenuItemComponentProps) {
   const location = useLocation();
   const Icon = item.icon;
@@ -293,22 +349,22 @@ function MenuItemComponent({
     <div>
       <button
         onClick={() => {
-          if (hasSubItems && !isCollapsed) {
+          if (hasSubItems && (!isCollapsed || isMobile)) {
             onToggle();
           } else if (item.path) {
             onNavigate(item.path);
           }
         }}
         className={cn(
-          'w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors',
+          'w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-left',
           isActive && !hasSubItems
             ? 'bg-green-50 text-green-600 dark:bg-green-900 dark:text-green-400'
             : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
         )}
-        title={isCollapsed ? item.label : undefined}
+        title={isCollapsed && !isMobile ? item.label : undefined}
       >
         <Icon className="w-5 h-5 flex-shrink-0" />
-        {!isCollapsed && (
+        {(!isCollapsed || isMobile) && (
           <>
             <span className="text-sm flex-1 text-left">{item.label}</span>
             {hasSubItems && (
@@ -322,7 +378,7 @@ function MenuItemComponent({
         )}
       </button>
 
-      {hasSubItems && !isCollapsed && isExpanded && (
+      {hasSubItems && (!isCollapsed || isMobile) && isExpanded && (
         <div className="ml-4 mt-1 space-y-1 border-l-2 border-gray-200 dark:border-gray-600 pl-4">
           {item.subItems!.map((subItem) => {
             // Vérifier les permissions pour chaque sous-élément
@@ -338,7 +394,7 @@ function MenuItemComponent({
                   <button
                     onClick={() => onNavigate(subItem.path)}
                     className={cn(
-                      'w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm',
+                      'w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm text-left',
                       isPathActive(subItem.path)
                         ? 'bg-green-50 text-green-600 dark:bg-green-900 dark:text-green-400'
                         : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
@@ -361,7 +417,7 @@ function MenuItemComponent({
                   <button
                     onClick={() => onNavigate(subItem.path)}
                     className={cn(
-                      'w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm',
+                      'w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm text-left',
                       isPathActive(subItem.path)
                         ? 'bg-green-50 text-green-600 dark:bg-green-900 dark:text-green-400'
                         : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
@@ -373,13 +429,12 @@ function MenuItemComponent({
               );
             }
 
-            // Sous-élément sans restrictions
             return (
               <button
                 key={subItem.id}
                 onClick={() => onNavigate(subItem.path)}
                 className={cn(
-                  'w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm',
+                  'w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm text-left',
                   isPathActive(subItem.path)
                     ? 'bg-green-50 text-green-600 dark:bg-green-900 dark:text-green-400'
                     : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'

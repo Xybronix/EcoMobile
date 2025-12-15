@@ -1,4 +1,3 @@
-// components/landing/Pricing.tsx
 import { useState, useEffect } from 'react';
 import { Check, Clock, Tag, Percent } from 'lucide-react';
 import { useI18n } from '../../lib/i18n';

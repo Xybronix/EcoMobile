@@ -1,4 +1,3 @@
-// services/api/client.ts
 const getApiBaseUrl = (): string => {
   // En développement avec Vite
   if (typeof import.meta !== 'undefined' && import.meta.env) {

@@ -1,4 +1,3 @@
-// components/landing/Testimonials.tsx
 import { Star, Quote } from 'lucide-react';
 import { useI18n } from '../../lib/i18n';
 import { useEffect, useState } from 'react';
@@ -26,7 +25,7 @@ export function Testimonials() {
             photo: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop',
             comment: 'Service excellent et vélos toujours en bon état. Je recommande !',
             rating: 5,
-            status: 'approved',
+            status: 'APPROVED',
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
           },
@@ -37,7 +36,7 @@ export function Testimonials() {
             socialStatus: 'Ingénieur',
             comment: 'Application intuitive et prix abordables. Parfait pour mes trajets quotidiens.',
             rating: 5,
-            status: 'approved',
+            status: 'APPROVED',
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
           },
@@ -49,7 +48,7 @@ export function Testimonials() {
             photo: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop',
             comment: 'Solution écologique et économique. Je ne peux plus m\'en passer !',
             rating: 5,
-            status: 'approved',
+            status: 'APPROVED',
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
           }

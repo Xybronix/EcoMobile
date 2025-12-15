@@ -1,4 +1,3 @@
-// hooks/useCompanyInfo.ts
 import { useState, useEffect } from 'react';
 import { companyService } from '../services/api/company.service';
 
@@ -32,9 +31,9 @@ export function useCompanyInfo() {
         const data = await companyService.getPublicSettings();
         if (isMounted) {
           const normalizedData: CompanyInfo = {
-            companyName: data.companyName || 'EcoMobile',
+            companyName: data.companyName || 'FreeBike',
             description: data.description || '',
-            email: data.email || 'contact@ecomobile.cm',
+            email: data.email || 'contact@freebike.cm',
             phone: data.phone || '+237 6XX XX XX XX',
             address: data.address || '',
             city: data.city || 'Douala',
@@ -55,9 +54,9 @@ export function useCompanyInfo() {
         if (isMounted) {
           setError(err instanceof Error ? err.message : 'Erreur de chargement');
           setCompanyInfo({
-            companyName: 'EcoMobile',
+            companyName: 'FreeBike',
             description: '',
-            email: 'contact@ecomobile.cm',
+            email: 'contact@freebike.cm',
             phone: '+237 6XX XX XX XX',
             address: '',
             city: 'Douala',

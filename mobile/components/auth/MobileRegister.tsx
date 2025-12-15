@@ -9,8 +9,8 @@ import { toast } from '@/components/ui/Toast';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { getGlobalStyles } from '@/styles/globalStyles';
 import { haptics } from '@/utils/haptics';
-import { ArrowLeft, Eye, EyeOff } from 'lucide-react-native';
-import React, { useState } from 'react';
+import { ArrowLeft, Eye, EyeOff, Check, X } from 'lucide-react-native';
+import React, { useState, useEffect } from 'react';
 import { TouchableOpacity, View } from 'react-native';
 import { useMobileAuth } from '@/lib/mobile-auth';
 import { useMobileI18n } from '@/lib/mobile-i18n';
@@ -37,10 +37,33 @@ export function MobileRegister({ onNavigate }: MobileRegisterProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isPhoneValid, setIsPhoneValid] = useState(false);
   const [emailError, setEmailError] = useState('');
+  const [passwordRequirements, setPasswordRequirements] = useState({
+    minLength: false,
+    hasLowercase: false,
+    hasUppercase: false,
+  });
+
+  // Vérifier les exigences du mot de passe en temps réel
+  useEffect(() => {
+    const requirements = {
+      minLength: formData.password.length >= 8,
+      hasLowercase: /[a-z]/.test(formData.password),
+      hasUppercase: /[A-Z]/.test(formData.password),
+    };
+    setPasswordRequirements(requirements);
+  }, [formData.password]);
 
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
+  };
+
+  const validatePassword = (password: string) => {
+    const minLength = password.length >= 8;
+    const hasLowercase = /[a-z]/.test(password);
+    const hasUppercase = /[A-Z]/.test(password);
+    
+    return minLength && hasLowercase && hasUppercase;
   };
 
   const handleEmailChange = (text: string) => {
@@ -51,6 +74,10 @@ export function MobileRegister({ onNavigate }: MobileRegisterProps) {
     } else {
       setEmailError('');
     }
+  };
+
+  const handlePasswordChange = (text: string) => {
+    setFormData({ ...formData, password: text });
   };
 
   const handleSubmit = async () => {
@@ -72,15 +99,15 @@ export function MobileRegister({ onNavigate }: MobileRegisterProps) {
       return;
     }
 
-    if (formData.password !== formData.confirmPassword) {
+    if (!validatePassword(formData.password)) {
       haptics.error();
-      toast.error(t('validation.passwordsNoMatch'));
+      toast.error(t('validation.passwordRequirements'));
       return;
     }
 
-    if (formData.password.length < 8) {
+    if (formData.password !== formData.confirmPassword) {
       haptics.error();
-      toast.error(t('validation.passwordMinLength'));
+      toast.error(t('validation.passwordsNoMatch'));
       return;
     }
 
@@ -126,6 +153,18 @@ export function MobileRegister({ onNavigate }: MobileRegisterProps) {
     }
   };
 
+  const RequirementItem = ({ met, text }: { met: boolean; text: string }) => (
+    <View style={[styles.row, styles.alignCenter, styles.gap8]}>
+      {met ? 
+        <Check size={16} color="#16a34a" /> : 
+        <X size={16} color="#ef4444" />
+      }
+      <Text size="xs" color={met ? "#16a34a" : "#6b7280"}>
+        {text}
+      </Text>
+    </View>
+  );
+
   return (
     <KeyboardAvoidingContainer
       style={{ backgroundColor: colorScheme === 'light' ? '#f0fdf4' : '#0f172a' }}
@@ -144,7 +183,7 @@ export function MobileRegister({ onNavigate }: MobileRegisterProps) {
       <View style={[styles.formContainer, { maxWidth: 400, marginHorizontal: 'auto', width: '100%' }]}>
         {/* Logo & Title */}
         <View style={[styles.alignCenter, styles.mb24]}>
-          <View style={[/*styles.w64, styles.h64, { backgroundColor: '#16a34a' }, styles.rounded20, styles.alignCenter, styles.justifyCenter,*/ styles.mb12]}>
+          <View style={styles.mb12}>
             <Logo size={70} color="#16a34a" />
           </View>
           <Text size="xl" weight="bold" color="primary" style={styles.mb8}>
@@ -221,12 +260,13 @@ export function MobileRegister({ onNavigate }: MobileRegisterProps) {
             <View style={styles.relative}>
               <Input
                 value={formData.password}
-                onChangeText={(text) => setFormData({ ...formData, password: text })}
+                onChangeText={handlePasswordChange}
                 placeholder={t('placeholder.password')}
                 secureTextEntry={!showPassword}
                 style={{ paddingRight: 48 }}
                 autoComplete="new-password"
                 textContentType="newPassword"
+                error={formData.password.length > 0 && !validatePassword(formData.password)}
               />
               <TouchableOpacity
                 onPress={() => {
@@ -241,9 +281,22 @@ export function MobileRegister({ onNavigate }: MobileRegisterProps) {
                 }
               </TouchableOpacity>
             </View>
-            <Text size="xs" color="#6b7280" style={{marginTop: 2}}>
-              {t('auth.atLeast8Chars')}
-            </Text>
+            
+            {/* Affichage des exigences du mot de passe */}
+            <View style={[styles.mt8, styles.gap4]}>
+              <RequirementItem
+                met={passwordRequirements.minLength}
+                text={t('auth.passwordMinLength')}
+              />
+              <RequirementItem
+                met={passwordRequirements.hasLowercase}
+                text={t('auth.passwordHasLowercase')}
+              />
+              <RequirementItem
+                met={passwordRequirements.hasUppercase}
+                text={t('auth.passwordHasUppercase')}
+              />
+            </View>
           </View>
 
           <View style={styles.inputGroup}>

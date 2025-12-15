@@ -50,8 +50,16 @@ export function UserManagement() {
         limit: itemsPerPage,
         search: searchTerm || undefined
       });
+
+      const formattedUsers = response.users.map(user => ({
+        ...user,
+        accountBalance: user.accountBalance || 0,
+        totalSpent: user.totalSpent || 0,
+        totalTrips: user.totalTrips || 0,
+        depositBalance: user.depositBalance || 0
+      }));
       
-      setUsers(response.users || []);
+      setUsers(formattedUsers);
       setTotalUsers(response.total || 0);
       setTotalPages(response.pages || 0);
     } catch (error) {
@@ -151,16 +159,19 @@ export function UserManagement() {
   const totalBalance = users.reduce((sum, user) => sum + (user.accountBalance || 0), 0);
   const totalSpent = users.reduce((sum, user) => sum + (user.totalSpent || 0), 0);
   const totalTrips = users.reduce((sum, user) => sum + (user.totalTrips || 0), 0);
+  const totalDeposit = users.reduce((sum, user) => sum + (user.depositBalance || 0), 0);
 
   // Prepare export data with safe fallbacks
   const exportData = users.map(user => ({
-    Nom: user.name || 'N/A',
+    'Nom Complet': [user.firstName, user.lastName].filter(Boolean).join(' ') || 'N/A',
     Email: user.email || 'N/A',
     Téléphone: user.phone || 'N/A',
-    Solde: `${(user.accountBalance || 0).toLocaleString()} FCFA`,
+    'Solde Wallet': `${(user.accountBalance || 0).toLocaleString()} FCFA`,
+    Caution: `${(user.depositBalance || 0).toLocaleString()} FCFA`,
     'Total Dépensé': `${(user.totalSpent || 0).toLocaleString()} FCFA`,
     Trajets: user.totalTrips || 0,
-    Statut: user.status === 'active' ? 'Actif' : 'Bloqué'
+    Statut: user.status === 'active' ? 'Actif' : 'Bloqué',
+    'Date d\'inscription': user.createdAt ? new Date(user.createdAt).toLocaleDateString('fr-FR') : 'N/A'
   }));
 
   // Helper function to get valid users for stats
@@ -300,6 +311,7 @@ export function UserManagement() {
                 <ProtectedAccess mode="component" resource="wallet" action="read" showFallback={false}>
                   <TableHead className="text-right">Solde</TableHead>
                 </ProtectedAccess>
+                <TableHead className="text-right">Caution</TableHead>
                 <TableHead className="text-center">Trajets</TableHead>
                 <ProtectedAccess mode="component" resource="wallet" action="read" showFallback={false}>
                   <TableHead className="text-right">Dépenses</TableHead>
@@ -333,6 +345,11 @@ export function UserManagement() {
                       </span>
                     </TableCell>
                   </ProtectedAccess>
+                  <TableCell className="text-right">
+                    <span className="text-blue-600">
+                      {(user.depositBalance || 0).toLocaleString()} FCFA
+                    </span>
+                  </TableCell>
                   <TableCell className="text-center">
                     <div className="flex items-center justify-center gap-1">
                       <Activity className="w-4 h-4 text-gray-400" />

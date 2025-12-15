@@ -1,4 +1,3 @@
-// services/api/bikeAction.service.ts
 import { apiClient } from './client';
 
 export interface UnlockRequest {

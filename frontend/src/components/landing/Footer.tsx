@@ -25,7 +25,7 @@ export function Footer() {
     isLoading
   } = useCompanyInfo();
 
-  const displayName = isLoading ? 'EcoMobile' : (companyName || 'EcoMobile');
+  const displayName = isLoading ? 'FreeBike' : (companyName || 'FreeBike');
   const displayEmail = email || `info@${displayName.toLowerCase()}.cm`;
   const displayPhone = phone || '+237 6XX XX XX XX';
   const displayLocation = address ? `${address}, ${city}, ${country}` : `${city || 'Douala'}, ${country || 'Cameroun'}`;

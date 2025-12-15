@@ -1,4 +1,3 @@
-// services/api/review.service.ts
 import { apiClient } from './client';
 
 export interface ReviewSubmission {

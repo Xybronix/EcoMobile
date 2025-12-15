@@ -1,4 +1,3 @@
-// services/api/auth.service.ts
 import { apiClient, setAuthToken, removeAuthToken, getAuthToken } from './client';
 
 export interface LoginCredentials {
