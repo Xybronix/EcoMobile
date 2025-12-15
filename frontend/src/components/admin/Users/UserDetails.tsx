@@ -29,6 +29,7 @@ export function UserDetails() {
     _rides?: Ride[];
     _transactions?: Transaction[];
     _requests?: any[];
+    stats?: any;
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -73,27 +74,12 @@ export function UserDetails() {
       const userData = await userService.getUserById(userId);
       setUser(userData);
       
-      // Charger les incidents
-      if (canViewIncidents) {
-        const incidentsData = await userService.getUserIncidents(userId);
-        setIncidents(incidentsData);
-      }
+      const stats = userData.stats || {};
       
-      // Charger les trajets
-      if (canViewRides) {
-        const ridesData = await userService.getUserRides(userId);
-        setRides(ridesData);
-      }
-      
-      // Charger les transactions
-      if (canViewWallet) {
-        const transactionsData = await userService.getUserTransactions(userId);
-        setTransactions(transactionsData);
-      }
-      
-      // Charger les demandes
-      const requestsData = await userService.getUserRequests(userId);
-      setRequests(requestsData);
+      setIncidents(userData.incidents || []);
+      setRides(userData.rides || []);
+      setTransactions(userData.transactions || []);
+      setRequests(userData.requests || []);
       
     } catch (error) {
       console.error('Erreur lors du chargement des données:', error);
@@ -236,6 +222,7 @@ export function UserDetails() {
   }
 
   const fullName = [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email;
+  const stats = user?.stats || {};
   const totalIncidents = incidents.length;
   const openIncidents = incidents.filter(i => i.status === 'OPEN').length;
   const totalRequests = requests.length;
@@ -294,7 +281,7 @@ export function UserDetails() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Solde Wallet</p>
-                <p className="text-2xl font-bold text-gray-900">{formatCurrency(user.accountBalance || 0)}</p>
+                <p className="text-2xl font-bold text-gray-900">{formatCurrency( user?.stats?.wallet?.balance || user?.accountBalance || 0)}</p>
               </div>
               <DollarSign className="w-8 h-8 text-green-600" />
             </div>

@@ -51,15 +51,37 @@ export function UserManagement() {
         search: searchTerm || undefined
       });
 
-      const formattedUsers = response.users.map(user => ({
-        ...user,
-        accountBalance: user.accountBalance || 0,
-        totalSpent: user.totalSpent || 0,
-        totalTrips: user.totalTrips || 0,
-        depositBalance: user.depositBalance || 0
-      }));
+      const usersWithDetails = await Promise.all(
+        response.users.map(async (user) => {
+          try {
+            const userDetails = await userService.getUserById(user.id);
+            
+            return {
+              ...user,
+              accountBalance: userDetails?.stats?.wallet?.balance || user.accountBalance || 0,
+              totalSpent: userDetails?.stats?.rides?.totalCost || user.totalSpent || 0,
+              totalTrips: userDetails?.stats?.rides?.total || user.totalTrips || 0,
+              depositBalance: user.depositBalance || 0,
+              reliabilityScore: Number(user.reliabilityScore) || 0,
+              name: [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email,
+              _stats: userDetails?.stats || {}
+            };
+          } catch (error) {
+            console.error(`Erreur pour l'utilisateur ${user.id}:`, error);
+            return {
+              ...user,
+              accountBalance: user.accountBalance || 0,
+              totalSpent: user.totalSpent || 0,
+              totalTrips: user.totalTrips || 0,
+              depositBalance: user.depositBalance || 0,
+              reliabilityScore: Number(user.reliabilityScore) || 0,
+              name: [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email
+            };
+          }
+        })
+      );
       
-      setUsers(formattedUsers);
+      setUsers(usersWithDetails);
       setTotalUsers(response.total || 0);
       setTotalPages(response.pages || 0);
     } catch (error) {
@@ -242,6 +264,9 @@ export function UserManagement() {
               <div>
                 <p className="text-sm text-gray-600">Solde Total</p>
                 <p className="text-2xl font-bold text-gray-900">{totalBalance.toLocaleString()} FCFA</p>
+                <p className="text-xs text-gray-500">
+                  Caution: {totalDeposit.toLocaleString()} FCFA
+                </p>
               </div>
               <DollarSign className="w-8 h-8 text-blue-600" />
             </div>
