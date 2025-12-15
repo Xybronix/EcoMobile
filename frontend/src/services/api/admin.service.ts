@@ -1,4 +1,3 @@
-// services/api/admin.service.ts
 import { apiClient } from './client';
 
 export interface DashboardStats {

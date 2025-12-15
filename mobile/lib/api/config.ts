@@ -1,6 +1,5 @@
 import Constants from 'expo-constants';
 
-// Configuration dynamique selon l'environnement
 const getApiBaseUrl = () => {
   //return 'https://ecomobile-8bx0.onrender.com/api/v1';
   if (__DEV__) {

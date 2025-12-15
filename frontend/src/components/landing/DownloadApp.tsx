@@ -1,4 +1,4 @@
-import { Apple, Smartphone } from 'lucide-react';
+import { Smartphone } from 'lucide-react';
 import { useI18n } from '../../lib/i18n';
 import { useCompanyInfo } from '../../hooks/useCompanyInfo';
 import { Button } from '../ui/button';
@@ -12,7 +12,10 @@ export function DownloadApp({ onNavigateToMobile }: DownloadAppProps) {
   const { t } = useI18n();
   const { companyName, isLoading } = useCompanyInfo();
 
-  const displayName = isLoading ? 'EcoMobile' : (companyName || 'EcoMobile');
+  const displayName = isLoading ? 'FreeBike' : (companyName || 'FreeBike');
+
+  const appStoreBadgeUrl = "https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg";
+  const googlePlayBadgeUrl = "https://play.google.com/intl/en_us/badges/static/images/badges/fr_badge_web_generic.png";
 
   return (
     <section id="download" className="py-20 bg-gradient-to-br from-green-600 to-green-700 relative overflow-hidden">
@@ -59,25 +62,27 @@ export function DownloadApp({ onNavigateToMobile }: DownloadAppProps) {
               <Button
                 size="lg"
                 onClick={onNavigateToMobile}
-                className="bg-black hover:bg-gray-900 text-white px-6 py-6"
+                className="bg-black hover:bg-gray-900 bg-transparent hover:bg-transparent text-white px-6 py-6"
+                aria-label="Download on the App Store"
               >
-                <Apple className="w-6 h-6 mr-3" />
-                <div className="text-left">
-                  <div className="text-xs opacity-80">{t('download.availableOn')}</div>
-                  <div className="text-base" style={{ fontWeight: 600 }}>App Store</div>
-                </div>
+                <img 
+                  src={appStoreBadgeUrl}
+                  alt="Download on the App Store"
+                  className="h-12"
+                />
               </Button>
               
               <Button
                 size="lg"
                 onClick={onNavigateToMobile}
-                className="bg-black hover:bg-gray-900 text-white px-6 py-6"
+                className="bg-black hover:bg-gray-900 bg-transparent hover:bg-transparent text-white px-6 py-6"
+                aria-label="Get it on Google Play"
               >
-                <Smartphone className="w-6 h-6 mr-3" />
-                <div className="text-left">
-                  <div className="text-xs opacity-80">{t('download.availableOn')}</div>
-                  <div className="text-base" style={{ fontWeight: 600 }}>Google Play</div>
-                </div>
+                <img 
+                  src={googlePlayBadgeUrl}
+                  alt="Get it on Google Play"
+                  className="h-16"
+                />
               </Button>
             </div>
 

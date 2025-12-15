@@ -1,4 +1,3 @@
-// components/landing/Header.tsx
 import { useNavigate } from 'react-router-dom';
 import { Menu, X, Bike } from 'lucide-react';
 import { useState } from 'react';
@@ -33,7 +32,7 @@ export function Header() {
     { name: t('nav.download'), href: '#download' },
   ];
 
-  const displayName = isLoading ? 'EcoMobile' : (companyName || 'EcoMobile');
+  const displayName = isLoading ? 'FreeBike' : (companyName || 'FreeBike');
 
   return (
     <header className="fixed top-0 left-0 right-0 bg-white/95 backdrop-blur-sm shadow-sm z-50">

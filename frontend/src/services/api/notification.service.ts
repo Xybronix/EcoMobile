@@ -1,4 +1,3 @@
-// services/api/notification.service.ts
 import { apiClient } from './client';
 
 export interface Notification {

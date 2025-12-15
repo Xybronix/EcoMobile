@@ -1,4 +1,3 @@
-// services/api/company.service.ts
 import { apiClient } from './client';
 import { BikePosition } from './bike.service';
 

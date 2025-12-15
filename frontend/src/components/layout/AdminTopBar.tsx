@@ -18,9 +18,10 @@ import {
 
 interface AdminTopBarProps {
   onToggleSidebar: () => void;
+  onToggleMobileMenu: () => void;
 }
 
-export function AdminTopBar({ onToggleSidebar }: AdminTopBarProps) {
+export function AdminTopBar({ onToggleSidebar, onToggleMobileMenu }: AdminTopBarProps) {
   const { user, logout } = useAuth();
   const { t, language, setLanguage } = useTranslation();
   const { hasPermission } = usePermissions();
@@ -29,14 +30,12 @@ export function AdminTopBar({ onToggleSidebar }: AdminTopBarProps) {
   const [unreadNotificationsCount, setUnreadNotificationsCount] = useState<number>(0);
   const [loadingNotifications, setLoadingNotifications] = useState<boolean>(false);
 
-  // Vérifier les permissions pour les notifications
   const canReadNotifications = hasPermission('notifications', 'read');
 
-  // Charger le nombre de notifications non lues
   useEffect(() => {
     const loadUnreadCount = async () => {
       if (!canReadNotifications) {
-        return; // Ne pas charger si l'utilisateur n'a pas les permissions
+        return;
       }
 
       try {
@@ -44,8 +43,6 @@ export function AdminTopBar({ onToggleSidebar }: AdminTopBarProps) {
         const count = await notificationService.getUnreadCount();
         setUnreadNotificationsCount(count);
       } catch (error) {
-        console.error('Erreur lors du chargement du nombre de notifications non lues:', error);
-        // En cas d'erreur, on garde le count à 0
         setUnreadNotificationsCount(0);
       } finally {
         setLoadingNotifications(false);
@@ -55,7 +52,6 @@ export function AdminTopBar({ onToggleSidebar }: AdminTopBarProps) {
     loadUnreadCount();
   }, [canReadNotifications]);
 
-  // Recharger les notifications périodiquement
   useEffect(() => {
     if (!canReadNotifications) return;
 
@@ -64,9 +60,8 @@ export function AdminTopBar({ onToggleSidebar }: AdminTopBarProps) {
         const count = await notificationService.getUnreadCount();
         setUnreadNotificationsCount(count);
       } catch (error) {
-        console.error('Erreur lors de l\'actualisation des notifications:', error);
       }
-    }, 30000); // Actualiser toutes les 30 secondes
+    }, 30000);
 
     return () => clearInterval(interval);
   }, [canReadNotifications]);
@@ -81,10 +76,6 @@ export function AdminTopBar({ onToggleSidebar }: AdminTopBarProps) {
 
   const handleNavigateToNotifications = () => {
     navigate('/admin/notifications');
-    
-    // Réinitialiser le compteur après navigation (optionnel)
-    // Cela peut être utile si l'utilisateur va voir les notifications
-    // Le compteur sera actualisé lors du prochain intervalle
   };
 
   const handleNavigateToSettings = () => {
@@ -100,14 +91,23 @@ export function AdminTopBar({ onToggleSidebar }: AdminTopBarProps) {
     <header className="sticky top-0 left-0 right-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 z-40 h-16">
       <div className="flex items-center justify-between px-4 h-full">
         <div className="flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onToggleSidebar}
-            className="hover:bg-gray-100 dark:hover:bg-gray-700"
+          {/* Bouton menu mobile - visible uniquement sur mobile */}
+          <button
+            onClick={onToggleMobileMenu}
+            className="md:hidden flex p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            aria-label="Ouvrir le menu"
           >
             <Menu className="w-5 h-5" />
-          </Button>
+          </button>
+
+          {/* Bouton toggle sidebar - visible uniquement sur desktop */}
+          <button
+            onClick={onToggleSidebar}
+            className="hidden md:flex p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            aria-label="Réduire la sidebar"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
         </div>
 
         <div className="flex items-center gap-2">

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Bike, Loader2 } from 'lucide-react';
+import { Bike, Loader2, Eye, EyeOff } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
@@ -14,6 +14,7 @@ export function Login() {
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   
   const { user, login, isLoading: authLoading } = useAuth();
   const { t, language, setLanguage } = useTranslation();
@@ -91,7 +92,7 @@ export function Login() {
             <div className="w-16 h-16 bg-gradient-to-br from-green-400 to-green-600 rounded-2xl flex items-center justify-center mb-4">
               <Bike className="w-10 h-10 text-white" />
             </div>
-            <h1 className="text-3xl font-bold text-green-600 text-center">EcoMobile</h1>
+            <h1 className="text-3xl font-bold text-green-600 text-center">FreeBike</h1>
             <p className="text-gray-600 dark:text-gray-300 text-center mt-1">
               {t('auth.login')} - Admin Dashboard
             </p>
@@ -106,7 +107,7 @@ export function Login() {
               <Input
                 id="email"
                 type="email"
-                placeholder={language === 'fr' ? 'admin@ecomobile.com' : 'admin@ecomobile.com'}
+                placeholder={language === 'fr' ? 'admin@freebike.com' : 'admin@freebike.com'}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={isLoading || authLoading}
@@ -119,16 +120,33 @@ export function Login() {
               <Label htmlFor="password" className="text-gray-700 dark:text-gray-300">
                 {t('auth.password')}
               </Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                disabled={isLoading || authLoading}
-                className="mt-1 text-base" // Prevent zoom on mobile
-                autoComplete="current-password"
-              />
+              <div className="relative mt-1">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={isLoading || authLoading}
+                  className="pr-10 text-base" // Prevent zoom on mobile
+                  autoComplete="current-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  disabled={isLoading || authLoading}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                  aria-label={showPassword ? 
+                    (language === 'fr' ? 'Masquer le mot de passe' : 'Hide password') : 
+                    (language === 'fr' ? 'Afficher le mot de passe' : 'Show password')}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
             </div>
 
             <div className="flex items-center justify-between">

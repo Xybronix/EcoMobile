@@ -1,4 +1,3 @@
-// services/api/rides.service.ts
 import { apiClient } from './client';
 
 export interface Ride {
@@ -14,7 +13,7 @@ export interface Ride {
   cost: number;
   startLocation: string;
   endLocation?: string;
-  status: 'ongoing' | 'completed' | 'cancelled';
+  status: 'ONGOING' | 'COMPLETED' | 'IN_PROGRESS' | 'CANCELLED';
 }
 
 export interface UserRidesResponse {

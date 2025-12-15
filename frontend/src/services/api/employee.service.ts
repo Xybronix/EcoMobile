@@ -1,4 +1,3 @@
-// services/api/employee.service.ts
 import { apiClient } from './client';
 
 export interface Employee {
