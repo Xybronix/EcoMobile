@@ -23,10 +23,6 @@ export interface User {
   isActive: boolean;
   address?: string;
   avatar?: string;
-  _incidents?: any[];
-  _rides?: any[];
-  _transactions?: any[];
-  _requests?: any[];
   createdAt: string;
 }
 
@@ -80,7 +76,14 @@ export class UserService {
     };
   }
 
-  async getUserById(id: string): Promise<User> {
+  async getUserById(id: string): Promise<User & {
+    stats?: any;
+    incidents?: any[];
+    rides?: any[];
+    transactions?: any[];
+    requests?: any[];
+    subscription?: any;
+  }> {
     const response = await apiClient.get<User>(`/users/${id}`);
     
     if (!response.success || !response.data) {
@@ -88,71 +91,74 @@ export class UserService {
     }
 
     const user = response.data;
-
-    const incidentsResponse = await apiClient.get(`/admin/users/${id}/incidents`);
-    const userIncidents = incidentsResponse.success ? (incidentsResponse.data as any[]) : [];
-
-    const ridesResponse = await apiClient.get(`/admin/users/${id}/rides`);
-    const userRides = ridesResponse.success ? (ridesResponse.data as any[]) : [];
     
-    const transactionsResponse = await apiClient.get(`/admin/users/${id}/transactions`);
-    const userTransactions = transactionsResponse.success ? (transactionsResponse.data as any[]) : [];
+    const statsResponse = await apiClient.get(`/users/${id}/stats`);
+    const stats = statsResponse.success ? (statsResponse.data as any) : null;
     
-    const requestsResponse = await apiClient.get(`/admin/users/${id}/requests`);
-    const userRequests = requestsResponse.success ? (requestsResponse.data as any[]) : [];
+    const incidentsResponse = await apiClient.get(`/users/${id}/incidents`);
+    const incidents = incidentsResponse.success ? (incidentsResponse.data as any) : { incidents: [] };
+    
+    const ridesResponse = await apiClient.get(`/users/${id}/rides`);
+    const rides = ridesResponse.success ? (ridesResponse.data as any) : { rides: [] };
+    
+    const transactionsResponse = await apiClient.get(`/users/${id}/transactions`);
+    const transactions = transactionsResponse.success ? (transactionsResponse.data as any) : { transactions: [] };
+    
+    const requestsResponse = await apiClient.get(`/users/${id}/requests`);
+    const requests = requestsResponse.success ? (requestsResponse.data as any) : [];
+    
+    const subscriptionResponse = await apiClient.get(`/users/${id}/subscription`);
+    const subscription = subscriptionResponse.success ? (subscriptionResponse.data as any) : null;
 
     return {
       ...user,
-      name: [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email,
-      accountBalance: user.accountBalance || 0,
-      totalSpent: user.totalSpent || 0,
-      totalTrips: user.totalTrips || 0,
-      depositBalance: user.depositBalance || 0,
-      _incidents: userIncidents,
-      _rides: userRides,
-      _transactions: userTransactions,
-      _requests: userRequests
+      stats,
+      incidents: incidents.incidents || [],
+      rides: rides.rides || [],
+      transactions: transactions.transactions || [],
+      requests: requests,
+      subscription
     };
   }
 
   async getUserIncidents(userId: string): Promise<any[]> {
-    const response = await apiClient.get(`/admin/users/${userId}/incidents`);
+    const response = await apiClient.get<{ incidents: any[] }>(`/users/${userId}/incidents`);
     
-    if (!response.success) {
+    if (!response.success || !response.data) {
       throw new Error(response.error || 'Erreur lors de la récupération des incidents');
     }
 
-    return (response.data as any[]) || [];
+    return response.data.incidents || [];
   }
 
   async getUserRides(userId: string): Promise<any[]> {
-    const response = await apiClient.get(`/admin/users/${userId}/rides`);
+    const response = await apiClient.get<{ rides: any[] }>(`/users/${userId}/rides`);
     
-    if (!response.success) {
+    if (!response.success || !response.data) {
       throw new Error(response.error || 'Erreur lors de la récupération des trajets');
     }
 
-    return (response.data as any[]) || [];
+    return response.data.rides || [];
   }
 
   async getUserTransactions(userId: string): Promise<any[]> {
-    const response = await apiClient.get(`/admin/users/${userId}/transactions`);
+    const response = await apiClient.get<{ transactions: any[] }>(`/users/${userId}/transactions`);
     
-    if (!response.success) {
+    if (!response.success || !response.data) {
       throw new Error(response.error || 'Erreur lors de la récupération des transactions');
     }
 
-    return (response.data as any[]) || [];
+    return response.data.transactions || [];
   }
 
   async getUserRequests(userId: string): Promise<any[]> {
-    const response = await apiClient.get(`/admin/users/${userId}/requests`);
+    const response = await apiClient.get<any[]>(`/users/${userId}/requests`);
     
     if (!response.success) {
       throw new Error(response.error || 'Erreur lors de la récupération des demandes');
     }
 
-    return (response.data as any[]) || [];
+    return response.data || [];
   }
 
   async updateUser(id: string, data: Partial<User>): Promise<User> {
