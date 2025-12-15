@@ -30,6 +30,14 @@ export interface UnlockRequest {
     endDate: string;
     status: string;
   };
+  metadata?: {
+    inspectionData?: {
+      issues: string[];
+      notes: string;
+      photos: string[];
+    };
+    paymentMethod?: string;
+  };
 }
 
 export interface LockRequest {
@@ -63,10 +71,19 @@ export interface LockRequest {
     duration?: number;
     cost?: number;
   };
+  metadata?: {
+    inspectionData?: {
+      issues: string[];
+      notes: string;
+      photos: string[];
+    };
+    paymentMethod?: string;
+  };
 }
 
 export interface CreateUnlockRequestData {
   bikeId: string;
+  reservationId?: string;
 }
 
 export interface CreateLockRequestData {
@@ -127,7 +144,7 @@ export class BikeActionService {
     page?: number;
     limit?: number;
   }): Promise<UnlockRequest[]> {
-    const response = await apiClient.get<PaginatedRequests<UnlockRequest>>('/api/v1/bike-requests/unlock/pending', params);
+    const response = await apiClient.get<PaginatedRequests<UnlockRequest>>('/bike-requests/unlock/pending', params);
     
     if (!response.success || !response.data) {
       throw new Error(response.error || 'Erreur lors de la récupération des demandes de déverrouillage');
@@ -149,7 +166,7 @@ export class BikeActionService {
     page?: number;
     limit?: number;
   }): Promise<LockRequest[]> {
-    const response = await apiClient.get<PaginatedRequests<LockRequest>>('/api/v1/bike-requests/lock/pending', params);
+    const response = await apiClient.get<PaginatedRequests<LockRequest>>('/bike-requests/lock/pending', params);
     
     if (!response.success || !response.data) {
       throw new Error(response.error || 'Erreur lors de la récupération des demandes de verrouillage');
@@ -167,7 +184,7 @@ export class BikeActionService {
   /**
    * Valider une demande de déverrouillage
    */
-  async validateUnlockRequest(requestId: string, data: ValidateRequestData): Promise<UnlockRequest | void> {
+  async validateUnlockRequest(requestId: string, data: ValidateRequestData): Promise<UnlockRequest> {
     const endpoint = data.approved 
       ? `/bike-requests/unlock/${requestId}/approve`
       : `/bike-requests/unlock/${requestId}/reject`;
@@ -178,7 +195,7 @@ export class BikeActionService {
 
     const response = await apiClient.post<UnlockRequest>(endpoint, payload);
     
-    if (!response.success) {
+    if (!response.success || !response.data) {
       throw new Error(response.error || `Erreur lors de la ${data.approved ? 'validation' : 'rejection'} de la demande`);
     }
 
@@ -188,7 +205,7 @@ export class BikeActionService {
   /**
    * Valider une demande de verrouillage
    */
-  async validateLockRequest(requestId: string, data: ValidateRequestData): Promise<LockRequest | void> {
+  async validateLockRequest(requestId: string, data: ValidateRequestData): Promise<LockRequest> {
     const endpoint = data.approved 
       ? `/bike-requests/lock/${requestId}/approve`
       : `/bike-requests/lock/${requestId}/reject`;
@@ -199,7 +216,7 @@ export class BikeActionService {
 
     const response = await apiClient.post<LockRequest>(endpoint, payload);
     
-    if (!response.success) {
+    if (!response.success || !response.data) {
       throw new Error(response.error || `Erreur lors de la ${data.approved ? 'validation' : 'rejection'} de la demande`);
     }
 
@@ -276,8 +293,8 @@ export class BikeActionService {
     lockRequests: LockRequest[];
   }> {
     const [unlockResponse, lockResponse] = await Promise.all([
-      apiClient.get<UnlockRequest[]>(`/bike-requests/unlock/user/${userId}`),
-      apiClient.get<LockRequest[]>(`/bike-requests/lock/user/${userId}`)
+      apiClient.get<UnlockRequest[]>(`/bike-requests/unlock-requests/user`, { userId }),
+      apiClient.get<LockRequest[]>(`/bike-requests/lock-requests/user`, { userId })
     ]);
 
     return {
