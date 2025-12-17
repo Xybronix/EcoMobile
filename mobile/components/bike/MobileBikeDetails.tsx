@@ -8,11 +8,10 @@ import { toast } from '@/components/ui/Toast';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { bikeService } from '@/services/bikeService';
 import type { Bike } from '@/services/bikeService';
-import { bikeRequestService } from '@/services/bikeRequestService';
 import { walletService } from '@/services/walletService';
 import { getGlobalStyles } from '@/styles/globalStyles';
 import { haptics } from '@/utils/haptics';
-import { Battery, Calendar, MapPin, Navigation2, Unlock, Zap, Shield, AlertTriangle } from 'lucide-react-native';
+import { Battery, Calendar, MapPin, Navigation2, Unlock, Zap, Shield, AlertTriangle, CreditCard, Check } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { Linking, ScrollView, TouchableOpacity, View } from 'react-native';
 import { useMobileAuth } from '@/lib/mobile-auth';
@@ -244,12 +243,18 @@ export function MobileBikeDetails({ bike: initialBike, onBack, onStartRide, onNa
                   {/* Subscription Status */}
                   {priceInfo && (
                     <View style={styles.mt8}>
-                      <Text size="xs" color={priceInfo.willBeCharged ? '#f59e0b' : '#16a34a'}>
-                        {priceInfo.willBeCharged ? '💳' : '✅'} {priceInfo.message}
-                      </Text>
+                      <View style={[styles.row, styles.alignCenter, styles.gap4]}>
+                        {priceInfo.willBeCharged ? 
+                          <CreditCard size={12} color="#f59e0b" /> : 
+                          <Check size={12} color="#16a34a" />
+                        }
+                        <Text size="xs" color={priceInfo.willBeCharged ? '#f59e0b' : '#16a34a'}>
+                          {priceInfo.message}
+                        </Text>
+                      </View>
                       {priceInfo.willBeCharged && (
                         <Text size="xs" color="#6b7280" style={styles.mt4}>
-                          {`${t('bike.details.estimatedCost')} ${ priceInfo.amount }`}
+                          {t('bike.details.estimatedCost', { amount: priceInfo.amount })}
                         </Text>
                       )}
                     </View>
