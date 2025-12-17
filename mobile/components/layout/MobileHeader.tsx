@@ -138,7 +138,7 @@ export function MobileHeader({
                   /*{ backgroundColor: 'white' }*/
                 ]}
               >
-                <Logo size={60} color="white" />
+                <Logo size={40} color="white" />
               </View>
               {isHomePage && (
                 <Text variant="title" color="white" size="xl">

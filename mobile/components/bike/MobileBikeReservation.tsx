@@ -1,3 +1,4 @@
+/* eslint-disable react/no-unescaped-entities */
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -9,9 +10,9 @@ import { getGlobalStyles } from '@/styles/globalStyles';
 import { haptics } from '@/utils/haptics';
 import { reservationService } from '@/services/reservationService';
 import { subscriptionService } from '@/services/subscriptionService';
-import { Clock, ArrowLeft, Check, Crown, Info } from 'lucide-react-native';
-import React, { useEffect, useState } from 'react';
-import { ScrollView, TouchableOpacity, View } from 'react-native';
+import { Clock, ArrowLeft, Check, Crown, Info, Calendar, Timer } from 'lucide-react-native';
+import React, { useEffect, useState, useCallback } from 'react';
+import { ScrollView, TouchableOpacity, View, Platform, Modal, TouchableWithoutFeedback, TextInput } from 'react-native';
 import { useMobileI18n } from '@/lib/mobile-i18n';
 
 interface MobileBikeReservationProps {
@@ -29,6 +30,9 @@ export function MobileBikeReservation({ bike, onBack, onReservationComplete }: M
   const [currentSubscription, setCurrentSubscription] = useState<any>(null);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [selectedDateTime, setSelectedDateTime] = useState<Date>(new Date());
+  const [tempDateTime, setTempDateTime] = useState<Date>(new Date());
+  const [showWebPicker, setShowWebPicker] = useState(false);
+  const [showAndroidPicker, setShowAndroidPicker] = useState(false);
 
   useEffect(() => {
     loadUserData();
@@ -36,7 +40,6 @@ export function MobileBikeReservation({ bike, onBack, onReservationComplete }: M
 
   const loadUserData = async () => {
     try {
-      // Charger l'abonnement actif
       const subscription = await subscriptionService.getCurrentSubscription();
       setCurrentSubscription(subscription);
     } catch (error) {
@@ -44,16 +47,118 @@ export function MobileBikeReservation({ bike, onBack, onReservationComplete }: M
     }
   };
 
-  // Calculer la date/heure maximale (15 minutes à partir de maintenant)
   const getMaxDateTime = (): Date => {
     const now = new Date();
     now.setMinutes(now.getMinutes() + 15);
     return now;
   };
 
-  // Calculer la date/heure minimale (maintenant)
   const getMinDateTime = (): Date => {
     return new Date();
+  };
+
+  const handleWebDateTimeChange = (type: 'date' | 'time', value: string) => {
+    const newDate = new Date(tempDateTime);
+    
+    if (type === 'date') {
+      const [year, month, day] = value.split('-').map(Number);
+      newDate.setFullYear(year, month - 1, day);
+    } else {
+      const [hours, minutes] = value.split(':').map(Number);
+      newDate.setHours(hours, minutes);
+    }
+    
+    setTempDateTime(newDate);
+  };
+
+  const confirmWebSelection = () => {
+    const now = new Date();
+    const maxTime = getMaxDateTime();
+    
+    if (tempDateTime < now || tempDateTime > maxTime) {
+      toast.error('La réservation doit être dans les 15 prochaines minutes');
+      return;
+    }
+    
+    setSelectedDateTime(tempDateTime);
+    setShowWebPicker(false);
+    haptics.light();
+  };
+
+  // Fonction pour ouvrir le picker selon la plateforme
+  const openMobilePicker = useCallback(() => {
+    haptics.light();
+    
+    if (Platform.OS === 'android') {
+      // Pour Android, utiliser notre modal personnalisé
+      setTempDateTime(selectedDateTime || new Date());
+      setShowAndroidPicker(true);
+    } else {
+      // Pour iOS, utiliser le DateTimePicker natif
+      setShowTimePicker(true);
+    }
+  }, [selectedDateTime]);
+
+  const handleIOSDateTimeChange = (event: any, date?: Date) => {
+    setShowTimePicker(false);
+    
+    if (event.type === 'set' && date) {
+      const now = new Date();
+      const maxTime = getMaxDateTime();
+      
+      if (date < now || date > maxTime) {
+        toast.error('La réservation doit être dans les 15 prochaines minutes');
+        return;
+      }
+      
+      setSelectedDateTime(date);
+      haptics.light();
+    }
+  };
+
+  const handleAndroidDateChange = (text: string) => {
+    // Format attendu: DD/MM/YYYY
+    const parts = text.split('/');
+    if (parts.length === 3) {
+      const day = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10) - 1; // Les mois commencent à 0
+      const year = parseInt(parts[2], 10);
+      
+      if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+        const newDate = new Date(tempDateTime);
+        newDate.setFullYear(year, month, day);
+        setTempDateTime(newDate);
+      }
+    }
+  };
+
+  const handleAndroidTimeChange = (text: string) => {
+    // Format attendu: HH:MM
+    const parts = text.split(':');
+    if (parts.length === 2) {
+      const hours = parseInt(parts[0], 10);
+      const minutes = parseInt(parts[1], 10);
+      
+      if (!isNaN(hours) && !isNaN(minutes) && hours >= 0 && hours < 24 && minutes >= 0 && minutes < 60) {
+        const newDate = new Date(tempDateTime);
+        newDate.setHours(hours, minutes);
+        setTempDateTime(newDate);
+      }
+    }
+  };
+
+  const confirmAndroidSelection = () => {
+    const now = new Date();
+    const maxTime = getMaxDateTime();
+    
+    if (tempDateTime < now || tempDateTime > maxTime) {
+      toast.error('La réservation doit être dans les 15 prochaines minutes');
+      return;
+    }
+    
+    setSelectedDateTime(tempDateTime);
+    setShowAndroidPicker(false);
+    haptics.light();
   };
 
   const handleSubmit = async () => {
@@ -95,14 +200,228 @@ export function MobileBikeReservation({ bike, onBack, onReservationComplete }: M
     }
   };
 
-  // Calculer la durée de la réservation (1 heure minimum)
   const getReservationDuration = () => {
     return currentSubscription ? 'Inclus dans votre forfait' : '1 heure (minimum)';
   };
 
+  // Picker pour Web
+  const renderWebDateTimePicker = () => {
+    const now = new Date();
+    const maxTime = getMaxDateTime();
+    
+    return (
+      <Modal
+        visible={showWebPicker}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowWebPicker(false)}
+      >
+        <TouchableWithoutFeedback onPress={() => setShowWebPicker(false)}>
+          <View style={[
+            styles.flex1,
+            styles.justifyCenter,
+            styles.alignCenter,
+            { backgroundColor: 'rgba(0, 0, 0, 0.5)' }
+          ]}>
+            <TouchableWithoutFeedback onPress={(e) => e.stopPropagation()}>
+              <View style={[
+                styles.rounded12,
+                styles.p16,
+                { width: '90%', maxWidth: 400, backgroundColor: colorScheme === 'light' ? 'white' : '#1f2937' }
+              ]}>
+                <Text variant="subtitle" style={styles.mb16}>
+                  Sélectionner la date et l'heure
+                </Text>
+                
+                <View style={styles.mb16}>
+                  <Label style={styles.mb8}>Date</Label>
+                  <input
+                    type="date"
+                    value={tempDateTime.toISOString().split('T')[0]}
+                    min={now.toISOString().split('T')[0]}
+                    max={maxTime.toISOString().split('T')[0]}
+                    onChange={(e) => handleWebDateTimeChange('date', e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: 12,
+                      borderRadius: 8,
+                      border: `1px solid ${colorScheme === 'light' ? '#e5e7eb' : '#4b5563'}`,
+                      backgroundColor: colorScheme === 'light' ? '#f9fafb' : '#374151',
+                      color: colorScheme === 'light' ? '#111827' : '#f9fafb',
+                      fontSize: 16
+                    }}
+                  />
+                </View>
+                
+                <View style={styles.mb24}>
+                  <Label style={styles.mb8}>Heure</Label>
+                  <input
+                    type="time"
+                    value={tempDateTime.toTimeString().split(' ')[0].substring(0, 5)}
+                    onChange={(e) => handleWebDateTimeChange('time', e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: 12,
+                      borderRadius: 8,
+                      border: `1px solid ${colorScheme === 'light' ? '#e5e7eb' : '#4b5563'}`,
+                      backgroundColor: colorScheme === 'light' ? '#f9fafb' : '#374151',
+                      color: colorScheme === 'light' ? '#111827' : '#f9fafb',
+                      fontSize: 16
+                    }}
+                  />
+                </View>
+                
+                <View style={[styles.row, styles.gap12]}>
+                  <Button
+                    onPress={() => setShowWebPicker(false)}
+                    variant="outline"
+                    style={styles.flex1}
+                  >
+                    <Text>Annuler</Text>
+                  </Button>
+                  <Button
+                    onPress={confirmWebSelection}
+                    style={[styles.flex1, { backgroundColor: '#16a34a' }]}
+                  >
+                    <Text color="white">Confirmer</Text>
+                  </Button>
+                </View>
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+    );
+  };
+
+  // Picker personnalisé pour Android avec composants React Native
+  const renderAndroidDateTimePicker = () => {
+    const formatDate = (date: Date) => {
+      const day = date.getDate().toString().padStart(2, '0');
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const year = date.getFullYear();
+      return `${day}/${month}/${year}`;
+    };
+
+    const formatTime = (date: Date) => {
+      const hours = date.getHours().toString().padStart(2, '0');
+      const minutes = date.getMinutes().toString().padStart(2, '0');
+      return `${hours}:${minutes}`;
+    };
+    
+    return (
+      <Modal
+        visible={showAndroidPicker}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowAndroidPicker(false)}
+      >
+        <TouchableWithoutFeedback onPress={() => setShowAndroidPicker(false)}>
+          <View style={[
+            styles.flex1,
+            styles.justifyCenter,
+            styles.alignCenter,
+            { backgroundColor: 'rgba(0, 0, 0, 0.5)' }
+          ]}>
+            <TouchableWithoutFeedback onPress={(e) => e.stopPropagation()}>
+              <View style={[
+                styles.rounded12,
+                styles.p16,
+                { width: '90%', maxWidth: 400, backgroundColor: colorScheme === 'light' ? 'white' : '#1f2937' }
+              ]}>
+                <Text variant="subtitle" style={styles.mb16}>
+                  Sélectionner la date et l'heure
+                </Text>
+                
+                <View style={styles.mb16}>
+                  <Label style={styles.mb8}>Date (DD/MM/YYYY)</Label>
+                  <View style={[
+                    styles.row,
+                    styles.alignCenter,
+                    styles.gap12,
+                    styles.p12,
+                    styles.rounded8,
+                    { 
+                      backgroundColor: colorScheme === 'light' ? '#f9fafb' : '#374151',
+                      borderWidth: 1,
+                      borderColor: colorScheme === 'light' ? '#e5e7eb' : '#4b5563'
+                    }
+                  ]}>
+                    <Calendar size={20} color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} />
+                    <TextInput
+                      value={formatDate(tempDateTime)}
+                      onChangeText={handleAndroidDateChange}
+                      placeholder="JJ/MM/AAAA"
+                      placeholderTextColor={colorScheme === 'light' ? '#9ca3af' : '#6b7280'}
+                      style={[
+                        styles.flex1,
+                        { 
+                          color: colorScheme === 'light' ? '#111827' : '#f9fafb',
+                          fontSize: 16
+                        }
+                      ]}
+                      keyboardType="numeric"
+                    />
+                  </View>
+                </View>
+                
+                <View style={styles.mb24}>
+                  <Label style={styles.mb8}>Heure (HH:MM)</Label>
+                  <View style={[
+                    styles.row,
+                    styles.alignCenter,
+                    styles.gap12,
+                    styles.p12,
+                    styles.rounded8,
+                    { 
+                      backgroundColor: colorScheme === 'light' ? '#f9fafb' : '#374151',
+                      borderWidth: 1,
+                      borderColor: colorScheme === 'light' ? '#e5e7eb' : '#4b5563'
+                    }
+                  ]}>
+                    <Timer size={20} color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} />
+                    <TextInput
+                      value={formatTime(tempDateTime)}
+                      onChangeText={handleAndroidTimeChange}
+                      placeholder="HH:MM"
+                      placeholderTextColor={colorScheme === 'light' ? '#9ca3af' : '#6b7280'}
+                      style={[
+                        styles.flex1,
+                        { 
+                          color: colorScheme === 'light' ? '#111827' : '#f9fafb',
+                          fontSize: 16
+                        }
+                      ]}
+                      keyboardType="numeric"
+                    />
+                  </View>
+                </View>
+                
+                <View style={[styles.row, styles.gap12]}>
+                  <Button
+                    onPress={() => setShowAndroidPicker(false)}
+                    variant="outline"
+                    style={styles.flex1}
+                  >
+                    <Text>Annuler</Text>
+                  </Button>
+                  <Button
+                    onPress={confirmAndroidSelection}
+                    style={[styles.flex1, { backgroundColor: '#16a34a' }]}
+                  >
+                    <Text color="white">Confirmer</Text>
+                  </Button>
+                </View>
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+    );
+  };
+
   return (
     <View style={styles.container}>
-      {/* Header */}
       <View 
         style={[
           styles.px16, 
@@ -141,7 +460,6 @@ export function MobileBikeReservation({ bike, onBack, onReservationComplete }: M
         contentContainerStyle={[styles.p16, styles.gap16]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Information sur la réservation */}
         <Card style={[styles.p16, { backgroundColor: '#eff6ff', borderColor: '#3b82f6' }]}>
           <View style={[styles.row, styles.gap12]}>
             <Info size={20} color="#3b82f6" />
@@ -162,7 +480,6 @@ export function MobileBikeReservation({ bike, onBack, onReservationComplete }: M
           </View>
         </Card>
 
-        {/* Subscription Status */}
         {currentSubscription && (
           <Card style={[styles.p16, { backgroundColor: '#f0fdf4', borderColor: '#16a34a' }]}>
             <View style={[styles.row, styles.gap12]}>
@@ -181,7 +498,6 @@ export function MobileBikeReservation({ bike, onBack, onReservationComplete }: M
           </Card>
         )}
 
-        {/* Sélection de l'heure */}
         <Card style={styles.p16}>
           <Label style={styles.mb8}>Heure de début de réservation</Label>
           <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={styles.mb12}>
@@ -189,7 +505,15 @@ export function MobileBikeReservation({ bike, onBack, onReservationComplete }: M
           </Text>
           
           <TouchableOpacity
-            onPress={() => setShowTimePicker(true)}
+            onPress={() => {
+              if (Platform.OS === 'web') {
+                setTempDateTime(selectedDateTime || new Date());
+                setShowWebPicker(true);
+                haptics.light();
+              } else {
+                openMobilePicker();
+              }
+            }}
             style={[
               styles.row,
               styles.alignCenter,
@@ -215,24 +539,20 @@ export function MobileBikeReservation({ bike, onBack, onReservationComplete }: M
             </Text>
           </TouchableOpacity>
 
-          {showTimePicker && (
+          {/* Picker pour iOS uniquement */}
+          {showTimePicker && Platform.OS === 'ios' && (
             <DateTimePicker
               value={selectedDateTime}
               mode="datetime"
-              display="default"
+              display="spinner"
               minimumDate={getMinDateTime()}
               maximumDate={getMaxDateTime()}
-              onChange={(event, date) => {
-                setShowTimePicker(false);
-                if (date) {
-                  setSelectedDateTime(date);
-                }
-              }}
+              onChange={handleIOSDateTimeChange}
+              textColor={colorScheme === 'light' ? '#111827' : '#f9fafb'}
             />
           )}
         </Card>
 
-        {/* Récapitulatif */}
         <Card style={[styles.p16, { backgroundColor: '#f0fdf4', borderColor: '#16a34a' }]}>
           <Text variant="body" color="#111827" style={styles.mb8}>
             Récapitulatif
@@ -266,7 +586,6 @@ export function MobileBikeReservation({ bike, onBack, onReservationComplete }: M
           </View>
         </Card>
 
-        {/* Submit Button */}
         <Button 
           onPress={handleSubmit}
           disabled={isSubmitting || !selectedDateTime}
@@ -284,6 +603,9 @@ export function MobileBikeReservation({ bike, onBack, onReservationComplete }: M
           </View>
         </Button>
       </ScrollView>
+
+      {Platform.OS === 'web' && renderWebDateTimePicker()}
+      {Platform.OS === 'android' && renderAndroidDateTimePicker()}
     </View>
   );
 }
