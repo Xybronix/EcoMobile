@@ -108,35 +108,27 @@ export const OSMMap = forwardRef<OSMMapRef, OSMMapProps>(({
 
   // Fonctions pour mobile (WebView)
   const centerOnUserMobile = useCallback(() => {
-    if (webViewRef.current && webViewRef.current.postMessage) {
-      webViewRef.current.postMessage(JSON.stringify({
-        type: 'centerOnUser'
-      }));
-    }
+    webViewRef.current?.postMessage(JSON.stringify({
+      type: 'centerOnUser'
+    }));
   }, []);
 
   const zoomInMobile = useCallback(() => {
-    if (webViewRef.current && webViewRef.current.postMessage) {
-      webViewRef.current.postMessage(JSON.stringify({
-        type: 'zoomIn'
-      }));
-    }
+    webViewRef.current?.postMessage(JSON.stringify({
+      type: 'zoomIn'
+    }));
   }, []);
 
   const zoomOutMobile = useCallback(() => {
-    if (webViewRef.current && webViewRef.current.postMessage) {
-      webViewRef.current.postMessage(JSON.stringify({
-        type: 'zoomOut'
-      }));
-    }
+    webViewRef.current?.postMessage(JSON.stringify({
+      type: 'zoomOut'
+    }));
   }, []);
 
   const toggleMapStyleMobile = useCallback(() => {
-    if (webViewRef.current && webViewRef.current.postMessage) {
-      webViewRef.current.postMessage(JSON.stringify({
-        type: 'toggleMapStyle'
-      }));
-    }
+    webViewRef.current?.postMessage(JSON.stringify({
+      type: 'toggleMapStyle'
+    }));
   }, []);
 
   // Exposition des fonctions via ref
@@ -457,47 +449,20 @@ export const OSMMap = forwardRef<OSMMapRef, OSMMapProps>(({
     <html>
     <head>
         <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
         <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
         <style>
-            * {
-                touch-action: manipulation;
-                -webkit-touch-callout: none;
-                -webkit-user-select: none;
-                -moz-user-select: none;
-                -ms-user-select: none;
-                user-select: none;
-            }
-            
             body { 
                 margin: 0; 
                 padding: 0; 
                 font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
                 overflow: hidden;
-                position: fixed;
-                width: 100%;
-                height: 100%;
             }
-            
             #map { 
                 height: 100vh; 
                 width: 100vw; 
                 touch-action: manipulation;
-                position: relative;
             }
-            
-            .leaflet-control-container {
-                pointer-events: none;
-            }
-            
-            .leaflet-control {
-                pointer-events: auto;
-            }
-            
-            .leaflet-popup-content-wrapper {
-                touch-action: auto;
-            }
-            
             .bike-popup {
                 font-family: inherit;
                 text-align: center;
@@ -540,7 +505,6 @@ export const OSMMap = forwardRef<OSMMapRef, OSMMapProps>(({
                 cursor: pointer;
                 width: 100%;
                 margin-top: 8px;
-                touch-action: manipulation;
             }
         </style>
     </head>
@@ -570,63 +534,30 @@ export const OSMMap = forwardRef<OSMMapRef, OSMMapProps>(({
             };
             
             function initMap() {
-                try {
-                    map = L.map('map', {
-                        zoomControl: false,
-                        touchZoom: true,
-                        scrollWheelZoom: true,
-                        doubleClickZoom: true,
-                        boxZoom: false,
-                        keyboard: true,
-                        dragging: true,
-                        zoomSnap: 0.25,
-                        tap: true,
-                        tapTolerance: 15,
-                        worldCopyJump: false,
-                        closePopupOnClick: false,
-                        bounceAtZoomLimits: false,
-                        wheelPxPerZoomLevel: 60,
-                        zoomAnimation: true,
-                        zoomAnimationThreshold: 4,
-                        fadeAnimation: true,
-                        markerZoomAnimation: true,
-                        transform3DLimit: 8388608,
-                        maxBoundsViscosity: 0.0,
-                        trackResize: true,
-                        inertia: true,
-                        inertiaDeceleration: 3000,
-                        inertiaMaxSpeed: Infinity,
-                        easeLinearity: 0.2,
-                        zoomDelta: 0.5,
-                        wheelDebounceTime: 40,
-                        preferCanvas: false
-                    }).setView([${center.lat}, ${center.lng}], 14);
-                    
-                    // Forcer le redimensionnement après initialisation
-                    setTimeout(() => {
-                        map.invalidateSize();
-                    }, 100);
-                    
-                    updateMapStyle();
-                    updateUserLocation();
-                    updateBikes();
-                    
-                    // Envoyer confirmation de chargement
-                    setTimeout(() => {
-                        if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
-                            window.ReactNativeWebView.postMessage(JSON.stringify({
-                                type: 'mapReady'
-                            }));
-                        }
-                    }, 500);
-                } catch (error) {
-                    console.error('Error initializing map:', error);
-                }
+                map = L.map('map', {
+                    zoomControl: false,
+                    touchZoom: true,
+                    scrollWheelZoom: true,
+                    doubleClickZoom: true,
+                    boxZoom: false,
+                    keyboard: true,
+                    dragging: true,
+                    zoomSnap: 0.5,
+                    tap: true
+                }).setView([${center.lat}, ${center.lng}], 14);
+                
+                updateMapStyle();
+                updateUserLocation();
+                updateBikes();
+                
+                setTimeout(() => {
+                    window.ReactNativeWebView?.postMessage(JSON.stringify({
+                        type: 'mapReady'
+                    }));
+                }, 500);
             }
             
             function updateMapStyle() {
-                if (!map) return;
-                
                 if (map._baseLayer) {
                     map.removeLayer(map._baseLayer);
                 }
@@ -640,8 +571,6 @@ export const OSMMap = forwardRef<OSMMapRef, OSMMapProps>(({
             }
             
             function updateUserLocation() {
-                if (!map) return;
-                
                 if (userMarker) map.removeLayer(userMarker);
                 if (radiusCircle) map.removeLayer(radiusCircle);
                 
@@ -666,8 +595,6 @@ export const OSMMap = forwardRef<OSMMapRef, OSMMapProps>(({
             }
             
             function updateBikes() {
-                if (!map) return;
-                
                 bikeMarkers.forEach(marker => map.removeLayer(marker));
                 bikeMarkers = [];
                 
@@ -695,7 +622,6 @@ export const OSMMap = forwardRef<OSMMapRef, OSMMapProps>(({
                                 font-size: 10px; 
                                 font-weight: bold;
                                 cursor: pointer;
-                                touch-action: manipulation;
                             ">
                                 \${bike.batteryLevel}%
                             </div>
@@ -734,13 +660,10 @@ export const OSMMap = forwardRef<OSMMapRef, OSMMapProps>(({
                     marker.on('click', (e) => {
                         e.originalEvent.preventDefault();
                         e.originalEvent.stopPropagation();
-                        
-                        if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
-                            window.ReactNativeWebView.postMessage(JSON.stringify({
-                                type: 'bikeSelected',
-                                bike: bike
-                            }));
-                        }
+                        window.ReactNativeWebView?.postMessage(JSON.stringify({
+                            type: 'bikeSelected',
+                            bike: bike
+                        }));
                     });
                     
                     bikeMarkers.push(marker);
@@ -748,21 +671,15 @@ export const OSMMap = forwardRef<OSMMapRef, OSMMapProps>(({
             }
             
             function centerOnUser() {
-                if (map) {
-                    map.setView([${center.lat}, ${center.lng}], map.getZoom(), { animate: true });
-                }
+                map.setView([${center.lat}, ${center.lng}], map.getZoom(), { animate: true });
             }
             
             function zoomIn() {
-                if (map) {
-                    map.zoomIn(0.5, { animate: true });
-                }
+                map.zoomIn(0.5, { animate: true });
             }
             
             function zoomOut() {
-                if (map) {
-                    map.zoomOut(0.5, { animate: true });
-                }
+                map.zoomOut(0.5, { animate: true });
             }
             
             function toggleMapStyle() {
@@ -773,8 +690,7 @@ export const OSMMap = forwardRef<OSMMapRef, OSMMapProps>(({
                 updateMapStyle();
             }
             
-            // Gestionnaire de messages amélioré
-            function handleMessage(event) {
+            window.addEventListener('message', function(event) {
                 try {
                     const data = JSON.parse(event.data);
                     
@@ -795,22 +711,10 @@ export const OSMMap = forwardRef<OSMMapRef, OSMMapProps>(({
                 } catch (e) {
                     console.error('Error parsing message:', e);
                 }
-            }
-            
-            // Attacher les événements de message
-            window.addEventListener('message', handleMessage);
-            document.addEventListener('message', handleMessage);
-            
-            // Gestion des événements de redimensionnement
-            window.addEventListener('resize', function() {
-                if (map) {
-                    setTimeout(() => {
-                        map.invalidateSize();
-                    }, 100);
-                }
             });
             
-            // Initialisation
+            document.addEventListener('DOMContentLoaded', initMap);
+            
             if (document.readyState === 'loading') {
                 document.addEventListener('DOMContentLoaded', initMap);
             } else {
@@ -853,17 +757,6 @@ export const OSMMap = forwardRef<OSMMapRef, OSMMapProps>(({
         scrollEnabled={false}
         showsHorizontalScrollIndicator={false}
         showsVerticalScrollIndicator={false}
-        bounces={false}
-        allowsInlineMediaPlayback={true}
-        mediaPlaybackRequiresUserAction={false}
-        originWhitelist={['*']}
-        mixedContentMode="compatibility"
-        thirdPartyCookiesEnabled={true}
-        sharedCookiesEnabled={true}
-        allowsFullscreenVideo={false}
-        allowsBackForwardNavigationGestures={false}
-        cacheEnabled={true}
-        incognito={false}
         onMessage={(event: any) => {
           try {
             const data = JSON.parse(event.nativeEvent.data);
@@ -879,13 +772,6 @@ export const OSMMap = forwardRef<OSMMapRef, OSMMapProps>(({
           } catch (e) {
             console.error('Error parsing WebView message:', e);
           }
-        }}
-        onError={(syntheticEvent: { nativeEvent: any; }) => {
-          const { nativeEvent } = syntheticEvent;
-          console.error('WebView error: ', nativeEvent);
-        }}
-        onLoadEnd={() => {
-          console.log('WebView loaded successfully');
         }}
       />
     </View>
