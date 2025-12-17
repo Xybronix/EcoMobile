@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "FreeBike",
-    "slug": "FreeBike",
+    "slug": "Eco-Mobile",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/app-icon.png",
@@ -28,8 +28,6 @@
       "adaptiveIcon": {
         "backgroundColor": "#ffffff",
         "foregroundImage": "./assets/app-icon-foreground.png"
-        //"backgroundImage": "./assets/icon.png",
-        //"monochromeImage": "./assets/icon.png"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
@@ -79,6 +77,7 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "owner": "xybronix"
   }
 }
