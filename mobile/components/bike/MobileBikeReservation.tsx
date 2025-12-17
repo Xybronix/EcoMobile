@@ -10,7 +10,8 @@ import { getGlobalStyles } from '@/styles/globalStyles';
 import { haptics } from '@/utils/haptics';
 import { reservationService } from '@/services/reservationService';
 import { subscriptionService } from '@/services/subscriptionService';
-import { Clock, ArrowLeft, Check, Crown, Info, Calendar, Timer } from 'lucide-react-native';
+import { walletService } from '@/services/walletService';
+import { Clock, ArrowLeft, Check, Crown, Info, Calendar, Timer, Shield } from 'lucide-react-native';
 import React, { useEffect, useState, useCallback } from 'react';
 import { ScrollView, TouchableOpacity, View, Platform, Modal, TouchableWithoutFeedback, TextInput } from 'react-native';
 import { useMobileI18n } from '@/lib/mobile-i18n';
@@ -28,6 +29,7 @@ export function MobileBikeReservation({ bike, onBack, onReservationComplete }: M
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentSubscription, setCurrentSubscription] = useState<any>(null);
+  const [depositInfo, setDepositInfo] = useState<any>(null);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [selectedDateTime, setSelectedDateTime] = useState<Date>(new Date());
   const [tempDateTime, setTempDateTime] = useState<Date>(new Date());
@@ -36,6 +38,7 @@ export function MobileBikeReservation({ bike, onBack, onReservationComplete }: M
 
   useEffect(() => {
     loadUserData();
+    checkDeposit();
   }, []);
 
   const loadUserData = async () => {
@@ -44,6 +47,20 @@ export function MobileBikeReservation({ bike, onBack, onReservationComplete }: M
       setCurrentSubscription(subscription);
     } catch (error) {
       console.error('Error loading user data:', error);
+    }
+  };
+
+  const checkDeposit = async () => {
+    try {
+      const depositInfo = await walletService.getDepositInfo();
+      setDepositInfo(depositInfo);
+      
+      // Stocker l'info de caution dans l'état
+      if (!depositInfo.canUseService) {
+        console.log(`Caution insuffisante. Nécessaire: ${depositInfo.requiredDeposit} FCFA, Actuel: ${depositInfo.currentDeposit} FCFA`);
+      }
+    } catch (error) {
+      console.error('Erreur lors de la vérification de la caution:', error);
     }
   };
 
@@ -90,11 +107,9 @@ export function MobileBikeReservation({ bike, onBack, onReservationComplete }: M
     haptics.light();
     
     if (Platform.OS === 'android') {
-      // Pour Android, utiliser notre modal personnalisé
       setTempDateTime(selectedDateTime || new Date());
       setShowAndroidPicker(true);
     } else {
-      // Pour iOS, utiliser le DateTimePicker natif
       setShowTimePicker(true);
     }
   }, [selectedDateTime]);
@@ -117,11 +132,10 @@ export function MobileBikeReservation({ bike, onBack, onReservationComplete }: M
   };
 
   const handleAndroidDateChange = (text: string) => {
-    // Format attendu: DD/MM/YYYY
     const parts = text.split('/');
     if (parts.length === 3) {
       const day = parseInt(parts[0], 10);
-      const month = parseInt(parts[1], 10) - 1; // Les mois commencent à 0
+      const month = parseInt(parts[1], 10) - 1;
       const year = parseInt(parts[2], 10);
       
       if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
@@ -133,7 +147,6 @@ export function MobileBikeReservation({ bike, onBack, onReservationComplete }: M
   };
 
   const handleAndroidTimeChange = (text: string) => {
-    // Format attendu: HH:MM
     const parts = text.split(':');
     if (parts.length === 2) {
       const hours = parseInt(parts[0], 10);
@@ -177,13 +190,26 @@ export function MobileBikeReservation({ bike, onBack, onReservationComplete }: M
 
     try {
       setIsSubmitting(true);
+
+      const depositInfo = await walletService.getDepositInfo();
+    
+      if (!depositInfo.canUseService) {
+        haptics.error();
+        toast.error(`Caution insuffisante. Minimum requis: ${depositInfo.requiredDeposit} FCFA`);
+        // Optionnel: Rediriger vers la recharge de caution
+        // onNavigate?.('recharge-deposit');
+        setIsSubmitting(false);
+        return;
+      }
       
       const startDate = selectedDateTime.toISOString().split('T')[0];
       const startTime = selectedDateTime.toTimeString().split(' ')[0].substring(0, 5);
 
+      const planId = bike.pricingPlan?.id || 'default';
+
       await reservationService.createReservation({
         bikeId: bike.id,
-        planId: 'default',
+        planId: planId,
         packageType: 'hourly',
         startDate,
         startTime
@@ -480,6 +506,34 @@ export function MobileBikeReservation({ bike, onBack, onReservationComplete }: M
           </View>
         </Card>
 
+        {/* Avertissement caution */}
+        {depositInfo && !depositInfo.canUseService && (
+          <Card style={[styles.p16, { backgroundColor: '#fef2f2', borderColor: '#fca5a5' }]}>
+            <View style={[styles.row, styles.gap12]}>
+              <Shield size={20} color="#dc2626" />
+              <View style={styles.flex1}>
+                <Text size="sm" color="#991b1b" weight="bold">
+                  Service bloqué - Caution insuffisante
+                </Text>
+                <Text size="sm" color="#991b1b" style={styles.mt4}>
+                  {`Minimum requis: ${depositInfo.requiredDeposit} FCFA`}
+                </Text>
+                <Text size="sm" color="#991b1b">
+                  {`Votre caution actuelle: ${depositInfo.currentDeposit} FCFA`}
+                </Text>
+                <Button
+                  variant="outline"
+                  //onPress={() => onNavigate?.('recharge-deposit')}
+                  style={[styles.mt8, { borderColor: '#dc2626' }]}
+                  fullWidth
+                >
+                  <Text color="#dc2626">Recharger la caution</Text>
+                </Button>
+              </View>
+            </View>
+          </Card>
+        )}
+
         {currentSubscription && (
           <Card style={[styles.p16, { backgroundColor: '#f0fdf4', borderColor: '#16a34a' }]}>
             <View style={[styles.row, styles.gap12]}>
@@ -592,7 +646,7 @@ export function MobileBikeReservation({ bike, onBack, onReservationComplete }: M
           fullWidth
           style={{ 
             backgroundColor: '#16a34a',
-            opacity: (isSubmitting || !selectedDateTime) ? 0.6 : 1
+            opacity: (isSubmitting || !selectedDateTime || (depositInfo && !depositInfo.canUseService)) ? 0.6 : 1
           }}
         >
           <View style={[styles.row, styles.gap8, styles.alignCenter]}>

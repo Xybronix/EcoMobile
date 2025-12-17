@@ -10,27 +10,31 @@ export default function BikeInspectionScreen() {
   const bikeId = params.bikeId as string;
   const bikeName = params.bikeName as string;
   const inspectionType = params.inspectionType as 'pickup' | 'return';
-  const onInspectionComplete = params.onInspectionComplete ? eval(`(${params.onInspectionComplete})`) : null;
 
   const handleBack = () => {
     router.back();
   };
 
   const handleComplete = (data: any) => {
-    if (onInspectionComplete) {
-      onInspectionComplete(data);
-    } else if (inspectionType === 'pickup') {
-      router.navigate({
-        pathname: '/(modals)/account-management',
-        params: { activeTab: 'requests' }
-      });
+    if (inspectionType === 'pickup') {
+      if (data.type === 'unlock_request_sent') {
+        router.navigate({
+          pathname: '/(modals)/account-management',
+          params: { activeTab: 'requests' }
+        });
+      } else {
+        router.navigate('/(tabs)/home');
+      }
     } else {
       const hasIssues = data.issues && data.issues.length > 0;
       
       if (hasIssues) {
         router.navigate({
           pathname: '/(modals)/account-management',
-          params: { activeTab: 'incidents' }
+          params: { 
+            activeTab: 'incidents',
+            inspectionData: JSON.stringify(data)
+          }
         });
       } else {
         router.navigate('/(tabs)/home');
@@ -44,7 +48,7 @@ export default function BikeInspectionScreen() {
         titleFr="Inspection du vélo"
         titleEn="Bike Inspection"
       />
-      <MobileBikeInspection bikeId={bikeId} bikeName={bikeName} inspectionType={inspectionType} onComplete={handleComplete} onBack={handleBack} />
+      <MobileBikeInspection bikeId={bikeId} bikeName={bikeName} inspectionType={inspectionType} onNavigate={(route, params) => router.navigate(route as any, params)} onComplete={handleComplete} onBack={handleBack} />
     </>
   );
 }

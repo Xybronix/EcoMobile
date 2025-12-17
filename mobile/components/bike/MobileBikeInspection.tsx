@@ -21,6 +21,7 @@ interface MobileBikeInspectionProps {
   bikeName: string;
   inspectionType: 'pickup' | 'return';
   bikeEquipment?: string[];
+  onNavigate?: (route: string, params?: any) => void;
   onComplete: (data: InspectionData | { type: string; data: InspectionData }) => void;
   onBack: () => void;
 }

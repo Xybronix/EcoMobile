@@ -727,7 +727,10 @@ const translations: Translations = {
 interface MobileI18nContextType {
   language: Language;
   setLanguage: (lang: Language) => Promise<void>;
-  t: (key: string) => string;
+  t: {
+    (key: string): string;
+    (key: string, params: Record<string, string | number>): string;
+  };
   isLoading: boolean;
 }
 
@@ -765,8 +768,16 @@ export function MobileI18nProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const t = (key: string): string => {
-    return translations[key]?.[language] || key;
+  const t: MobileI18nContextType['t'] = (key: string, params?: Record<string, string | number>): string => {
+    let translation = translations[key]?.[language] || key;
+    
+    if (params) {
+      Object.entries(params).forEach(([param, value]) => {
+        translation = translation.replace(`{${param}}`, value.toString());
+      });
+    }
+    
+    return translation;
   };
 
   return (

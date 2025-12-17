@@ -15,7 +15,7 @@ import { walletService } from '@/services/walletService';
 import { incidentService } from '@/services/incidentService';
 import { bikeRequestService } from '@/services/bikeRequestService';
 import { reservationService } from '@/services/reservationService';
-import { Calendar, Wallet, CreditCard, Clock, Shield, AlertTriangle, ArrowLeft, Lock, Unlock, FileText, MapPin, Trash2 } from 'lucide-react-native';
+import { Calendar, Wallet, CreditCard, Clock, Shield, AlertTriangle, ArrowLeft, Lock, Unlock, FileText, MapPin, Trash2, Lightbulb } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { View, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
 import { useMobileI18n } from '@/lib/mobile-i18n';
@@ -1088,7 +1088,7 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
       }) && (
         <Card style={[styles.p16, { backgroundColor: '#eff6ff', borderColor: '#3b82f6' }]}>
           <View style={[styles.row, styles.gap12]}>
-            <Text style={{ fontSize: 16 }}>💡</Text>
+            <Lightbulb size={16} color="#1e40af" />
             <View style={styles.flex1}>
               <Text size="sm" color="#1e40af" weight="bold">
                 Conseil
