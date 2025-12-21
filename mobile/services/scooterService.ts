@@ -1,6 +1,6 @@
 import { API_CONFIG, handleApiResponse } from '@/lib/api/config';
 import { authService } from './authService';
-import { Scooter, Location } from './rideService';
+import { Scooter, Location } from '@/lib/mobile-types';
 
 export interface ScooterFilters {
   latitude?: number;

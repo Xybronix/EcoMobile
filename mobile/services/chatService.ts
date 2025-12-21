@@ -91,22 +91,7 @@ class ChatService {
   }
 
   private getErrorMessage(error: ApiError): string {
-    switch (error.status) {
-      case 400:
-        return 'invalid_message';
-      case 401:
-        return 'unauthorized';
-      case 404:
-        return 'message_not_found';
-      case 422:
-        return 'validation_error';
-      case 429:
-        return 'too_many_requests';
-      case 500:
-        return 'server_error';
-      default:
-        return 'unknown_error';
-    }
+    return error.message || 'unknown_error';
   }
 }
 

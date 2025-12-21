@@ -119,20 +119,7 @@ class SubscriptionService {
   }
 
   private getErrorMessage(error: ApiError): string {
-    switch (error.status) {
-      case 400:
-        return 'invalid_data';
-      case 401:
-        return 'unauthorized';
-      case 402:
-        return 'insufficient_funds';
-      case 409:
-        return 'subscription_conflict';
-      case 422:
-        return 'validation_error';
-      default:
-        return 'unknown_error';
-    }
+    return error.message || 'unknown_error';
   }
 }
 

@@ -391,24 +391,7 @@ class WalletService {
   }
 
   private getErrorMessage(error: ApiError): string {
-    switch (error.status) {
-      case 400:
-        return 'invalid_amount';
-      case 401:
-        return 'unauthorized';
-      case 402:
-        return 'insufficient_funds';
-      case 404:
-        return 'transaction_not_found';
-      case 422:
-        return 'validation_error';
-      case 429:
-        return 'too_many_requests';
-      case 500:
-        return 'server_error';
-      default:
-        return 'unknown_error';
-    }
+    return error.message || 'unknown_error';
   }
 }
 
