@@ -108,7 +108,6 @@ export const OSMMap = forwardRef<OSMMapRef, OSMMapProps>(({
 
   // Fonctions pour mobile (WebView)
   const centerOnUserMobile = useCallback(() => {
-    console.log('[RN] Tentative centerOnUser');
     if (webViewRef.current && webViewRef.current.postMessage) {
       webViewRef.current.postMessage(JSON.stringify({
         type: 'centerOnUser'
@@ -117,7 +116,6 @@ export const OSMMap = forwardRef<OSMMapRef, OSMMapProps>(({
   }, []);
 
   const zoomInMobile = useCallback(() => {
-    console.log('[RN] Tentative zoomIn');
     if (webViewRef.current && webViewRef.current.postMessage) {
       webViewRef.current.postMessage(JSON.stringify({
         type: 'zoomIn'
@@ -126,7 +124,6 @@ export const OSMMap = forwardRef<OSMMapRef, OSMMapProps>(({
   }, []);
 
   const zoomOutMobile = useCallback(() => {
-    console.log('[RN] Tentative zoomOut');
     if (webViewRef.current && webViewRef.current.postMessage) {
       webViewRef.current.postMessage(JSON.stringify({
         type: 'zoomOut'
@@ -135,7 +132,6 @@ export const OSMMap = forwardRef<OSMMapRef, OSMMapProps>(({
   }, []);
 
   const toggleMapStyleMobile = useCallback(() => {
-    console.log('[RN] Tentative toggleMapStyle');
     if (webViewRef.current && webViewRef.current.postMessage) {
       webViewRef.current.postMessage(JSON.stringify({
         type: 'toggleMapStyle'
@@ -455,22 +451,17 @@ export const OSMMap = forwardRef<OSMMapRef, OSMMapProps>(({
     };
   }, [isWeb, center.lat, center.lng, radius, bikesWithCoords, onBikePress, onMapReady]);
 
-  // HTML pour la version mobile - VERSION CORRIGÉE POUR ANDROID
+  // HTML pour la version mobile (WebView) - VERSION CORRIGÉE POUR NAVIGATION TACTILE
   const mapHTML = `
     <!DOCTYPE html>
     <html>
     <head>
         <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=3.0, minimum-scale=0.5, user-scalable=yes, viewport-fit=cover">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=3.0, user-scalable=yes">
         <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
         <style>
             * {
                 box-sizing: border-box;
-                -webkit-touch-callout: none;
-                -webkit-user-select: none;
-                -moz-user-select: none;
-                -ms-user-select: none;
-                user-select: none;
             }
             
             body { 
@@ -479,39 +470,25 @@ export const OSMMap = forwardRef<OSMMapRef, OSMMapProps>(({
                 font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
                 overflow: hidden;
                 position: fixed;
-                width: 100vw;
-                height: 100vh;
-                background: #f0f0f0;
-                touch-action: none;
-                overscroll-behavior: none;
-                -webkit-overflow-scrolling: auto;
+                width: 100%;
+                height: 100%;
+                touch-action: auto;
             }
             
             #map { 
                 height: 100vh; 
                 width: 100vw; 
-                position: absolute;
-                top: 0;
-                left: 0;
-                background: #e0e0e0;
-                touch-action: none;
-                overscroll-behavior: none;
-            }
-            
-            .leaflet-container {
-                touch-action: none !important;
-                -webkit-touch-callout: none !important;
-                -webkit-user-select: none !important;
-                background: #d0d0d0;
+                touch-action: auto;
+                position: relative;
                 cursor: grab;
             }
             
-            .leaflet-container.leaflet-touch-drag {
-                touch-action: none !important;
+            #map:active {
+                cursor: grabbing;
             }
             
-            .leaflet-container.leaflet-touch-zoom {
-                touch-action: none !important;
+            .leaflet-container {
+                touch-action: auto !important;
             }
             
             .leaflet-control-container {
@@ -524,7 +501,6 @@ export const OSMMap = forwardRef<OSMMapRef, OSMMapProps>(({
             
             .leaflet-popup-content-wrapper {
                 touch-action: auto;
-                pointer-events: auto;
             }
             
             .bike-popup {
@@ -532,38 +508,32 @@ export const OSMMap = forwardRef<OSMMapRef, OSMMapProps>(({
                 text-align: center;
                 min-width: 200px;
             }
-            
             .bike-popup .title {
                 font-size: 16px;
                 font-weight: 600;
                 margin-bottom: 8px;
                 color: #111827;
             }
-            
             .bike-popup .details {
                 display: flex;
                 gap: 12px;
                 justify-content: center;
                 margin-bottom: 12px;
             }
-            
             .bike-popup .detail-item {
                 display: flex;
                 flex-direction: column;
                 align-items: center;
                 gap: 4px;
             }
-            
             .bike-popup .detail-value {
                 font-weight: 600;
                 font-size: 14px;
             }
-            
             .bike-popup .detail-label {
                 font-size: 12px;
                 color: #6b7280;
             }
-            
             .bike-popup .action-btn {
                 background: #5D5CDE;
                 color: white;
@@ -577,34 +547,10 @@ export const OSMMap = forwardRef<OSMMapRef, OSMMapProps>(({
                 margin-top: 8px;
                 touch-action: manipulation;
             }
-
-            /* Indicateur de debug */
-            .debug-indicator {
-                position: fixed;
-                top: 10px;
-                left: 10px;
-                background: rgba(255,0,0,0.8);
-                color: white;
-                padding: 5px 10px;
-                border-radius: 5px;
-                font-size: 12px;
-                z-index: 9999;
-                font-family: monospace;
-                pointer-events: none;
-                max-width: calc(100vw - 20px);
-                word-break: break-all;
-            }
-
-            /* Prévenir le zoom automatique sur les inputs en cas de popup */
-            input, select, textarea {
-                font-size: 16px !important;
-            }
         </style>
     </head>
     <body>
-        <div id="debugIndicator" class="debug-indicator">Chargement...</div>
         <div id="map"></div>
-        
         <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
         <script>
             let map;
@@ -612,45 +558,6 @@ export const OSMMap = forwardRef<OSMMapRef, OSMMapProps>(({
             let radiusCircle;
             let bikeMarkers = [];
             let currentMapStyle = 'osm';
-            let debugIndicator = document.getElementById('debugIndicator');
-            
-            // Fonction de log pour déboguer
-            function logToRN(message, data) {
-                console.log('[CARTE]', message, data);
-                debugIndicator.textContent = message;
-                
-                if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
-                    try {
-                        window.ReactNativeWebView.postMessage(JSON.stringify({
-                            type: 'debug',
-                            message: message,
-                            data: data || {},
-                            timestamp: Date.now()
-                        }));
-                    } catch (e) {
-                        console.error('Erreur envoi log:', e);
-                    }
-                }
-            }
-            
-            // Désactiver le défilement au niveau document
-            document.addEventListener('touchstart', function(e) {
-                logToRN('👆 TOUCHSTART Global: ' + e.touches.length + ' touches');
-            }, { passive: false });
-            
-            document.addEventListener('touchmove', function(e) {
-                if (e.target.closest('#map') || e.target.id === 'map') {
-                    // Laisser passer pour la carte
-                    logToRN('👆 TOUCHMOVE sur carte');
-                } else {
-                    // Bloquer ailleurs
-                    e.preventDefault();
-                }
-            }, { passive: false });
-            
-            document.addEventListener('touchend', function(e) {
-                logToRN('👆 TOUCHEND Global');
-            }, { passive: false });
             
             const mapStyles = {
                 osm: {
@@ -669,145 +576,60 @@ export const OSMMap = forwardRef<OSMMapRef, OSMMapProps>(({
             
             function initMap() {
                 try {
-                    logToRN('🚀 DÉBUT INITIALISATION CARTE ANDROID');
-                    
-                    // Vérifier si Leaflet est disponible
-                    if (typeof L === 'undefined') {
-                        logToRN('❌ ERREUR: Leaflet non chargé');
-                        return;
-                    }
-                    logToRN('✅ Leaflet chargé pour Android');
-                    
-                    // CONFIGURATION SPÉCIALE ANDROID
                     map = L.map('map', {
-                        // Configuration de base
+                        // Configuration optimisée pour navigation tactile
                         zoomControl: false,
                         attributionControl: true,
                         
-                        // NAVIGATION TACTILE OPTIMISÉE ANDROID
-                        touchZoom: true,           
-                        scrollWheelZoom: false,    // Désactivé sur mobile
-                        doubleClickZoom: true,     
-                        dragging: true,           
+                        // Navigation tactile
+                        touchZoom: true,           // Pincer pour zoomer
+                        scrollWheelZoom: true,     // Molette souris
+                        doubleClickZoom: true,     // Double-tap pour zoomer
+                        dragging: true,            // Glisser pour déplacer
                         
-                        // CONFIGURATION TACTILE ANDROID SPÉCIFIQUE
-                        tap: true,                
-                        tapTolerance: 30,         // Augmenté pour Android
-                        touchExtend: true,        
+                        // Configuration tactile avancée
+                        tap: true,                 // Support des taps
+                        tapTolerance: 15,          // Tolérance des taps
+                        touchExtend: true,         // Support multi-touch
                         
-                        // Animation optimisée Android
+                        // Animation fluide
                         zoomAnimation: true,
                         fadeAnimation: true,
                         markerZoomAnimation: true,
                         
-                        // Inertie adaptée Android
+                        // Inertie pour navigation fluide
                         inertia: true,
-                        inertiaDeceleration: 2000,
-                        inertiaMaxSpeed: 1500,    // Limité pour Android
-                        easeLinearity: 0.1,       
+                        inertiaDeceleration: 3000,
+                        inertiaMaxSpeed: Infinity,
+                        easeLinearity: 0.2,
                         
-                        // Configuration zoom Android
-                        zoomSnap: 0.1,            
-                        zoomDelta: 1,             
-                        wheelDebounceTime: 10,    
-                        wheelPxPerZoomLevel: 100, 
+                        // Configuration zoom
+                        zoomSnap: 0.25,
+                        zoomDelta: 0.75,
+                        wheelDebounceTime: 40,
+                        wheelPxPerZoomLevel: 60,
                         
                         // Limites
                         maxZoom: 18,
-                        minZoom: 8,
+                        minZoom: 10,
                         bounceAtZoomLimits: false,
                         
-                        // Options Android
-                        keyboard: false,           
+                        // Autres
+                        keyboard: true,
                         boxZoom: false,
                         closePopupOnClick: false,
                         trackResize: true,
-                        preferCanvas: false,
-                        
-                        // OPTIMISATIONS ANDROID WEBVIEW
-                        worldCopyJump: false,
-                        maxBoundsViscosity: 0.0,
-                        transform3DLimit: 1048576,
-                        
-                        // Configuration rendu Android
-                        updateWhenZooming: false,  // Performance Android
-                        updateWhenIdle: true,      // Moins de mises à jour
-                        updateInterval: 200        // Intervalles plus larges
+                        preferCanvas: false
                     }).setView([${center.lat}, ${center.lng}], 14);
                     
-                    logToRN('✅ CARTE ANDROID INITIALISÉE', {
-                        center: [${center.lat}, ${center.lng}],
-                        touchZoom: map.options.touchZoom,
-                        dragging: map.options.dragging,
-                        touchExtend: map.options.touchExtend,
-                        tapTolerance: map.options.tapTolerance
-                    });
-                    
-                    // FORCER LA GESTION TACTILE ANDROID
+                    // Forcer la mise à jour après initialisation
                     setTimeout(() => {
-                        if (map._container) {
-                            map._container.style.touchAction = 'none';
-                            logToRN('🔧 touch-action forcé sur container');
-                        }
-                        
-                        // Forcer la réactivation des handlers
-                        if (map._handlers) {
-                            ['touchZoom', 'dragging', 'tap'].forEach(handlerName => {
-                                const handler = map._handlers[handlerName];
-                                if (handler) {
-                                    if (handler._enabled) {
-                                        handler.disable();
-                                        setTimeout(() => {
-                                            handler.enable();
-                                            logToRN('🔧 Handler ' + handlerName + ' réactivé');
-                                        }, 50);
-                                    } else {
-                                        handler.enable();
-                                        logToRN('🔧 Handler ' + handlerName + ' activé');
-                                    }
-                                }
-                            });
-                        }
-                    }, 300);
-                    
-                    // Ajouter des listeners pour déboguer
-                    map.on('dragstart', () => logToRN('✅ DRAGSTART MARCHE !'));
-                    map.on('drag', () => logToRN('✅ DRAG EN COURS !'));
-                    map.on('dragend', () => logToRN('✅ DRAGEND TERMINÉ !'));
-                    map.on('zoomstart', (e) => logToRN('✅ ZOOMSTART: ' + e.target.getZoom()));
-                    map.on('zoom', (e) => logToRN('✅ ZOOM: ' + e.target.getZoom()));
-                    map.on('zoomend', (e) => logToRN('✅ ZOOMEND: ' + e.target.getZoom()));
-                    map.on('movestart', () => logToRN('📍 MOVESTART'));
-                    map.on('move', () => logToRN('📍 MOVE'));
-                    map.on('moveend', () => logToRN('📍 MOVEEND'));
-                    map.on('click', (e) => logToRN('👆 CLICK: ' + e.latlng.lat.toFixed(4) + ',' + e.latlng.lng.toFixed(4)));
-                    
-                    // Diagnostics spéciaux Android
-                    setTimeout(() => {
-                        const container = map.getContainer();
-                        logToRN('📊 DIAGNOSTICS ANDROID:', {
-                            touchAction: container.style.touchAction,
-                            containerClass: container.className,
-                            handlers: Object.keys(map._handlers || {}).map(h => ({
-                                name: h,
-                                enabled: map._handlers[h]._enabled
-                            }))
-                        });
-                    }, 1000);
-                    
-                    // Force invalidation après init
-                    setTimeout(() => {
-                        if (map) {
-                            map.invalidateSize(true);
-                            logToRN('📐 TAILLE CARTE MISE À JOUR ANDROID');
-                        }
+                        map.invalidateSize(true);
                     }, 100);
                     
                     updateMapStyle();
                     updateUserLocation();
                     updateBikes();
-                    
-                    logToRN('🎯 CARTE ANDROID COMPLÈTEMENT CONFIGURÉE');
                     
                     // Confirmation de chargement
                     setTimeout(() => {
@@ -815,213 +637,174 @@ export const OSMMap = forwardRef<OSMMapRef, OSMMapProps>(({
                             window.ReactNativeWebView.postMessage(JSON.stringify({
                                 type: 'mapReady'
                             }));
-                            logToRN('📨 MESSAGE mapReady ENVOYÉ ANDROID');
                         }
                     }, 500);
-                    
                 } catch (error) {
-                    logToRN('❌ ERREUR INIT ANDROID: ' + error.message);
-                    console.error('Error initializing Android map:', error);
+                    console.error('Error initializing map:', error);
                 }
             }
             
             function updateMapStyle() {
                 if (!map) return;
                 
-                try {
-                    if (map._baseLayer) {
-                        map.removeLayer(map._baseLayer);
-                    }
-                    
-                    const style = mapStyles[currentMapStyle] || mapStyles.osm;
-                    map._baseLayer = L.tileLayer(style.url, {
-                        attribution: style.attribution,
-                        maxZoom: 19,
-                        detectRetina: true
-                    }).addTo(map);
-                    
-                    logToRN('🎨 Style carte appliqué: ' + currentMapStyle);
-                } catch (error) {
-                    logToRN('❌ Erreur style carte: ' + error.message);
+                if (map._baseLayer) {
+                    map.removeLayer(map._baseLayer);
                 }
+                
+                const style = mapStyles[currentMapStyle] || mapStyles.osm;
+                map._baseLayer = L.tileLayer(style.url, {
+                    attribution: style.attribution,
+                    maxZoom: 19,
+                    detectRetina: true
+                }).addTo(map);
             }
             
             function updateUserLocation() {
                 if (!map) return;
                 
-                try {
-                    if (userMarker) map.removeLayer(userMarker);
-                    if (radiusCircle) map.removeLayer(radiusCircle);
-                    
-                    const userIcon = L.divIcon({
-                        className: 'user-marker',
-                        html: '<div style="background: #3b82f6; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.2);"></div>',
-                        iconSize: [26, 26],
-                        iconAnchor: [13, 13]
-                    });
-                    
-                    userMarker = L.marker([${center.lat}, ${center.lng}], { 
-                        icon: userIcon,
-                        interactive: false
-                    }).addTo(map);
-                    
-                    radiusCircle = L.circle([${center.lat}, ${center.lng}], {
-                        radius: ${radius * 1000},
-                        fillColor: '#3b82f6',
-                        fillOpacity: 0.1,
-                        color: '#3b82f6',
-                        weight: 2,
-                        opacity: 0.6,
-                        interactive: false
-                    }).addTo(map);
-                    
-                    logToRN('📍 Marqueurs ajoutés');
-                } catch (error) {
-                    logToRN('❌ Erreur marqueurs: ' + error.message);
-                }
+                if (userMarker) map.removeLayer(userMarker);
+                if (radiusCircle) map.removeLayer(radiusCircle);
+                
+                const userIcon = L.divIcon({
+                    className: 'user-marker',
+                    html: '<div style="background: #3b82f6; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.2);"></div>',
+                    iconSize: [26, 26],
+                    iconAnchor: [13, 13]
+                });
+                
+                userMarker = L.marker([${center.lat}, ${center.lng}], { 
+                    icon: userIcon,
+                    interactive: false
+                }).addTo(map);
+                
+                radiusCircle = L.circle([${center.lat}, ${center.lng}], {
+                    radius: ${radius * 1000},
+                    fillColor: '#3b82f6',
+                    fillOpacity: 0.1,
+                    color: '#3b82f6',
+                    weight: 2,
+                    opacity: 0.6,
+                    interactive: false
+                }).addTo(map);
             }
             
             function updateBikes() {
                 if (!map) return;
                 
-                try {
-                    bikeMarkers.forEach(marker => map.removeLayer(marker));
-                    bikeMarkers = [];
+                bikeMarkers.forEach(marker => map.removeLayer(marker));
+                bikeMarkers = [];
+                
+                const bikes = ${JSON.stringify(bikesWithCoords)};
+                
+                bikes.forEach(bike => {
+                    let batteryColor = '#16a34a';
+                    if (bike.batteryLevel <= 50) batteryColor = '#f59e0b';
+                    if (bike.batteryLevel <= 20) batteryColor = '#ef4444';
                     
-                    const bikes = ${JSON.stringify(bikesWithCoords)};
-                    logToRN('🚲 Ajout vélos: ' + bikes.length);
-                    
-                    bikes.forEach(bike => {
-                        let batteryColor = '#16a34a';
-                        if (bike.batteryLevel <= 50) batteryColor = '#f59e0b';
-                        if (bike.batteryLevel <= 20) batteryColor = '#ef4444';
-                        
-                        const bikeIcon = L.divIcon({
-                            className: 'bike-marker',
-                            html: \`
-                                <div style="
-                                    background: \${batteryColor}; 
-                                    color: white; 
-                                    width: 32px; 
-                                    height: 32px; 
-                                    border-radius: 50%; 
-                                    border: 2px solid white; 
-                                    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-                                    display: flex; 
-                                    align-items: center; 
-                                    justify-content: center; 
-                                    font-size: 10px; 
-                                    font-weight: bold;
-                                    cursor: pointer;
-                                    touch-action: manipulation;
-                                ">
-                                    \${bike.batteryLevel}%
-                                </div>
-                            \`,
-                            iconSize: [36, 36],
-                            iconAnchor: [18, 18]
-                        });
-                        
-                        const popupContent = \`
-                            <div class="bike-popup">
-                                <div class="title">🚲 \${bike.code}</div>
-                                <div style="color: #6b7280; margin-bottom: 12px;">\${bike.model}</div>
-                                <div class="details">
-                                    <div class="detail-item">
-                                        <div class="detail-value" style="color: \${batteryColor}">
-                                            ⚡ \${bike.batteryLevel}%
-                                        </div>
-                                        <div class="detail-label">Batterie</div>
-                                    </div>
-                                    <div class="detail-item">
-                                        <div class="detail-value">📍 \${bike.distance ? bike.distance.toFixed(1) + ' km' : '--'}</div>
-                                        <div class="detail-label">Distance</div>
-                                    </div>
-                                </div>
+                    const bikeIcon = L.divIcon({
+                        className: 'bike-marker',
+                        html: \`
+                            <div style="
+                                background: \${batteryColor}; 
+                                color: white; 
+                                width: 32px; 
+                                height: 32px; 
+                                border-radius: 50%; 
+                                border: 2px solid white; 
+                                box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+                                display: flex; 
+                                align-items: center; 
+                                justify-content: center; 
+                                font-size: 10px; 
+                                font-weight: bold;
+                                cursor: pointer;
+                                touch-action: manipulation;
+                            ">
+                                \${bike.batteryLevel}%
                             </div>
-                        \`;
-                        
-                        const marker = L.marker([bike.latitude, bike.longitude], { 
-                            icon: bikeIcon 
-                        })
-                        .bindPopup(popupContent, {
-                            className: 'bike-popup-container',
-                            maxWidth: 280,
-                            offset: [0, -10]
-                        })
-                        .addTo(map);
-                        
-                        marker.on('click', (e) => {
-                            logToRN('🚲 Vélo cliqué: ' + bike.code);
-                            e.originalEvent?.preventDefault();
-                            e.originalEvent?.stopPropagation();
-                            
-                            if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
-                                window.ReactNativeWebView.postMessage(JSON.stringify({
-                                    type: 'bikeSelected',
-                                    bike: bike
-                                }));
-                            }
-                        });
-                        
-                        bikeMarkers.push(marker);
+                        \`,
+                        iconSize: [36, 36],
+                        iconAnchor: [18, 18]
                     });
                     
-                    logToRN('✅ Vélos ajoutés: ' + bikeMarkers.length);
-                } catch (error) {
-                    logToRN('❌ Erreur ajout vélos: ' + error.message);
-                }
+                    const popupContent = \`
+                        <div class="bike-popup">
+                            <div class="title">🚲 \${bike.code}</div>
+                            <div style="color: #6b7280; margin-bottom: 12px;">\${bike.model}</div>
+                            <div class="details">
+                                <div class="detail-item">
+                                    <div class="detail-value" style="color: \${batteryColor}">
+                                        ⚡ \${bike.batteryLevel}%
+                                    </div>
+                                    <div class="detail-label">Batterie</div>
+                                </div>
+                                <div class="detail-item">
+                                    <div class="detail-value">📍 \${bike.distance ? bike.distance.toFixed(1) + ' km' : '--'}</div>
+                                    <div class="detail-label">Distance</div>
+                                </div>
+                            </div>
+                        </div>
+                    \`;
+                    
+                    const marker = L.marker([bike.latitude, bike.longitude], { 
+                        icon: bikeIcon 
+                    })
+                    .bindPopup(popupContent, {
+                        className: 'bike-popup-container',
+                        maxWidth: 280,
+                        offset: [0, -10]
+                    })
+                    .addTo(map);
+                    
+                    marker.on('click', (e) => {
+                        e.originalEvent.preventDefault();
+                        e.originalEvent.stopPropagation();
+                        
+                        if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
+                            window.ReactNativeWebView.postMessage(JSON.stringify({
+                                type: 'bikeSelected',
+                                bike: bike
+                            }));
+                        }
+                    });
+                    
+                    bikeMarkers.push(marker);
+                });
             }
             
             function centerOnUser() {
-                logToRN('🎯 Recentrage demandé');
                 if (map) {
                     map.setView([${center.lat}, ${center.lng}], map.getZoom(), { 
                         animate: true,
                         duration: 0.5 
                     });
-                    logToRN('✅ Recentrage effectué');
                 }
             }
             
             function zoomIn() {
-                logToRN('🔍 Zoom in demandé');
                 if (map) {
-                    const oldZoom = map.getZoom();
-                    map.zoomIn(1, { animate: true });
-                    setTimeout(() => {
-                        logToRN('✅ Zoom in: ' + oldZoom + ' → ' + map.getZoom());
-                    }, 300);
+                    map.zoomIn(0.75, { animate: true });
                 }
             }
             
             function zoomOut() {
-                logToRN('🔍 Zoom out demandé');
                 if (map) {
-                    const oldZoom = map.getZoom();
-                    map.zoomOut(1, { animate: true });
-                    setTimeout(() => {
-                        logToRN('✅ Zoom out: ' + oldZoom + ' → ' + map.getZoom());
-                    }, 300);
+                    map.zoomOut(0.75, { animate: true });
                 }
             }
             
             function toggleMapStyle() {
-                logToRN('🎨 Changement style demandé');
                 const styles = Object.keys(mapStyles);
                 const currentIndex = styles.indexOf(currentMapStyle);
                 const nextIndex = (currentIndex + 1) % styles.length;
-                const oldStyle = currentMapStyle;
                 currentMapStyle = styles[nextIndex];
                 updateMapStyle();
-                logToRN('✅ Style changé: ' + oldStyle + ' → ' + currentMapStyle);
             }
             
             // Gestionnaire de messages
             function handleMessage(event) {
                 try {
                     const data = JSON.parse(event.data);
-                    logToRN('📨 Message reçu: ' + data.type);
                     
                     switch(data.type) {
                         case 'centerOnUser':
@@ -1036,11 +819,9 @@ export const OSMMap = forwardRef<OSMMapRef, OSMMapProps>(({
                         case 'toggleMapStyle':
                             toggleMapStyle();
                             break;
-                        default:
-                            logToRN('❓ Message non géré: ' + data.type);
                     }
                 } catch (e) {
-                    logToRN('❌ Erreur parsing message: ' + e.message);
+                    console.error('Error parsing message:', e);
                 }
             }
             
@@ -1050,36 +831,11 @@ export const OSMMap = forwardRef<OSMMapRef, OSMMapProps>(({
             
             // Gestion du redimensionnement
             window.addEventListener('resize', function() {
-                logToRN('📐 Redimensionnement fenêtre');
                 if (map) {
                     setTimeout(() => {
                         map.invalidateSize(true);
-                        logToRN('📐 Taille carte mise à jour après redimensionnement');
                     }, 100);
                 }
-            });
-            
-            // Test de support tactile Android
-            window.addEventListener('load', function() {
-                logToRN('📱 Support tactile Android: ' + ('ontouchstart' in window));
-                logToRN('📱 Max touch points: ' + (navigator.maxTouchPoints || 'inconnu'));
-                logToRN('🌐 User Agent: Android détecté');
-            });
-            
-            // Prévenir les comportements par défaut indésirables
-            document.addEventListener('gesturestart', function(e) {
-                e.preventDefault();
-                logToRN('🚫 Gesturestart bloqué');
-            });
-            
-            document.addEventListener('gesturechange', function(e) {
-                e.preventDefault();
-                logToRN('🚫 Gesturechange bloqué');
-            });
-            
-            document.addEventListener('gestureend', function(e) {
-                e.preventDefault();
-                logToRN('🚫 Gestureend bloqué');
             });
             
             // Initialisation
@@ -1088,8 +844,6 @@ export const OSMMap = forwardRef<OSMMapRef, OSMMapProps>(({
             } else {
                 initMap();
             }
-            
-            logToRN('📄 Script carte Android chargé');
         </script>
     </body>
     </html>
@@ -1111,7 +865,7 @@ export const OSMMap = forwardRef<OSMMapRef, OSMMapProps>(({
     );
   }
 
-  // Version mobile avec WebView - CONFIGURATION ANDROID OPTIMISÉE
+  // Version mobile avec WebView - CONFIGURATION CORRIGÉE
   const ReactNativeWebView = require('react-native-webview').WebView;
 
   return (
@@ -1124,10 +878,10 @@ export const OSMMap = forwardRef<OSMMapRef, OSMMapProps>(({
         domStorageEnabled={true}
         startInLoadingState={false}
         scalesPageToFit={false}
-        scrollEnabled={false}
+        scrollEnabled={true}
         showsHorizontalScrollIndicator={false}
         showsVerticalScrollIndicator={false}
-        bounces={false}
+        bounces={true}
         allowsInlineMediaPlayback={true}
         mediaPlaybackRequiresUserAction={false}
         originWhitelist={['*']}
@@ -1138,47 +892,28 @@ export const OSMMap = forwardRef<OSMMapRef, OSMMapProps>(({
         allowsBackForwardNavigationGestures={false}
         cacheEnabled={true}
         incognito={false}
-        nestedScrollEnabled={false}
-        overScrollMode="never"
-        androidLayerType="hardware"
         onMessage={(event: any) => {
           try {
             const data = JSON.parse(event.nativeEvent.data);
             
-            // Logger tous les messages reçus
-            console.log('[RN] Message reçu de la WebView:', data);
-            
             switch(data.type) {
               case 'mapReady':
-                console.log('[RN] ✅ Carte prête');
                 onMapReady?.();
                 break;
               case 'bikeSelected':
-                console.log('[RN] 🚲 Vélo sélectionné:', data.bike);
                 onBikePress?.(data.bike);
                 break;
-              case 'debug':
-                console.log('[RN] 🐛 DEBUG CARTE:', data.message, data.data);
-                break;
-              default:
-                console.log('[RN] ❓ Message non géré:', data.type);
             }
           } catch (e) {
-            console.error('[RN] ❌ Error parsing WebView message:', e);
+            console.error('Error parsing WebView message:', e);
           }
         }}
         onError={(syntheticEvent: { nativeEvent: any; }) => {
           const { nativeEvent } = syntheticEvent;
-          console.error('[RN] ❌ WebView error: ', nativeEvent);
-        }}
-        onLoadStart={() => {
-          console.log('[RN] 🔄 WebView chargement commencé');
+          console.error('WebView error: ', nativeEvent);
         }}
         onLoadEnd={() => {
-          console.log('[RN] ✅ WebView chargement terminé');
-        }}
-        onLoadProgress={({ nativeEvent }: { nativeEvent: { progress: number } }) => {
-          console.log('[RN] 📊 WebView progression:', nativeEvent.progress);
+          console.log('WebView loaded successfully');
         }}
       />
     </View>

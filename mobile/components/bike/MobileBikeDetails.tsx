@@ -79,7 +79,7 @@ export function MobileBikeDetails({ bike: initialBike, onBack, onStartRide, onNa
         setPriceInfo({
           amount: estimatedCost,
           willBeCharged: false,
-          message: `${t('subscription.included')} ${ subscription.planName }`
+          message: t('subscription.included', { plan: subscription.planName })
         });
       } else {
         setPriceInfo({
@@ -272,17 +272,17 @@ export function MobileBikeDetails({ bike: initialBike, onBack, onStartRide, onNa
                 <Calendar size={20} color="#3b82f6" />
                 <View style={styles.flex1}>
                   <Text variant="body" color="#1e40af" weight="bold">
-                    {`${t('bike.details.activePlan')} ${ currentSubscription.planName }`}
+                    {t('bike.details.activePlan', { plan: currentSubscription.planName })}
                   </Text>
                   <Text size="sm" color="#1e40af">
-                    {`${t('bike.details.planType')} ${ 
-                      currentSubscription.packageType, 
-                      new Date(currentSubscription.endDate).toLocaleDateString() 
-                    }`}
+                    {t('bike.details.planType', { 
+                      type: currentSubscription.packageType, 
+                      date: new Date(currentSubscription.endDate).toLocaleDateString() 
+                    })}
                   </Text>
                   {currentSubscription.bikeCode && (
                     <Text size="sm" color="#3b82f6" style={styles.mt4}>
-                      {`${t('bike.details.reservedBike')} ${ currentSubscription.bikeCode }`}
+                      {t('bike.details.reservedBike', { code: currentSubscription.bikeCode })}
                     </Text>
                   )}
                 </View>
@@ -413,7 +413,7 @@ export function MobileBikeDetails({ bike: initialBike, onBack, onStartRide, onNa
                   <View style={[styles.row, styles.gap8]}>
                     <AlertTriangle size={16} color="#f59e0b" />
                     <Text size="xs" color="#92400e">
-                      {`${t('bike.details.depositWarning')} ${ depositInfo?.requiredDeposit || 20000 }`}
+                      {t('bike.details.depositWarning', { amount: depositInfo?.requiredDeposit || 20000 })}
                     </Text>
                   </View>
                 </Card>
