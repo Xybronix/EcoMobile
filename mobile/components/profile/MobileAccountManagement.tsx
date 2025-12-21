@@ -542,16 +542,16 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
             {t('accountManagement.currentSubscription')}
           </Text>
           <View style={[styles.row, styles.spaceBetween, styles.alignCenter]}>
-            <View>
-              <Text variant="body" color="#16a34a" weight="bold">
+            <View style={styles.flex1}>
+              <Text variant="body" color="#16a34a" weight="bold" numberOfLines={1}>
                 {currentSubscription.planName} - {currentSubscription.packageType}
               </Text>
-              <Text size="sm" color="#6b7280">
-                {`${t('accountManagement.expiresOn')}: ${ new Date(currentSubscription.endDate).toLocaleDateString() }`}
+              <Text size="sm" color="#6b7280" numberOfLines={1}>
+                {t('accountManagement.expiresOn', { date: new Date(currentSubscription.endDate).toLocaleDateString() })}
               </Text>
               {currentSubscription.bikeCode && (
-                <Text size="sm" color="#16a34a" style={styles.mt4}>
-                  {`${t('accountManagement.reservedBike')}: ${ currentSubscription.bikeCode }`}
+                <Text size="sm" color="#16a34a" style={styles.mt4} numberOfLines={1}>
+                  {t('accountManagement.reservedBike', { code: currentSubscription.bikeCode })}
                 </Text>
               )}
             </View>
@@ -560,7 +560,7 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
                 {currentSubscription.remainingDays}
               </Text>
               <Text size="xs" color="#6b7280">
-                {`${t('accountManagement.daysRemaining')}: ${ currentSubscription.remainingDays }`}
+                {t('accountManagement.daysRemaining', { days: currentSubscription.remainingDays })}
               </Text>
             </View>
           </View>
@@ -616,13 +616,13 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
           <View style={[styles.row, styles.gap12]}>
             <AlertTriangle size={20} color="#f59e0b" />
             <View style={styles.flex1}>
-              <Text size="sm" color="#92400e" weight="bold">
+              <Text size="sm" color="#92400e" weight="bold" numberOfLines={1}>
                 {t('accountManagement.serviceBlocked')}
               </Text>
               <Text size="sm" color="#92400e" style={styles.mt4}>
-                {`${t('accountManagement.requiredMinimum')} ${ depositInfo.requiredDeposit }`}
-                {'\n'}{`${t('accountManagement.currentAmount')} ${ depositInfo.currentDeposit }`}
-                {'\n'}{`${t('accountManagement.missingAmount')} ${ depositInfo.requiredDeposit - depositInfo.currentDeposit }`}
+                {t('accountManagement.requiredMinimum', { amount: depositInfo.requiredDeposit })}
+                {'\n'}{t('accountManagement.currentAmount', { amount: depositInfo.currentDeposit })}
+                {'\n'}{t('accountManagement.missingAmount', { amount: depositInfo.requiredDeposit - depositInfo.currentDeposit })}
               </Text>
               <Button
                 variant="outline"
@@ -643,10 +643,10 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
           <View style={[styles.row, styles.gap12]}>
             <AlertTriangle size={20} color="#dc2626" />
             <View style={styles.flex1}>
-              <Text size="sm" color="#991b1b" weight="bold">
-                {`${t('accountManagement.negativeBalance')} ${ depositInfo.negativeBalance }`}
+              <Text size="sm" color="#991b1b" weight="bold" numberOfLines={1}>
+                {t('accountManagement.negativeBalance', { amount: depositInfo.negativeBalance })}
               </Text>
-              <Text size="xs" color="#991b1b" style={styles.mt4}>
+              <Text size="xs" color="#991b1b" style={styles.mt4} numberOfLines={2}>
                 {t('wallet.insufficientBalance')}
               </Text>
             </View>
@@ -664,7 +664,7 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
           >
             <View style={[styles.row, styles.gap4, styles.alignCenter, styles.justifyCenter]}>
               <CreditCard size={18} color={colorScheme === 'light' ? '#111827' : '#f9fafb'} />
-              <Text style={styles.ml8} color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
+              <Text style={styles.ml8} color={colorScheme === 'light' ? '#111827' : '#f9fafb'} numberOfLines={1}>
                 {t('accountManagement.rechargeWallet')}
               </Text>
             </View>
@@ -676,7 +676,7 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
           >
             <View style={[styles.row, styles.gap4, styles.alignCenter, styles.justifyCenter]}>
               <Shield size={18} color={colorScheme === 'light' ? '#111827' : '#f9fafb'} />
-              <Text style={styles.ml8} color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
+              <Text style={styles.ml8} color={colorScheme === 'light' ? '#111827' : '#f9fafb'} numberOfLines={1}>
                 {t('accountManagement.deposit')}
               </Text>
             </View>
@@ -689,7 +689,7 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
         >
           <View style={[styles.row, styles.gap4, styles.alignCenter, styles.justifyCenter]}>
             <AlertTriangle size={18} color={colorScheme === 'light' ? '#111827' : '#f9fafb'} />
-            <Text style={styles.ml8} color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
+            <Text style={styles.ml8} color={colorScheme === 'light' ? '#111827' : '#f9fafb'} numberOfLines={1}>
               {t('accountManagement.reportProblem')}
             </Text>
           </View>
@@ -742,15 +742,15 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
         {filteredTransactions.map((transaction) => (
           <Card key={transaction.id} style={styles.p16}>
             <View style={[styles.row, styles.spaceBetween, styles.alignCenter, styles.mb8]}>
-              <View>
-                <Text variant="body" color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
+              <View style={styles.flex1}>
+                <Text variant="body" color={colorScheme === 'light' ? '#111827' : '#f9fafb'} numberOfLines={1}>
                   {getTransactionTypeText(transaction.type)}
                 </Text>
-                <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
+                <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} numberOfLines={1}>
                   {new Date(transaction.createdAt).toLocaleString()}
                 </Text>
                 {transaction.metadata?.appliedRule && (
-                  <Text size="xs" color="#16a34a" style={styles.mt4}>
+                  <Text size="xs" color="#16a34a" style={styles.mt4} numberOfLines={1}>
                     {transaction.metadata.appliedRule}
                   </Text>
                 )}
@@ -768,6 +768,7 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
                   size="xs" 
                   color={getStatusColor(transaction.status)}
                   style={{ marginTop: 4 }}
+                  numberOfLines={1}
                 >
                   {getStatusText(transaction.status)}
                 </Text>
@@ -775,8 +776,8 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
             </View>
             
             {transaction.metadata?.discountApplied > 0 && (
-              <Text size="xs" color="#16a34a" style={styles.mb4}>
-                💰 {`${t('accountManagement.savings')}: ${ transaction.metadata.discountApplied }`}
+              <Text size="xs" color="#16a34a" style={styles.mb4} numberOfLines={1}>
+                💰 {t('accountManagement.savings', { amount: transaction.metadata.discountApplied })}
               </Text>
             )}
           </Card>
@@ -804,53 +805,79 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
       {unlockRequests.length > 0 && (
         <View style={styles.gap12}>
           <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={styles.mb4}>
-            {`${t('accountManagement.unlockRequests')}: ${ unlockRequests.length }`}
+            {t('accountManagement.unlockRequests', { count: unlockRequests.length })}
           </Text>
           {unlockRequests.map((request) => (
-            <Card key={request.id} style={styles.p16}>
-              <View style={[styles.row, styles.spaceBetween, styles.alignCenter]}>
-                <View style={[styles.row, styles.alignCenter, styles.gap12]}>
-                  <Unlock size={20} color={getStatusColor(request.status)} />
-                  <View>
-                    <Text variant="body" color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
-                      {`${t('accountManagement.unlockRequests')}: ${ 1 }`} - {request.bike?.code || t('common.bike')}
-                    </Text>
-                    <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
-                      {new Date(request.requestedAt || request.createdAt).toLocaleString()}
-                    </Text>
-                    {request.adminNote && (
-                      <Text size="xs" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={styles.mt4}>
-                        {`${t('accountManagement.adminNote')}: ${(request.adminNote)}`}
+            <TouchableOpacity
+              key={request.id}
+              onPress={() => showRequestDetails(request, 'unlock')}
+            >
+              <Card style={styles.p16}>
+                <View style={[styles.row, styles.spaceBetween, styles.alignCenter]}>
+                  <View style={[styles.row, styles.alignCenter, styles.gap12, styles.flex1]}>
+                    <Unlock size={20} color={getStatusColor(request.status)} />
+                    <View style={styles.flex1}>
+                      <Text 
+                        variant="body" 
+                        color={colorScheme === 'light' ? '#111827' : '#f9fafb'}
+                        numberOfLines={1}
+                        ellipsizeMode="tail"
+                      >
+                        {t('accountManagement.unlockRequests', { count: 1 })} - {request.bike?.code || t('common.bike')}
                       </Text>
-                    )}
-                    {request.rejectionReason && (
-                      <Text size="xs" color="#dc2626" style={styles.mt4}>
-                        {`${t('accountManagement.rejectionReason')}: ${ request.rejectionReason }`}
+                      <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} numberOfLines={1}>
+                        {new Date(request.requestedAt || request.createdAt).toLocaleString()}
                       </Text>
+                      {request.adminNote && (
+                        <Text 
+                          size="xs" 
+                          color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} 
+                          style={styles.mt4}
+                          numberOfLines={1}
+                          ellipsizeMode="tail"
+                        >
+                          {t('accountManagement.adminNote', { note: request.adminNote })}
+                        </Text>
+                      )}
+                      {request.rejectionReason && (
+                        <Text 
+                          size="xs" 
+                          color="#dc2626" 
+                          style={styles.mt4}
+                          numberOfLines={1}
+                          ellipsizeMode="tail"
+                        >
+                          {t('accountManagement.rejectionReason', { reason: request.rejectionReason })}
+                        </Text>
+                      )}
+                    </View>
+                  </View>
+                  <View style={styles.alignEnd}>
+                    <Text 
+                      size="xs" 
+                      color={getStatusColor(request.status)}
+                      weight="bold"
+                      style={styles.mb4}
+                    >
+                      {getStatusText(request.status)}
+                    </Text>
+                    {request.status === 'PENDING' && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          handleDeleteRequest(request, 'unlock');
+                        }}
+                        style={[{ borderColor: '#dc2626' }]}
+                      >
+                        <Text color="#dc2626" size="xs">Supprimer</Text>
+                      </Button>
                     )}
                   </View>
                 </View>
-                <View style={styles.alignEnd}>
-                  <Text 
-                    size="xs" 
-                    color={getStatusColor(request.status)}
-                    weight="bold"
-                  >
-                    {getStatusText(request.status)}
-                  </Text>
-                  {request.status === 'PENDING' && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onPress={() => handleDeleteRequest(request, 'unlock')}
-                      style={[styles.mt8, { borderColor: '#dc2626' }]}
-                    >
-                      <Text color="#dc2626" size="xs">Supprimer</Text>
-                    </Button>
-                  )}
-                </View>
-              </View>
-            </Card>
+              </Card>
+            </TouchableOpacity>
           ))}
         </View>
       )}
@@ -859,56 +886,82 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
       {lockRequests.length > 0 && (
         <View style={styles.gap12}>
           <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={styles.mb4}>
-            {`${t('accountManagement.lockRequests')} ${ lockRequests.length }`}
+            {t('accountManagement.lockRequests', { count: lockRequests.length })}
           </Text>
           {lockRequests.map((request) => (
-            <Card key={request.id} style={styles.p16}>
-              <View style={[styles.row, styles.spaceBetween, styles.alignCenter]}>
-                <View style={[styles.row, styles.alignCenter, styles.gap12]}>
-                  <Lock size={20} color={getStatusColor(request.status)} />
-                  <View>
-                    <Text variant="body" color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
-                      {`${t('accountManagement.lockRequests')}: ${ 1 }`} - {request.bike?.code || t('common.bike')}
-                    </Text>
-                    <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
-                      {new Date(request.requestedAt || request.createdAt).toLocaleString()}
-                    </Text>
-                    {request.adminNote && (
-                      <Text size="xs" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={styles.mt4}>
-                        {`${t('accountManagement.adminNote')}: ${ request.adminNote }`}
+            <TouchableOpacity
+              key={request.id}
+              onPress={() => showRequestDetails(request, 'lock')}
+            >
+              <Card style={styles.p16}>
+                <View style={[styles.row, styles.spaceBetween, styles.alignCenter]}>
+                  <View style={[styles.row, styles.alignCenter, styles.gap12, styles.flex1]}>
+                    <Lock size={20} color={getStatusColor(request.status)} />
+                    <View style={styles.flex1}>
+                      <Text 
+                        variant="body" 
+                        color={colorScheme === 'light' ? '#111827' : '#f9fafb'}
+                        numberOfLines={1}
+                        ellipsizeMode="tail"
+                      >
+                        {t('accountManagement.lockRequests', { count: 1 })} - {request.bike?.code || t('common.bike')}
                       </Text>
-                    )}
-                    {request.ride && (
-                      <Text size="xs" color="#16a34a" style={styles.mt4}>
-                        {`${t('accountManagement.rideDetails')}: ${ 
-                          Math.round((request.ride.duration || 0) / 60), 
-                          request.ride.cost || 0 
-                        }`}
+                      <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} numberOfLines={1}>
+                        {new Date(request.requestedAt || request.createdAt).toLocaleString()}
                       </Text>
+                      {request.adminNote && (
+                        <Text 
+                          size="xs" 
+                          color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} 
+                          style={styles.mt4}
+                          numberOfLines={1}
+                          ellipsizeMode="tail"
+                        >
+                          {t('accountManagement.adminNote', { note: request.adminNote })}
+                        </Text>
+                      )}
+                      {request.ride && (
+                        <Text 
+                          size="xs" 
+                          color="#16a34a" 
+                          style={styles.mt4}
+                          numberOfLines={1}
+                          ellipsizeMode="tail"
+                        >
+                          {t('accountManagement.rideDetails', { 
+                            minutes: Math.round((request.ride.duration || 0) / 60), 
+                            cost: request.ride.cost || 0 
+                          })}
+                        </Text>
+                      )}
+                    </View>
+                  </View>
+                  <View style={styles.alignEnd}>
+                    <Text 
+                      size="xs" 
+                      color={getStatusColor(request.status)}
+                      weight="bold"
+                      style={styles.mb4}
+                    >
+                      {getStatusText(request.status)}
+                    </Text>
+                    {request.status === 'PENDING' && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          handleDeleteRequest(request, 'lock');
+                        }}
+                        style={[{ borderColor: '#dc2626' }]}
+                      >
+                        <Text color="#dc2626" size="xs">Supprimer</Text>
+                      </Button>
                     )}
                   </View>
                 </View>
-                <View style={styles.alignEnd}>
-                  <Text 
-                    size="xs" 
-                    color={getStatusColor(request.status)}
-                    weight="bold"
-                  >
-                    {getStatusText(request.status)}
-                  </Text>
-                  {request.status === 'PENDING' && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onPress={() => handleDeleteRequest(request, 'lock')}
-                      style={[styles.mt8, { borderColor: '#dc2626' }]}
-                    >
-                      <Text color="#dc2626" size="xs">Supprimer</Text>
-                    </Button>
-                  )}
-                </View>
-              </View>
-            </Card>
+              </Card>
+            </TouchableOpacity>
           ))}
         </View>
       )}
@@ -999,24 +1052,24 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
                     onPress={() => showReservationDetails(reservation)}
                     style={[styles.row, styles.spaceBetween, styles.alignCenter]}
                   >
-                    <View style={[styles.row, styles.alignCenter, styles.gap12]}>
+                    <View style={[styles.row, styles.alignCenter, styles.gap12, styles.flex1]}>
                       <Calendar size={20} color={statusColor} />
                       <View style={styles.flex1}>
-                        <Text variant="body" color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
+                        <Text variant="body" color={colorScheme === 'light' ? '#111827' : '#f9fafb'} numberOfLines={1}>
                           {reservation.bike?.code} - {reservation.packageType}
                         </Text>
-                        <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
+                        <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} numberOfLines={1}>
                           {startDate.toLocaleDateString('fr-FR')} à {startDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                         </Text>
                         
                         {/* Informations supplémentaires basées sur le statut */}
                         {isUpcoming && (
-                          <Text size="xs" color="#f59e0b" style={styles.mt4}>
+                          <Text size="xs" color="#f59e0b" style={styles.mt4} numberOfLines={1}>
                             Commence dans {Math.ceil((startDate.getTime() - now.getTime()) / (1000 * 60 * 60))}h
                           </Text>
                         )}
                         {isOngoing && (
-                          <Text size="xs" color="#16a34a" style={styles.mt4}>
+                          <Text size="xs" color="#16a34a" style={styles.mt4} numberOfLines={1}>
                             Réservation active - Vélo disponible
                           </Text>
                         )}
@@ -1090,10 +1143,10 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
           <View style={[styles.row, styles.gap12]}>
             <Lightbulb size={16} color="#1e40af" />
             <View style={styles.flex1}>
-              <Text size="sm" color="#1e40af" weight="bold">
+              <Text size="sm" color="#1e40af" weight="bold" numberOfLines={1}>
                 Conseil
               </Text>
-              <Text size="sm" color="#1e40af" style={styles.mt4}>
+              <Text size="sm" color="#1e40af" style={styles.mt4} numberOfLines={2}>
                 Vous pouvez annuler votre réservation jusqu'à 30 minutes avant l'heure prévue.
               </Text>
             </View>
@@ -1114,18 +1167,18 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
           size="sm"
           onPress={() => onNavigate('create-incident')}
         >
-          <Text>{t('accountManagement.newReport')}</Text>
+          <Text color="white">{t('accountManagement.newReport')}</Text>
         </Button>
       </View>
       
       {incidents.map((incident) => (
         <Card key={incident.id} style={styles.p16}>
           <View style={[styles.row, styles.spaceBetween, styles.alignCenter, styles.mb8]}>
-            <View>
-              <Text variant="body" color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
+            <View style={styles.flex1}>
+              <Text variant="body" color={colorScheme === 'light' ? '#111827' : '#f9fafb'} numberOfLines={1}>
                 {getIncidentTypeText(incident.type)}
               </Text>
-              <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
+              <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} numberOfLines={1}>
                 {incident.bike?.code || t('common.bike')} - {new Date(incident.createdAt).toLocaleDateString()}
               </Text>
             </View>
@@ -1138,22 +1191,22 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
             </Text>
           </View>
           
-          <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={styles.mb8}>
+          <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={styles.mb8} numberOfLines={3}>
             {incident.description}
           </Text>
           
           {incident.refundAmount > 0 && (
             <View style={[styles.row, styles.alignCenter, styles.gap4, styles.mb8]}>
               <Text size="sm" color="#16a34a" weight="bold">
-                {`${t('accountManagement.refundAmount')} ${(incident.refundAmount)}`}
+                {t('accountManagement.refundAmount', { amount: incident.refundAmount })}
               </Text>
             </View>
           )}
           
           {incident.adminNote && (
             <View style={[styles.p12, styles.rounded8, { backgroundColor: colorScheme === 'light' ? '#f9fafb' : '#374151' }]}>
-              <Text size="xs" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
-                {`${t('accountManagement.adminNote')} ${ incident.adminNote }`}
+              <Text size="xs" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} numberOfLines={2}>
+                {t('accountManagement.adminNote', { note: incident.adminNote })}
               </Text>
             </View>
           )}
@@ -1191,7 +1244,7 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
             variant="primary"
             onPress={() => onNavigate('create-incident')}
           >
-            <Text>{t('accountManagement.createFirstReport')}</Text>
+            <Text color="white">{t('accountManagement.createFirstReport')}</Text>
           </Button>
         </Card>
       )}
@@ -1232,7 +1285,7 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
         >
           <ArrowLeft size={20} color={colorScheme === 'light' ? '#111827' : '#f9fafb'} />
         </TouchableOpacity>
-        <Text variant="subtitle" color="#16a34a">
+        <Text variant="subtitle" color="#16a34a" numberOfLines={1}>
           {t('accountManagement.title')}
         </Text>
       </View>
@@ -1251,7 +1304,7 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
             maxHeight: 70,
           }
         ]}
-        contentContainerStyle={styles.gap16}
+        contentContainerStyle={styles.gap8}
       >
         {tabs.map((tab) => {
           const Icon = tab.icon;
@@ -1270,7 +1323,8 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
                 {
                   backgroundColor: activeTab === tab.key ? '#16a34a20' : 'transparent',
                   borderWidth: activeTab === tab.key ? 1 : 0,
-                  borderColor: '#16a34a'
+                  borderColor: '#16a34a',
+                  marginRight: 10,
                 }
               ]}
             >
@@ -1282,6 +1336,7 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
                 size="xs" 
                 color={activeTab === tab.key ? '#16a34a' : (colorScheme === 'light' ? '#6b7280' : '#9ca3af')}
                 style={styles.mt4}
+                numberOfLines={1}
               >
                 {tab.label}
               </Text>

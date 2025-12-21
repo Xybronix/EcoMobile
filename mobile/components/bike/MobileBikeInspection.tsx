@@ -13,7 +13,7 @@ import { bikeRequestService } from '@/services/bikeRequestService';
 import * as ImagePicker from 'expo-image-picker';
 import { AlertTriangle, ArrowLeft, Camera, Check, X } from 'lucide-react-native';
 import React, { useState, useEffect } from 'react';
-import { ScrollView, TouchableOpacity, View, Alert, Image } from 'react-native';
+import { ScrollView, TouchableOpacity, View, Alert, Image, Platform } from 'react-native';
 import { useMobileI18n } from '@/lib/mobile-i18n';
 
 interface MobileBikeInspectionProps {
@@ -127,14 +127,16 @@ export function MobileBikeInspection({ bikeId, bikeName, inspectionType, bikeEqu
   };
 
   const showPhotoOptions = () => {
-    const isWeb = typeof window !== 'undefined' && 
-    (window.navigator.userAgent.includes('Windows') || 
-     window.navigator.userAgent.includes('Mac') || 
-     window.navigator.userAgent.includes('Linux') ||
-     window.navigator.platform.includes('Win') ||
-     window.navigator.platform.includes('Mac') ||
-     window.navigator.platform.includes('Linux'));
-    
+    const isWeb = typeof window !== 'undefined' && window.navigator && 
+      ((window.navigator.userAgent && 
+        (window.navigator.userAgent.includes('Windows') || 
+        window.navigator.userAgent.includes('Mac') || 
+        window.navigator.userAgent.includes('Linux'))) ||
+      (window.navigator.platform && 
+        (window.navigator.platform.includes('Win') ||
+        window.navigator.platform.includes('Mac') ||
+        window.navigator.platform.includes('Linux'))));
+      
     if (isWeb) {
       handleAddPhoto('library');
     } else {
@@ -160,7 +162,7 @@ export function MobileBikeInspection({ bikeId, bikeName, inspectionType, bikeEqu
     try {
       haptics.light();
 
-      const isWeb = typeof window !== 'undefined';
+      const isWeb = Platform.OS === 'web';
 
       if (isWeb && source === 'library') {
         const input = document.createElement('input');

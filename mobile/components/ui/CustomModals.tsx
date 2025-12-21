@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, TouchableOpacity, Modal, Dimensions } from 'react-native';
+import { View, TouchableOpacity, Modal, Dimensions, ScrollView } from 'react-native';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Text } from '@/components/ui/Text';
@@ -162,47 +162,68 @@ export function InfoModal({ visible, title, content, onClose }: InfoModalProps) 
     >
       <View style={[
         styles.flex1,
+        styles.justifyEnd,
         {
           backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          justifyContent: 'flex-end'
         }
       ]}>
+        {/* Overlay cliquable pour fermer */}
+        <TouchableOpacity
+          style={styles.flex1}
+          activeOpacity={1}
+          onPress={onClose}
+        />
+        
+        {/* Contenu du modal */}
         <Card style={[
           {
             width: width,
-            maxHeight: height * 0.8,
+            maxHeight: height * 0.85,
             backgroundColor: colorScheme === 'light' ? 'white' : '#1f2937',
-            borderTopLeftRadius: 20,
-            borderTopRightRadius: 20,
+            borderTopLeftRadius: 16,
+            borderTopRightRadius: 16,
             borderBottomLeftRadius: 0,
-            borderBottomRightRadius: 0
+            borderBottomRightRadius: 0,
+            marginTop: 'auto',
           },
           styles.p24
         ]}>
           {/* Header */}
           <View style={[styles.row, styles.spaceBetween, styles.alignCenter, styles.mb16]}>
-            <Text variant="subtitle" color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
-              {title}
-            </Text>
-            <TouchableOpacity onPress={onClose} style={styles.p8}>
-              <X size={24} color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} />
+            <View style={[styles.flex1, styles.mr12]}>
+              <Text 
+                variant="subtitle" 
+                color={colorScheme === 'light' ? '#111827' : '#f9fafb'}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+                style={{ flexShrink: 1 }}
+              >
+                {title}
+              </Text>
+            </View>
+            <TouchableOpacity 
+              onPress={onClose} 
+              style={[
+                styles.p8, 
+                styles.rounded8,
+                {
+                  backgroundColor: colorScheme === 'light' ? '#f3f4f6' : '#374151',
+                  flexShrink: 0
+                }
+              ]}
+            >
+              <X size={20} color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} />
             </TouchableOpacity>
           </View>
 
-          {/* Content */}
-          <View style={styles.flex1}>
-            {content}
-          </View>
-
-          {/* Close Button */}
-          <Button
-            onPress={onClose}
-            variant="primary"
-            style={styles.mt16}
-            fullWidth
+          {/* Contenu scrollable */}
+          <ScrollView 
+            style={{ maxHeight: height * 0.7 }}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingBottom: 16 }}
           >
-            <Text color="white">Fermer</Text>
-          </Button>
+            {content}
+          </ScrollView>
         </Card>
       </View>
     </Modal>

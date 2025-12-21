@@ -451,22 +451,17 @@ export const OSMMap = forwardRef<OSMMapRef, OSMMapProps>(({
     };
   }, [isWeb, center.lat, center.lng, radius, bikesWithCoords, onBikePress, onMapReady]);
 
-  // HTML pour la version mobile (WebView)
+  // HTML pour la version mobile (WebView) - VERSION CORRIGÉE POUR NAVIGATION TACTILE
   const mapHTML = `
     <!DOCTYPE html>
     <html>
     <head>
         <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=3.0, user-scalable=yes">
         <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
         <style>
             * {
-                touch-action: manipulation;
-                -webkit-touch-callout: none;
-                -webkit-user-select: none;
-                -moz-user-select: none;
-                -ms-user-select: none;
-                user-select: none;
+                box-sizing: border-box;
             }
             
             body { 
@@ -477,13 +472,23 @@ export const OSMMap = forwardRef<OSMMapRef, OSMMapProps>(({
                 position: fixed;
                 width: 100%;
                 height: 100%;
+                touch-action: auto;
             }
             
             #map { 
                 height: 100vh; 
                 width: 100vw; 
-                touch-action: manipulation;
+                touch-action: auto;
                 position: relative;
+                cursor: grab;
+            }
+            
+            #map:active {
+                cursor: grabbing;
+            }
+            
+            .leaflet-container {
+                touch-action: auto !important;
             }
             
             .leaflet-control-container {
@@ -572,46 +577,61 @@ export const OSMMap = forwardRef<OSMMapRef, OSMMapProps>(({
             function initMap() {
                 try {
                     map = L.map('map', {
+                        // Configuration optimisée pour navigation tactile
                         zoomControl: false,
-                        touchZoom: true,
-                        scrollWheelZoom: true,
-                        doubleClickZoom: true,
-                        boxZoom: false,
-                        keyboard: true,
-                        dragging: true,
-                        zoomSnap: 0.25,
-                        tap: true,
-                        tapTolerance: 15,
-                        worldCopyJump: false,
-                        closePopupOnClick: false,
-                        bounceAtZoomLimits: false,
-                        wheelPxPerZoomLevel: 60,
+                        attributionControl: true,
+                        
+                        // Navigation tactile
+                        touchZoom: true,           // Pincer pour zoomer
+                        scrollWheelZoom: true,     // Molette souris
+                        doubleClickZoom: true,     // Double-tap pour zoomer
+                        dragging: true,            // Glisser pour déplacer
+                        
+                        // Configuration tactile avancée
+                        tap: true,                 // Support des taps
+                        tapTolerance: 15,          // Tolérance des taps
+                        touchExtend: true,         // Support multi-touch
+                        
+                        // Animation fluide
                         zoomAnimation: true,
-                        zoomAnimationThreshold: 4,
                         fadeAnimation: true,
                         markerZoomAnimation: true,
-                        transform3DLimit: 8388608,
-                        maxBoundsViscosity: 0.0,
-                        trackResize: true,
+                        
+                        // Inertie pour navigation fluide
                         inertia: true,
                         inertiaDeceleration: 3000,
                         inertiaMaxSpeed: Infinity,
                         easeLinearity: 0.2,
-                        zoomDelta: 0.5,
+                        
+                        // Configuration zoom
+                        zoomSnap: 0.25,
+                        zoomDelta: 0.75,
                         wheelDebounceTime: 40,
+                        wheelPxPerZoomLevel: 60,
+                        
+                        // Limites
+                        maxZoom: 18,
+                        minZoom: 10,
+                        bounceAtZoomLimits: false,
+                        
+                        // Autres
+                        keyboard: true,
+                        boxZoom: false,
+                        closePopupOnClick: false,
+                        trackResize: true,
                         preferCanvas: false
                     }).setView([${center.lat}, ${center.lng}], 14);
                     
-                    // Forcer le redimensionnement après initialisation
+                    // Forcer la mise à jour après initialisation
                     setTimeout(() => {
-                        map.invalidateSize();
+                        map.invalidateSize(true);
                     }, 100);
                     
                     updateMapStyle();
                     updateUserLocation();
                     updateBikes();
                     
-                    // Envoyer confirmation de chargement
+                    // Confirmation de chargement
                     setTimeout(() => {
                         if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
                             window.ReactNativeWebView.postMessage(JSON.stringify({
@@ -652,8 +672,10 @@ export const OSMMap = forwardRef<OSMMapRef, OSMMapProps>(({
                     iconAnchor: [13, 13]
                 });
                 
-                userMarker = L.marker([${center.lat}, ${center.lng}], { icon: userIcon })
-                    .addTo(map);
+                userMarker = L.marker([${center.lat}, ${center.lng}], { 
+                    icon: userIcon,
+                    interactive: false
+                }).addTo(map);
                 
                 radiusCircle = L.circle([${center.lat}, ${center.lng}], {
                     radius: ${radius * 1000},
@@ -661,7 +683,8 @@ export const OSMMap = forwardRef<OSMMapRef, OSMMapProps>(({
                     fillOpacity: 0.1,
                     color: '#3b82f6',
                     weight: 2,
-                    opacity: 0.6
+                    opacity: 0.6,
+                    interactive: false
                 }).addTo(map);
             }
             
@@ -723,13 +746,15 @@ export const OSMMap = forwardRef<OSMMapRef, OSMMapProps>(({
                         </div>
                     \`;
                     
-                    const marker = L.marker([bike.latitude, bike.longitude], { icon: bikeIcon })
-                        .bindPopup(popupContent, {
-                            className: 'bike-popup-container',
-                            maxWidth: 280,
-                            offset: [0, -10]
-                        })
-                        .addTo(map);
+                    const marker = L.marker([bike.latitude, bike.longitude], { 
+                        icon: bikeIcon 
+                    })
+                    .bindPopup(popupContent, {
+                        className: 'bike-popup-container',
+                        maxWidth: 280,
+                        offset: [0, -10]
+                    })
+                    .addTo(map);
                     
                     marker.on('click', (e) => {
                         e.originalEvent.preventDefault();
@@ -749,19 +774,22 @@ export const OSMMap = forwardRef<OSMMapRef, OSMMapProps>(({
             
             function centerOnUser() {
                 if (map) {
-                    map.setView([${center.lat}, ${center.lng}], map.getZoom(), { animate: true });
+                    map.setView([${center.lat}, ${center.lng}], map.getZoom(), { 
+                        animate: true,
+                        duration: 0.5 
+                    });
                 }
             }
             
             function zoomIn() {
                 if (map) {
-                    map.zoomIn(0.5, { animate: true });
+                    map.zoomIn(0.75, { animate: true });
                 }
             }
             
             function zoomOut() {
                 if (map) {
-                    map.zoomOut(0.5, { animate: true });
+                    map.zoomOut(0.75, { animate: true });
                 }
             }
             
@@ -773,7 +801,7 @@ export const OSMMap = forwardRef<OSMMapRef, OSMMapProps>(({
                 updateMapStyle();
             }
             
-            // Gestionnaire de messages amélioré
+            // Gestionnaire de messages
             function handleMessage(event) {
                 try {
                     const data = JSON.parse(event.data);
@@ -797,15 +825,15 @@ export const OSMMap = forwardRef<OSMMapRef, OSMMapProps>(({
                 }
             }
             
-            // Attacher les événements de message
+            // Attacher les événements
             window.addEventListener('message', handleMessage);
             document.addEventListener('message', handleMessage);
             
-            // Gestion des événements de redimensionnement
+            // Gestion du redimensionnement
             window.addEventListener('resize', function() {
                 if (map) {
                     setTimeout(() => {
-                        map.invalidateSize();
+                        map.invalidateSize(true);
                     }, 100);
                 }
             });
@@ -830,14 +858,14 @@ export const OSMMap = forwardRef<OSMMapRef, OSMMapProps>(({
           style={{ 
             width: '100%', 
             height: '100%',
-            touchAction: 'manipulation'
+            touchAction: 'auto'
           }}
         />
       </View>
     );
   }
 
-  // Version mobile avec WebView
+  // Version mobile avec WebView - CONFIGURATION CORRIGÉE
   const ReactNativeWebView = require('react-native-webview').WebView;
 
   return (
@@ -850,10 +878,10 @@ export const OSMMap = forwardRef<OSMMapRef, OSMMapProps>(({
         domStorageEnabled={true}
         startInLoadingState={false}
         scalesPageToFit={false}
-        scrollEnabled={false}
+        scrollEnabled={true}
         showsHorizontalScrollIndicator={false}
         showsVerticalScrollIndicator={false}
-        bounces={false}
+        bounces={true}
         allowsInlineMediaPlayback={true}
         mediaPlaybackRequiresUserAction={false}
         originWhitelist={['*']}
@@ -885,7 +913,7 @@ export const OSMMap = forwardRef<OSMMapRef, OSMMapProps>(({
           console.error('WebView error: ', nativeEvent);
         }}
         onLoadEnd={() => {
-          console.log('WebView loaded successfully');
+          // console.log('WebView loaded successfully');
         }}
       />
     </View>

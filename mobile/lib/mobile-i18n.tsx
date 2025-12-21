@@ -29,6 +29,7 @@ const translations: Translations = {
   'auth.passwordMinLength': { fr: 'Au moins 8 caractères', en: 'At least 8 characters' },
   'auth.passwordHasLowercase': { fr: 'Au moins 1 lettre minuscule', en: 'At least 1 lowercase letter' },
   'auth.passwordHasUppercase': { fr: 'Au moins 1 lettre majuscule', en: 'At least 1 uppercase letter' },
+  'auth.passwordHasNumber': { fr: 'Au moins 1 chiffre', en: 'At least 1 number' },
   'auth.backToLogin': { fr: 'Retour à la connexion', en: 'Back to login' },
   'auth.emailSent': { fr: 'Email envoyé !', en: 'Email sent!' },
   'auth.checkInbox': { fr: 'Vérifiez votre boîte de réception et cliquez sur le lien pour réinitialiser votre mot de passe.', en: 'Check your inbox and click the link to reset your password.' },
@@ -52,7 +53,7 @@ const translations: Translations = {
   'validation.invalidPhone': { fr: 'Numéro de téléphone invalide', en: 'Invalid phone number' },
   'validation.passwordsNoMatch': { fr: 'Les mots de passe ne correspondent pas', en: 'Passwords do not match' },
   'validation.passwordMinLength': { fr: 'Le mot de passe doit contenir au moins 8 caractères', en: 'Password must be at least 8 characters' },
-  'validation.passwordRequirements': { fr: 'Le mot de passe doit contenir au moins 8 caractères, une majuscule et une minuscule', en: 'Password must contain at least 8 characters, one uppercase and one lowercase letter' },
+  'validation.passwordRequirements': { fr: 'Le mot de passe doit contenir au moins 8 caractères, une majuscule, une minuscule et un chiffre', en: 'Password must contain at least 8 characters, one uppercase, one lowercase letter and one number' },
   'validation.enterEmail': { fr: 'Veuillez saisir votre adresse email', en: 'Please enter your email address' },
 
   // Error messages
@@ -413,6 +414,7 @@ const translations: Translations = {
   'security.passwordMinLength': { fr: 'Le mot de passe doit contenir au moins 8 caractères', en: 'Password must be at least 8 characters' },
   'security.passwordChangeSuccess': { fr: 'Mot de passe modifié avec succès', en: 'Password changed successfully' },
   'security.passwordChangeError': { fr: 'Erreur lors du changement de mot de passe', en: 'Error changing password' },
+  'security.passwordRequirements': { fr: 'Le mot de passe doit contenir au moins 8 caractères, une majuscule, une minuscule et un chiffre', en: 'Password must contain at least 8 characters, one uppercase, one lowercase letter and one number' },
   'security.incorrectPassword': { fr: 'Mot de passe actuel incorrect', en: 'Current password is incorrect' },
   'security.samePassword': { fr: 'Le nouveau mot de passe doit être différent de l\'ancien', en: 'New password must be different from current password' },
   'security.authenticationMethods': { fr: 'Méthodes d\'authentification', en: 'Authentication methods' },

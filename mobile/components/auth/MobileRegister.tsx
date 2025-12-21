@@ -41,6 +41,7 @@ export function MobileRegister({ onNavigate }: MobileRegisterProps) {
     minLength: false,
     hasLowercase: false,
     hasUppercase: false,
+    hasNumber: false,
   });
 
   // Vérifier les exigences du mot de passe en temps réel
@@ -49,6 +50,7 @@ export function MobileRegister({ onNavigate }: MobileRegisterProps) {
       minLength: formData.password.length >= 8,
       hasLowercase: /[a-z]/.test(formData.password),
       hasUppercase: /[A-Z]/.test(formData.password),
+      hasNumber: /[0-9]/.test(formData.password),
     };
     setPasswordRequirements(requirements);
   }, [formData.password]);
@@ -62,8 +64,9 @@ export function MobileRegister({ onNavigate }: MobileRegisterProps) {
     const minLength = password.length >= 8;
     const hasLowercase = /[a-z]/.test(password);
     const hasUppercase = /[A-Z]/.test(password);
+    const hasNumber = /[0-9]/.test(password);
     
-    return minLength && hasLowercase && hasUppercase;
+    return minLength && hasLowercase && hasUppercase && hasNumber;
   };
 
   const handleEmailChange = (text: string) => {
@@ -295,6 +298,10 @@ export function MobileRegister({ onNavigate }: MobileRegisterProps) {
               <RequirementItem
                 met={passwordRequirements.hasUppercase}
                 text={t('auth.passwordHasUppercase')}
+              />
+              <RequirementItem
+                met={passwordRequirements.hasNumber}
+                text={t('auth.passwordHasNumber')}
               />
             </View>
           </View>
