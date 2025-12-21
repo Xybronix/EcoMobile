@@ -29,16 +29,8 @@ export interface UnlockRequest {
     startDate: string;
     endDate: string;
     status: string;
-    packageType?: string;
   };
   metadata?: {
-    inspection?: {
-      condition?: string;
-      issues?: string[];
-      notes?: string;
-      photos?: string[];
-      paymentMethod?: string;
-    };
     inspectionData?: {
       issues: string[];
       notes: string;
@@ -80,13 +72,6 @@ export interface LockRequest {
     cost?: number;
   };
   metadata?: {
-    inspection?: {
-      condition?: string;
-      issues?: string[];
-      notes?: string;
-      photos?: string[];
-      paymentMethod?: string;
-    };
     inspectionData?: {
       issues: string[];
       notes: string;
@@ -153,30 +138,25 @@ export class BikeActionService {
   }
 
   /**
-   * Récupérer les demandes en attente selon le type
-   */
-  async getPendingRequests(type: 'unlock' | 'lock', params?: {
-    page?: number;
-    limit?: number;
-  }): Promise<PaginatedRequests<UnlockRequest | LockRequest>> {
-    const response = await apiClient.get<PaginatedRequests<any>>(`/bike-requests/${type}/pending`, params);
-    
-    if (!response.success || !response.data) {
-      throw new Error(response.error || `Erreur lors de la récupération des demandes de ${type === 'unlock' ? 'déverrouillage' : 'verrouillage'}`);
-    }
-
-    return response.data;
-  }
-
-  /**
    * Récupérer les demandes de déverrouillage en attente
    */
   async getUnlockRequests(params?: {
     page?: number;
     limit?: number;
   }): Promise<UnlockRequest[]> {
-    const response = await this.getPendingRequests('unlock', params);
-    return response.requests as UnlockRequest[];
+    const response = await apiClient.get<PaginatedRequests<UnlockRequest>>('/bike-requests/unlock/pending', params);
+    
+    if (!response.success || !response.data) {
+      throw new Error(response.error || 'Erreur lors de la récupération des demandes de déverrouillage');
+    }
+
+    if (Array.isArray(response.data)) {
+      return response.data;
+    } else if (response.data.requests) {
+      return response.data.requests;
+    } else {
+      return [];
+    }
   }
 
   /**
@@ -186,8 +166,19 @@ export class BikeActionService {
     page?: number;
     limit?: number;
   }): Promise<LockRequest[]> {
-    const response = await this.getPendingRequests('lock', params);
-    return response.requests as LockRequest[];
+    const response = await apiClient.get<PaginatedRequests<LockRequest>>('/bike-requests/lock/pending', params);
+    
+    if (!response.success || !response.data) {
+      throw new Error(response.error || 'Erreur lors de la récupération des demandes de verrouillage');
+    }
+
+    if (Array.isArray(response.data)) {
+      return response.data;
+    } else if (response.data.requests) {
+      return response.data.requests;
+    } else {
+      return [];
+    }
   }
 
   /**

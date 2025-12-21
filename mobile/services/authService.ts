@@ -213,26 +213,7 @@ class AuthService {
   }
 
   private getErrorMessage(error: ApiError): string {
-    switch (error.status) {
-      case 400:
-        return 'invalid_credentials';
-      case 401:
-        return 'unauthorized';
-      case 404:
-        return 'user_not_found';
-      case 409:
-        return 'user_already_exists';
-      case 422:
-        return 'validation_error';
-      case 429:
-        return 'too_many_requests';
-      case 500:
-        return 'server_error';
-      case 503:
-        return 'service_unavailable';
-      default:
-        return 'unknown_error';
-    }
+    return error.message || 'unknown_error';
   }
 }
 

@@ -5,20 +5,27 @@ import { Badge } from '../../ui/badge';
 import { Button } from '../../ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../../ui/dialog';
 import { Textarea } from '../../ui/textarea';
-import { bikeActionService } from '../../../services/api/bikeAction.service';
+import { bikeActionService, type UnlockRequest, type LockRequest } from '../../../services/api/bikeAction.service';
 import { toast } from 'sonner';
 
+type BikeRequest = UnlockRequest | LockRequest;
+
 export function BikeActionManagement() {
-  const [unlockRequests, setUnlockRequests] = useState<any[]>([]);
-  const [lockRequests, setLockRequests] = useState<any[]>([]);
+  const [requests, setRequests] = useState<{
+    unlock: BikeRequest[];
+    lock: BikeRequest[];
+  }>({
+    unlock: [],
+    lock: []
+  });
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'unlock' | 'lock'>('unlock');
-  const [selectedRequest, setSelectedRequest] = useState<any>(null);
+  const [selectedRequest, setSelectedRequest] = useState<BikeRequest | null>(null);
   const [validationAction, setValidationAction] = useState<'approve' | 'reject' | null>(null);
   const [adminNote, setAdminNote] = useState('');
-  const [inspectionModal, setInspectionModal] = useState<{open: boolean; request: any | null; type: 'unlock' | 'lock' | null;}>({open: false, request: null, type: null});
+  const [inspectionModal, setInspectionModal] = useState<{open: boolean; request: BikeRequest | null; type: 'unlock' | 'lock' | null;}>({open: false, request: null, type: null});
 
-  const openInspectionModal = (request: any, type: 'unlock' | 'lock') => {
+  const openInspectionModal = (request: BikeRequest, type: 'unlock' | 'lock') => {
     setInspectionModal({
       open: true,
       request,
@@ -35,10 +42,10 @@ export function BikeActionManagement() {
       setIsLoading(true);
       if (activeTab === 'unlock') {
         const data = await bikeActionService.getUnlockRequests();
-        setUnlockRequests(data);
+        setRequests(prev => ({ ...prev, unlock: data }));
       } else {
         const data = await bikeActionService.getLockRequests();
-        setLockRequests(data);
+        setRequests(prev => ({ ...prev, lock: data }));
       }
     } catch (error) {
       toast.error('Erreur lors du chargement des demandes');
@@ -84,8 +91,32 @@ export function BikeActionManagement() {
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
-  const currentRequests = activeTab === 'unlock' ? unlockRequests : lockRequests;
+  const currentRequests = activeTab === 'unlock' ? requests.unlock : requests.lock;
   const pendingRequests = currentRequests.filter(r => r.status === 'PENDING');
+
+  // Fonction pour obtenir les statistiques
+  const getStats = () => {
+    const pendingUnlock = requests.unlock.filter(r => r.status === 'PENDING').length;
+    const pendingLock = requests.lock.filter(r => r.status === 'PENDING').length;
+    const today = new Date().toDateString();
+    
+    const todayUnlock = requests.unlock.filter(r => 
+      new Date(r.requestedAt).toDateString() === today
+    ).length;
+    
+    const todayLock = requests.lock.filter(r => 
+      new Date(r.requestedAt).toDateString() === today
+    ).length;
+
+    return {
+      pendingUnlock,
+      pendingLock,
+      todayUnlock,
+      todayLock
+    };
+  };
+
+  const stats = getStats();
 
   return (
     <div className="p-4 md:p-8 space-y-6">
@@ -100,7 +131,7 @@ export function BikeActionManagement() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Déverrouillages en attente</p>
-              <p className="text-gray-900">{unlockRequests.filter(r => r.status === 'PENDING').length}</p>
+              <p className="text-gray-900">{stats.pendingUnlock}</p>
             </div>
             <div className="bg-orange-100 text-orange-600 p-3 rounded-lg">
               <Unlock className="w-6 h-6" />
@@ -111,7 +142,7 @@ export function BikeActionManagement() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Verrouillages en attente</p>
-              <p className="text-gray-900">{lockRequests.filter(r => r.status === 'PENDING').length}</p>
+              <p className="text-gray-900">{stats.pendingLock}</p>
             </div>
             <div className="bg-blue-100 text-blue-600 p-3 rounded-lg">
               <Lock className="w-6 h-6" />
@@ -123,10 +154,7 @@ export function BikeActionManagement() {
             <div>
               <p className="text-sm text-gray-600">Actions aujourd'hui</p>
               <p className="text-gray-900">
-                {currentRequests.filter(r => {
-                  const today = new Date().toDateString();
-                  return new Date(r.requestedAt).toDateString() === today;
-                }).length}
+                {activeTab === 'unlock' ? stats.todayUnlock : stats.todayLock}
               </p>
             </div>
             <div className="bg-purple-100 text-purple-600 p-3 rounded-lg">
@@ -147,7 +175,7 @@ export function BikeActionManagement() {
           }`}
         >
           <Unlock className="w-4 h-4" />
-          Déverrouillages ({unlockRequests.filter(r => r.status === 'PENDING').length})
+          Déverrouillages ({stats.pendingUnlock})
         </button>
         <button
           onClick={() => setActiveTab('lock')}
@@ -158,13 +186,22 @@ export function BikeActionManagement() {
           }`}
         >
           <Lock className="w-4 h-4" />
-          Verrouillages ({lockRequests.filter(r => r.status === 'PENDING').length})
+          Verrouillages ({stats.pendingLock})
         </button>
       </div>
 
       {/* Requests List */}
       <div className="space-y-4">
-        {pendingRequests.length === 0 ? (
+        {isLoading ? (
+          <Card className="p-12">
+            <div className="text-center text-gray-500">
+              <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <Clock className="w-6 h-6 animate-spin" />
+              </div>
+              <p>Chargement des demandes...</p>
+            </div>
+          </Card>
+        ) : pendingRequests.length === 0 ? (
           <Card className="p-12">
             <div className="text-center text-gray-500">
               <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
@@ -197,7 +234,7 @@ export function BikeActionManagement() {
                     </div>
                     
                     {/* Données d'inspection */}
-                    {request.metadata?.inspectionData && (
+                    {'metadata' in request && request.metadata?.inspectionData && (
                       <div className="mt-3 p-3 bg-gray-50 rounded-lg">
                         <h5 className="text-xs font-medium text-gray-700 mb-2">Inspection du vélo:</h5>
                         
@@ -237,7 +274,7 @@ export function BikeActionManagement() {
                       </div>
                     )}
                     
-                    {request.reservation && (
+                    {'reservation' in request && request.reservation && (
                       <Badge variant="outline" className="mt-2">
                         Réservation: {new Date(request.reservation.startDate).toLocaleDateString()}
                       </Badge>
@@ -384,7 +421,7 @@ export function BikeActionManagement() {
               </div>
 
               {/* Rapport d'inspection (si disponible) */}
-              {inspectionModal.request.metadata?.inspection && (
+              {'metadata' in inspectionModal.request && inspectionModal.request.metadata?.inspection && (
                 <div className="border rounded-lg p-4">
                   <h4 className="font-medium mb-2">📋 Rapport d'inspection</h4>
                   <div className="space-y-3">
@@ -393,7 +430,7 @@ export function BikeActionManagement() {
                       <p className="text-sm">{inspectionModal.request.metadata.inspection.condition}</p>
                     </div>
                     
-                    {inspectionModal.request.metadata.inspection.issues?.length > 0 && (
+                    {inspectionModal.request.metadata.inspection.issues && inspectionModal.request.metadata.inspection.issues.length > 0 && (
                       <div>
                         <p className="text-sm font-medium text-gray-500">Problèmes identifiés</p>
                         <ul className="list-disc pl-5 text-sm">
@@ -418,7 +455,7 @@ export function BikeActionManagement() {
                       </Badge>
                     </div>
                     
-                    {inspectionModal.request.metadata.inspection.photos?.length > 0 && (
+                    {inspectionModal.request.metadata.inspection.photos && inspectionModal.request.metadata.inspection.photos.length > 0 && (
                       <div>
                         <p className="text-sm font-medium text-gray-500">Photos</p>
                         <p className="text-sm">{inspectionModal.request.metadata.inspection.photos.length} photo(s)</p>
@@ -428,8 +465,8 @@ export function BikeActionManagement() {
                 </div>
               )}
 
-              {/* Informations de réservation (si disponible) */}
-              {inspectionModal.request.reservation && (
+              {/* Informations de réservation (pour déverrouillage) */}
+              {inspectionModal.type === 'unlock' && 'reservation' in inspectionModal.request && inspectionModal.request.reservation && (
                 <div className="border rounded-lg p-4">
                   <h4 className="font-medium mb-2">📅 Réservation associée</h4>
                   <div className="space-y-2">
@@ -446,7 +483,7 @@ export function BikeActionManagement() {
               )}
 
               {/* Informations de trajet (pour verrouillage) */}
-              {inspectionModal.type === 'lock' && inspectionModal.request.ride && (
+              {inspectionModal.type === 'lock' && 'ride' in inspectionModal.request && inspectionModal.request.ride && (
                 <div className="border rounded-lg p-4">
                   <h4 className="font-medium mb-2">🚴 Trajet associé</h4>
                   <div className="space-y-2">
