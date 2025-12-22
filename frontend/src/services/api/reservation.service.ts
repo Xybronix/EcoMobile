@@ -57,19 +57,14 @@ export interface ReservationFilters {
   search?: string;
 }
 
-// Fonction utilitaire pour obtenir l'URL de base de l'API
 const getApiBaseUrl = (): string => {
-  // En développement avec Vite
-  if (typeof import.meta !== 'undefined' && import.meta.env) {
-    return import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
+  if (typeof import.meta !== 'undefined' && (import.meta as any).env) {
+    return (import.meta as any).env.VITE_API_URL || 'http://localhost:5000/api/v1';
   }
-  
-  // En production (build final)
   if (process.env.NODE_ENV === 'production') {
     return 'https://ecomobile-8bx0.onrender.com/api/v1';
   }
   
-  // Fallback
   return 'http://localhost:5000/api/v1';
 };
 

@@ -13,7 +13,7 @@ import { bikeService } from '@/services/bikeService';
 import type { Bike, Area } from '@/services/bikeService';
 import { getGlobalStyles } from '@/styles/globalStyles';
 import { haptics } from '@/utils/haptics';
-import { OSMMap } from '@/components/bike/OSMMap';
+import { OSMMap } from '@/components/maps/OSMMap';
 import { Battery, Building2, Filter, Home, MapPin, Navigation, Search, X, Zap, RotateCcw, MapPinIcon, CheckCircle, ZoomIn, ZoomOut, RotateCw } from 'lucide-react-native';
 import React, { useEffect, useState, useRef } from 'react';
 import { Keyboard, RefreshControl, ScrollView, TouchableOpacity, TouchableWithoutFeedback, View, useWindowDimensions } from 'react-native';

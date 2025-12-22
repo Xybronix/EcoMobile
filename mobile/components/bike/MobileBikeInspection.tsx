@@ -186,9 +186,13 @@ export function MobileBikeInspection({ bikeId, bikeName, inspectionType, bikeEqu
               return;
             }
             
-            const photoUrl = URL.createObjectURL(file);
-            const newPhotos = [...photos, photoUrl];
-            setPhotos(newPhotos);
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              const base64 = e.target?.result as string;
+              const newPhotos = [...photos, base64];
+              setPhotos(newPhotos);
+            };
+            reader.readAsDataURL(file);
           }
         };
         input.click();
@@ -214,6 +218,7 @@ export function MobileBikeInspection({ bikeId, bikeName, inspectionType, bikeEqu
         allowsEditing: true,
         aspect: [4, 3] as [number, number],
         quality: 0.8,
+        base64: true,
       };
 
       let result;
@@ -234,8 +239,14 @@ export function MobileBikeInspection({ bikeId, bikeName, inspectionType, bikeEqu
           }
         }
         
-        const photoUri = result.assets[0].uri;
-        const newPhotos = [...photos, photoUri];
+        let photoData;
+        if (asset.base64) {
+          photoData = `data:image/jpeg;base64,${asset.base64}`;
+        } else {
+          photoData = asset.uri;
+        }
+        
+        const newPhotos = [...photos, photoData];
         setPhotos(newPhotos);
       }
       

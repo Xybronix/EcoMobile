@@ -1,9 +1,8 @@
-/* eslint-disable react/no-unescaped-entities */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable react-hooks/exhaustive-deps */
-import { AlertTriangle, Clock, DollarSign, MapPin, Pause, Play, Lock, Navigation, Battery, Gauge } from 'lucide-react-native';
-import React, { useEffect, useState, useRef } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator, Dimensions, Platform } from 'react-native';
+import { AlertTriangle, Clock, DollarSign, MapPin, Pause, Play, StopCircle, Lock } from 'lucide-react-native';
+import React, { useEffect, useState } from 'react';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator } from 'react-native';
 import { toast } from 'sonner';
 import { useMobileAuth } from '@/lib/mobile-auth';
 import { useMobileI18n } from '@/lib/mobile-i18n';
@@ -11,7 +10,6 @@ import { rideService } from '@/services/rideService';
 import { bikeRequestService } from '@/services/bikeRequestService';
 import { walletService } from '@/services/walletService';
 import type { Bike, Ride } from '@/lib/mobile-types';
-import { OSMMap, OSMMapRef } from '@/components/maps/OSMMap';
 import { MobileHeader } from '@/components/layout/MobileHeader';
 
 interface MobileRideInProgressProps {
@@ -32,6 +30,7 @@ export function MobileRideInProgress({
   const [isPaused, setIsPaused] = useState(false);
   const [duration, setDuration] = useState(0);
   const [distance, setDistance] = useState(0);
+  const [showEndDialog, setShowEndDialog] = useState(false);
   const [currentRide, setCurrentRide] = useState<Ride | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingRide, setIsLoadingRide] = useState(true);
@@ -40,15 +39,7 @@ export function MobileRideInProgress({
     currentCost: number;
     willBeCharged: boolean;
     message: string;
-    isOvertime: boolean;
   } | null>(null);
-  const [bikePosition, setBikePosition] = useState<{
-    latitude: number;
-    longitude: number;
-  } | null>(null);
-  
-  // Remplacement de MapView par OSMMapRef
-  const mapRef = useRef<OSMMapRef>(null);
 
   useEffect(() => {
     loadActiveRide();
@@ -66,19 +57,6 @@ export function MobileRideInProgress({
         setDuration(Math.floor((now.getTime() - startTime.getTime()) / 1000));
         if (activeRide.distance) {
           setDistance(activeRide.distance);
-        }
-        
-        // Initialiser la position du vélo
-        if (activeRide.bike?.latitude && activeRide.bike?.longitude) {
-          setBikePosition({
-            latitude: activeRide.bike.latitude,
-            longitude: activeRide.bike.longitude
-          });
-        } else if (bike.latitude && bike.longitude) {
-          setBikePosition({
-            latitude: bike.latitude,
-            longitude: bike.longitude
-          });
         }
       }
     } catch (error) {
@@ -102,34 +80,15 @@ export function MobileRideInProgress({
     if (!isPaused && currentRide) {
       const timer = setInterval(() => {
         setDuration((prev) => prev + 1);
-        setDistance((prev) => prev + 0.002); // Simulation
+        setDistance((prev) => prev + 0.01);
+        
+        // Recalculer le prix en temps réel
         updatePriceInfo();
       }, 1000);
 
       return () => clearInterval(timer);
     }
   }, [isPaused, currentRide, duration, currentSubscription]);
-
-  // Actualiser la position du vélo toutes les 30 secondes
-  useEffect(() => {
-    if (currentRide) {
-      const positionInterval = setInterval(async () => {
-        try {
-          const updatedRide = await rideService.getActiveRide();
-          if (updatedRide?.bike?.latitude && updatedRide?.bike?.longitude) {
-            setBikePosition({
-              latitude: updatedRide.bike.latitude,
-              longitude: updatedRide.bike.longitude
-            });
-          }
-        } catch (error) {
-          console.warn('Failed to update bike position:', error);
-        }
-      }, 30000);
-
-      return () => clearInterval(positionInterval);
-    }
-  }, [currentRide]);
 
   const updatePriceInfo = () => {
     if (!currentRide) return;
@@ -139,31 +98,31 @@ export function MobileRideInProgress({
     let calculatedCost = Math.ceil(durationHours * hourlyRate);
 
     if (currentSubscription) {
+      // Avec abonnement - vérifier si on est en overtime
       const isOvertime = checkIfOvertime(currentRide.startTime, currentSubscription.packageType);
       
       if (isOvertime) {
-        const reductionPercentage = 50;
-        const finalCost = Math.round(calculatedCost * (1 - reductionPercentage / 100));
+        // Appliquer la logique d'overtime avec réduction
+        const overrideInfo = getOvertimePrice(calculatedCost, currentSubscription);
         setPriceInfo({
-          currentCost: finalCost,
-          willBeCharged: finalCost > 0,
-          message: `Hors forfait - Réduction ${reductionPercentage}%`,
-          isOvertime: true
+          currentCost: overrideInfo.finalCost,
+          willBeCharged: overrideInfo.finalCost > 0,
+          message: `${t('subscription.overtime')} ${ overrideInfo.reductionPercentage }`
         });
       } else {
+        // Dans les heures du forfait - gratuit
         setPriceInfo({
           currentCost: calculatedCost,
           willBeCharged: false,
-          message: `Inclus dans ${currentSubscription.planName}`,
-          isOvertime: false
+          message: `${t('subscription.included')} ${ currentSubscription.planName }`
         });
       }
     } else {
+      // Sans abonnement - prix normal
       setPriceInfo({
         currentCost: calculatedCost,
         willBeCharged: true,
-        message: 'Tarif standard',
-        isOvertime: false
+        message: t('subscription.normalRate')
       });
     }
   };
@@ -185,14 +144,19 @@ export function MobileRideInProgress({
     }
   };
 
-  const formatTime = (seconds: number) => {
-    const hours = Math.floor(seconds / 3600);
-    const mins = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
+  const getOvertimePrice = (originalCost: number, subscription: any) => {
+    const reductionPercentage = 50;
+    const finalCost = Math.round(originalCost * (1 - reductionPercentage / 100));
     
-    if (hours > 0) {
-      return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    }
+    return {
+      finalCost,
+      reductionPercentage
+    };
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
@@ -205,13 +169,11 @@ export function MobileRideInProgress({
     );
   };
 
-  const handleRequestLock = async () => {
+  const handleEndRide = async () => {
     if (!currentRide) return;
 
     try {
-      setIsLoading(true);
-      
-      const currentLocation = bikePosition || {
+      const currentLocation = {
         latitude: bike.latitude || 0,
         longitude: bike.longitude || 0
       };
@@ -224,12 +186,10 @@ export function MobileRideInProgress({
       
       toast.success(t('lock.requestSent'));
       
-      onNavigate?.('account-management', { initialTab: 'requests' });
+      onNavigate?.('account-management', { activeTab: 'requests' });
       
     } catch (error: any) {
       toast.error(error.message || t('lock.requestError'));
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -241,12 +201,6 @@ export function MobileRideInProgress({
       });
     } else {
       onReportIssue();
-    }
-  };
-
-  const centerOnBike = () => {
-    if (bikePosition && mapRef.current) {
-      mapRef.current.centerOnUser();
     }
   };
 
@@ -268,113 +222,73 @@ export function MobileRideInProgress({
         <MobileHeader title={t('ride.inProgress')} />
         <View style={styles.loadingContainer}>
           <Text style={styles.errorText}>{t('ride.noActiveRide')}</Text>
-          <TouchableOpacity
-            onPress={() => onNavigate?.('home')}
-            style={styles.backButton}
-          >
-            <Text style={styles.backButtonText}>Retour à l'accueil</Text>
-          </TouchableOpacity>
         </View>
       </View>
     );
   }
-
-  // Préparer les données pour OSMMap
-  const bikeForMap = {
-    id: bike.id,
-    latitude: bikePosition?.latitude || bike.latitude || 0,
-    longitude: bikePosition?.longitude || bike.longitude || 0,
-    batteryLevel: bike.batteryLevel,
-    code: bike.code,
-    model: bike.model,
-    distance: 0 // Vous pouvez calculer la distance réelle ici si nécessaire
-  };
-
-  const userLocation = bikePosition ? {
-    lat: bikePosition.latitude,
-    lng: bikePosition.longitude
-  } : undefined;
 
   return (
     <View style={styles.container}>
       <MobileHeader title={t('ride.inProgress')} />
 
       <View style={styles.content}>
-        {/* Carte OSM avec position du vélo */}
+        {/* Map Placeholder */}
         <View style={styles.mapContainer}>
-          {bikePosition ? (
-            <OSMMap
-              ref={mapRef}
-              userLocation={userLocation}
-              bikes={[bikeForMap]}
-              radius={0.5} // Rayon de 500 mètres
-              onBikePress={(selectedBike) => {
-                // Gérer le clic sur le vélo si nécessaire
-                console.log('Bike selected:', selectedBike);
-              }}
-              onMapReady={() => {
-                console.log('OSM Map ready');
-              }}
-              colorScheme={Platform.OS === 'web' ? 'light' : 'light'}
-            />
-          ) : (
-            <View style={styles.mapPlaceholder}>
-              <MapPin size={64} color="#16a34a" />
-              <Text style={styles.mapTitle}>{t('ride.inProgressMessage')}</Text>
-              <Text style={styles.mapSubtitle}>{t('ride.gpsActive')}</Text>
-            </View>
-          )}
+          <View style={styles.mapContent}>
+            <MapPin size={64} color="#16a34a" />
+            <Text style={styles.mapTitle}>
+              {t('ride.inProgressMessage')}
+            </Text>
+            <Text style={styles.mapSubtitle}>
+              {t('ride.gpsActive')}
+            </Text>
+          </View>
 
-          {/* Bouton centrer sur le vélo */}
-          {bikePosition && (
-            <TouchableOpacity style={styles.centerButton} onPress={centerOnBike}>
-              <Navigation size={20} color="#16a34a" />
-            </TouchableOpacity>
-          )}
-
-          {/* Overlay si pause */}
+          {/* Pause Overlay */}
           {isPaused && (
             <View style={styles.pauseOverlay}>
               <Pause size={64} color="white" />
-              <Text style={styles.pauseText}>{t('ride.pausedMessage')}</Text>
+              <Text style={styles.pauseText}>
+                {t('ride.pausedMessage')}
+              </Text>
             </View>
           )}
         </View>
 
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
           <View style={styles.details}>
-            {/* Bike Info Card */}
+            {/* Bike Info */}
             <View style={styles.card}>
               <View style={styles.bikeInfo}>
-                <View style={styles.bikeInfoLeft}>
-                  <Text style={styles.cardLabel}>{t('ride.currentBike')}</Text>
+                <View>
+                  <Text style={styles.cardLabel}>
+                    {t('ride.currentBike')}
+                  </Text>
                   <Text style={styles.bikeName}>{bike.code}</Text>
                   <Text style={styles.bikeModel}>{bike.model}</Text>
                 </View>
-                <View style={styles.bikeInfoRight}>
-                  <View style={styles.batteryContainer}>
-                    <Battery size={20} color={bike.batteryLevel > 20 ? '#16a34a' : '#dc2626'} />
-                    <Text style={[styles.batteryLevel, { color: bike.batteryLevel > 20 ? '#16a34a' : '#dc2626' }]}>
-                      {bike.batteryLevel}%
-                    </Text>
-                  </View>
+                <View style={styles.batteryInfo}>
+                  <Text style={styles.cardLabel}>
+                    {t('bike.battery')}
+                  </Text>
+                  <Text style={styles.batteryLevel}>{bike.batteryLevel}%</Text>
                 </View>
               </View>
             </View>
 
             {/* Subscription Status */}
             {currentSubscription && (
-              <View style={[styles.card, styles.subscriptionCard]}>
-                <Text style={styles.subscriptionLabel}>
-                  Forfait actif: {currentSubscription.planName}
+              <View style={[styles.card, { backgroundColor: '#eff6ff', borderColor: '#3b82f6' }]}>
+                <Text style={[styles.cardLabel, { color: '#1e40af' }]}>
+                  {`${t('subscription.active')} ${ currentSubscription.planName }`}
                 </Text>
-                <Text style={[styles.subscriptionInfo, { color: priceInfo?.isOvertime ? '#f59e0b' : '#16a34a' }]}>
-                  {priceInfo?.message || 'Couvert par le forfait'}
+                <Text style={[styles.bikeModel, { color: '#3b82f6' }]}>
+                  {priceInfo?.message || `${t('subscription.included')} ${ currentSubscription.planName }`}
                 </Text>
               </View>
             )}
 
-            {/* Stats Grid */}
+            {/* Stats */}
             <View style={styles.statsGrid}>
               <View style={styles.statCard}>
                 <Clock size={24} color="#2563eb" />
@@ -383,7 +297,7 @@ export function MobileRideInProgress({
               </View>
 
               <View style={styles.statCard}>
-                <Gauge size={24} color="#7c3aed" />
+                <MapPin size={24} color="#7c3aed" />
                 <Text style={styles.statLabel}>{t('ride.distance')}</Text>
                 <Text style={styles.statValue}>{distance.toFixed(2)} km</Text>
               </View>
@@ -392,53 +306,56 @@ export function MobileRideInProgress({
                 <DollarSign size={24} color={priceInfo?.willBeCharged ? "#f59e0b" : "#16a34a"} />
                 <Text style={styles.statLabel}>{t('ride.currentCost')}</Text>
                 <Text style={[styles.statValue, { color: priceInfo?.willBeCharged ? "#f59e0b" : "#16a34a" }]}>
-                  {priceInfo?.currentCost || 0} XOF
+                  {priceInfo?.currentCost || 0} <Text style={styles.currencySmall}>
+                    {user?.wallet?.currency || 'XAF'}
+                  </Text>
                 </Text>
-                <Text style={[styles.statNote, { color: priceInfo?.willBeCharged ? "#f59e0b" : "#16a34a" }]}>
-                  {priceInfo?.willBeCharged ? 'À payer' : 'Inclus'}
-                </Text>
+                {priceInfo && (
+                  <Text style={[styles.statLabel, { color: priceInfo.willBeCharged ? "#f59e0b" : "#16a34a", marginTop: 4 }]}>
+                    {priceInfo.willBeCharged ? t('payment.toPay') : t('payment.included')}
+                  </Text>
+                )}
               </View>
             </View>
 
-            {/* Ride Details Card */}
-            <View style={styles.detailsCard}>
-              <Text style={styles.detailsTitle}>Détails du trajet</Text>
-              
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Début du trajet</Text>
-                <Text style={styles.detailValue}>
-                  {new Date(currentRide.startTime).toLocaleTimeString('fr-FR', { 
-                    hour: '2-digit', 
-                    minute: '2-digit' 
-                  })}
+            {/* Cost Breakdown */}
+            <View style={styles.costCard}>
+              <View style={styles.costRow}>
+                <Text style={styles.costLabel}>
+                  {t('ride.elapsedTime')}
+                </Text>
+                <Text style={styles.costValue}>
+                  {Math.ceil(duration / 60)} {t('common.minutes')}
                 </Text>
               </View>
-              
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Tarif horaire</Text>
-                <Text style={styles.detailValue}>
-                  {bike.pricingPlan?.hourlyRate || 200} XOF/h
+              <View style={styles.costRow}>
+                <Text style={styles.costLabel}>
+                  {t('ride.rate')}
+                </Text>
+                <Text style={styles.costValue}>
+                  {bike.pricingPlan?.hourlyRate || 200} {user?.wallet?.currency || 'XAF'}/h
                 </Text>
               </View>
-
-              {priceInfo?.isOvertime && (
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Réduction overtime</Text>
-                  <Text style={[styles.detailValue, { color: '#16a34a' }]}>-50%</Text>
+              {priceInfo?.willBeCharged && (
+                <View style={[styles.costRow, styles.totalRow]}>
+                  <Text style={styles.totalLabel}>
+                    {t('payment.willBeDeducted')}
+                  </Text>
+                  <Text style={styles.totalValue}>
+                    {priceInfo.currentCost} {user?.wallet?.currency || 'XAF'}
+                  </Text>
                 </View>
               )}
-
-              <View style={[styles.detailRow, styles.totalRow]}>
-                <Text style={styles.totalLabel}>
-                  {priceInfo?.willBeCharged ? 'À déduire du wallet' : 'Économies réalisées'}
-                </Text>
-                <Text style={[styles.totalValue, { color: priceInfo?.willBeCharged ? '#111827' : '#16a34a' }]}>
-                  {priceInfo?.willBeCharged 
-                    ? `${priceInfo.currentCost} XOF`
-                    : `${priceInfo?.currentCost || 0} XOF`
-                  }
-                </Text>
-              </View>
+              {!priceInfo?.willBeCharged && currentSubscription && (
+                <View style={[styles.costRow, { backgroundColor: '#f0fdf4' }]}>
+                  <Text style={[styles.totalLabel, { color: '#16a34a' }]}>
+                    {t('payment.includedInPlan')}
+                  </Text>
+                  <Text style={[styles.totalValue, { color: '#16a34a' }]}>
+                    0 {user?.wallet?.currency || 'XAF'}
+                  </Text>
+                </View>
+              )}
             </View>
 
             {/* Action Buttons */}
@@ -450,24 +367,28 @@ export function MobileRideInProgress({
                 {isPaused ? (
                   <>
                     <Play size={20} color="#374151" />
-                    <Text style={styles.pauseButtonText}>{t('ride.resume')}</Text>
+                    <Text style={styles.pauseButtonText}>
+                      {t('ride.resume')}
+                    </Text>
                   </>
                 ) : (
                   <>
                     <Pause size={20} color="#374151" />
-                    <Text style={styles.pauseButtonText}>{t('ride.pause')}</Text>
+                    <Text style={styles.pauseButtonText}>
+                      {t('ride.pause')}
+                    </Text>
                   </>
                 )}
               </TouchableOpacity>
 
               <TouchableOpacity
-                onPress={handleRequestLock}
+                onPress={handleEndRide}
                 style={styles.endButton}
                 disabled={isLoading}
               >
                 <Lock size={20} color="white" />
                 <Text style={styles.endButtonText}>
-                  {isLoading ? 'Envoi en cours...' : t('lock.requestButton')}
+                  {isLoading ? t('common.loading') : t('lock.requestButton')}
                 </Text>
               </TouchableOpacity>
 
@@ -476,19 +397,24 @@ export function MobileRideInProgress({
                 style={styles.reportButton}
               >
                 <AlertTriangle size={20} color="#d97706" />
-                <Text style={styles.reportButtonText}>{t('ride.reportIssue')}</Text>
+                <Text style={styles.reportButtonText}>
+                  {t('ride.reportIssue')}
+                </Text>
               </TouchableOpacity>
             </View>
 
-            {/* Info Cards */}
-            <View style={styles.infoCard}>
-              <Text style={styles.infoText}>
-                💡 Le paiement sera effectué uniquement après validation du verrouillage par l'administrateur.
+            {/* Info about admin validation */}
+            <View style={[styles.safetyCard, { backgroundColor: '#eff6ff' }]}>
+              <Text style={[styles.safetyText, { color: '#1e40af' }]}>
+                {t('lock.adminValidation')}
               </Text>
             </View>
 
+            {/* Safety Info */}
             <View style={styles.safetyCard}>
-              <Text style={styles.safetyText}>{t('ride.safetyReminder')}</Text>
+              <Text style={styles.safetyText}>
+                {t('ride.safetyReminder')}
+              </Text>
             </View>
           </View>
         </ScrollView>
@@ -496,8 +422,6 @@ export function MobileRideInProgress({
     </View>
   );
 }
-
-const { width } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
   container: {
@@ -521,26 +445,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#ef4444',
     textAlign: 'center',
-    marginBottom: 16,
-  },
-  backButton: {
-    backgroundColor: '#16a34a',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-  },
-  backButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
   },
   mapContainer: {
-    height: '35%',
+    height: '40%',
+    backgroundColor: '#dbeafe',
     position: 'relative',
   },
-  mapPlaceholder: {
+  mapContent: {
     flex: 1,
-    backgroundColor: '#dbeafe',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -555,20 +467,6 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     marginTop: 4,
   },
-  centerButton: {
-    position: 'absolute',
-    bottom: 16,
-    right: 16,
-    backgroundColor: 'white',
-    padding: 12,
-    borderRadius: 30,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
-    zIndex: 1000,
-  },
   pauseOverlay: {
     position: 'absolute',
     top: 0,
@@ -578,7 +476,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 1001,
   },
   pauseText: {
     fontSize: 20,
@@ -608,48 +505,28 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-start',
   },
-  bikeInfoLeft: {
-    flex: 1,
-  },
-  bikeInfoRight: {
-    alignItems: 'flex-end',
-  },
   cardLabel: {
     fontSize: 14,
     color: '#6b7280',
     marginBottom: 4,
   },
   bikeName: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
     color: '#111827',
+    marginBottom: 2,
   },
   bikeModel: {
     fontSize: 14,
     color: '#6b7280',
   },
-  batteryContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
+  batteryInfo: {
+    alignItems: 'flex-end',
   },
   batteryLevel: {
-    fontSize: 18,
+    fontSize: 24,
     fontWeight: '600',
-  },
-  subscriptionCard: {
-    backgroundColor: '#eff6ff',
-    borderColor: '#3b82f6',
-    borderWidth: 1,
-  },
-  subscriptionLabel: {
-    fontSize: 14,
-    color: '#1e40af',
-    fontWeight: '600',
-  },
-  subscriptionInfo: {
-    fontSize: 12,
-    marginTop: 4,
+    color: '#16a34a',
   },
   statsGrid: {
     flexDirection: 'row',
@@ -668,68 +545,58 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   statLabel: {
-    fontSize: 11,
+    fontSize: 12,
     color: '#6b7280',
     marginTop: 8,
+    marginBottom: 4,
     textAlign: 'center',
   },
   statValue: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '600',
     color: '#111827',
-    marginTop: 4,
+    textAlign: 'center',
   },
-  statNote: {
-    fontSize: 10,
-    marginTop: 2,
+  currencySmall: {
+    fontSize: 14,
   },
-  detailsCard: {
-    backgroundColor: 'white',
+  costCard: {
+    backgroundColor: '#dbeafe',
+    borderColor: '#bfdbfe',
+    borderWidth: 1,
     borderRadius: 12,
     padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
   },
-  detailsTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 12,
-  },
-  detailRow: {
+  costRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
-  },
-  detailLabel: {
-    fontSize: 14,
-    color: '#6b7280',
-  },
-  detailValue: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#111827',
+    marginBottom: 8,
+    paddingHorizontal: 4,
   },
   totalRow: {
-    borderBottomWidth: 0,
     borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
-    marginTop: 8,
-    paddingTop: 12,
+    borderTopColor: '#bfdbfe',
+    paddingTop: 8,
+    marginTop: 4,
+  },
+  costLabel: {
+    fontSize: 14,
+    color: '#1e40af',
+  },
+  costValue: {
+    fontSize: 14,
+    color: '#1e40af',
+    fontWeight: '500',
   },
   totalLabel: {
     fontSize: 14,
+    color: '#1e40af',
     fontWeight: '600',
-    color: '#111827',
   },
   totalValue: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 14,
+    color: '#1e40af',
+    fontWeight: '600',
   },
   actions: {
     gap: 12,
@@ -743,10 +610,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     gap: 8,
-    backgroundColor: 'white',
   },
   pauseButtonText: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '600',
     color: '#374151',
   },
@@ -760,7 +626,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   endButtonText: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '600',
     color: 'white',
   },
@@ -774,20 +640,9 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   reportButtonText: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '500',
     color: '#d97706',
-  },
-  infoCard: {
-    backgroundColor: '#eff6ff',
-    borderRadius: 12,
-    padding: 16,
-    borderLeftWidth: 4,
-    borderLeftColor: '#3b82f6',
-  },
-  infoText: {
-    fontSize: 14,
-    color: '#1e40af',
   },
   safetyCard: {
     backgroundColor: '#f3f4f6',

@@ -1,6 +1,6 @@
-# 🚴 EcoMobile - Système de Location de Vélos Électriques
+# 🚴 FreeBike - Système de Location de Vélos Électriques
 
-Application complète de gestion de location de vélos électriques pour le Cameroun, avec interface web admin, application mobile progressive (PWA) et backend Node.js robuste.
+Application complète de gestion de location de vélos électriques pour le Cameroun, avec interface web admin, application mobile et backend Node.js robuste.
 
 ## 📋 Table des Matières
 
@@ -14,7 +14,7 @@ Application complète de gestion de location de vélos électriques pour le Came
 
 ## 🎯 Vue d'ensemble
 
-**EcoMobile** est une solution complète de micro-mobilité qui permet aux utilisateurs de :
+**FreeBike** est une solution complète de micro-mobilité qui permet aux utilisateurs de :
 - 🚲 Louer des vélos électriques via une application mobile
 - 💰 Gérer leur portefeuille et effectuer des paiements via My-CoolPay
 - 🗺️ Localiser les vélos disponibles en temps réel
@@ -33,7 +33,7 @@ Et aux administrateurs de :
 Le projet est divisé en **3 parties principales** :
 
 ```
-EcoMobile/
+FreeBike/
 ├── backend/    # API Node.js + TypeScript
 ├── frontend/   # Interface Web Admin (React)
 └── mobile/     # Application Mobile PWA (React)
@@ -98,8 +98,8 @@ EcoMobile/
 
 #### 1. Cloner le repository
 ```bash
-git clone https://github.com/votre-org/EcoMobile.git
-cd EcoMobile
+git clone https://github.com/votre-org/FreeBike.git
+cd FreeBike
 ```
 
 #### 2. Installer et démarrer le Backend
@@ -175,15 +175,15 @@ http://localhost:3000/api-docs
 Une fois le backend démarré avec les données de seed :
 
 **Admin**
-- Email: `admin@ecomobile.cm`
+- Email: `admin@freebike.cm`
 - Password: `admin123`
 
 **Utilisateur Mobile**
-- Email: `user@ecomobile.cm`
+- Email: `user@freebike.cm`
 - Password: `user123`
 
 **Manager**
-- Email: `manager@ecomobile.cm`
+- Email: `manager@freebike.cm`
 - Password: `manager123`
 
 ### Variables d'Environnement
@@ -198,7 +198,7 @@ NODE_ENV=development
 DATABASE_TYPE=mysql
 DATABASE_HOST=localhost
 DATABASE_PORT=3306
-DATABASE_NAME=EcoMobile
+DATABASE_NAME=FreeBike
 DATABASE_USER=root
 DATABASE_PASSWORD=
 
@@ -225,7 +225,7 @@ VITE_API_URL=http://localhost:3000/api
 ## 📁 Structure du Projet
 
 ```
-EcoMobile/
+FreeBike/
 │
 ├── backend/                      # Backend Node.js
 │   ├── src/
@@ -463,7 +463,7 @@ docker-compose up -d
 
 ## 📄 Licence
 
-Copyright © 2025 EcoMobile Cameroun. Tous droits réservés.
+Copyright © 2025 FreeBike Cameroun. Tous droits réservés.
 
 ## 📞 Support
 
