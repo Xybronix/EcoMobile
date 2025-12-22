@@ -92,6 +92,16 @@ export function MobileBikeInspection({ bikeId, bikeName, inspectionType, bikeEqu
       mudguards: { fr: 'Garde-boue', en: 'Mudguards' },
       lock: { fr: 'Antivol', en: 'Lock' },
       reflectors: { fr: 'Réflecteurs', en: 'Reflectors' },
+      display: { fr: 'Écran de contrôle', en: 'Control Display' },
+      accelerator: { fr: 'Accélérateur', en: 'Accelerator' },
+      pedalSensor: { fr: 'Capteur de pédale', en: 'Pedal Sensor' },
+      kickstand: { fr: 'Béquille', en: 'Kickstand' },
+      frontWheel: { fr: 'Roue avant', en: 'Front Wheel' },
+      rearWheel: { fr: 'Roue arrière', en: 'Rear Wheel' },
+      motor: { fr: 'Moteur', en: 'Motor' },
+      controllerBox: { fr: 'Boîte contrôleur', en: 'Controller Box' },
+      pedal: { fr: 'Pédale', en: 'Pedal' },
+      brakeLever: { fr: 'Levier de frein', en: 'Brake Lever' },
     };
 
     const requiredItems: InspectionItem[] = [
@@ -99,12 +109,24 @@ export function MobileBikeInspection({ bikeId, bikeName, inspectionType, bikeEqu
       { id: 'tires', label: { fr: 'Pneus', en: 'Tires' }, isGood: null, required: true },
       { id: 'battery', label: { fr: 'Batterie', en: 'Battery' }, isGood: null, required: true },
       { id: 'chain', label: { fr: 'Chaîne', en: 'Chain' }, isGood: null, required: true },
+      { id: 'frontWheel', label: equipmentLabels.frontWheel, isGood: null, required: true },
+      { id: 'rearWheel', label: equipmentLabels.rearWheel, isGood: null, required: true },
+      { id: 'motor', label: equipmentLabels.motor, isGood: null, required: true },
+      { id: 'controllerBox', label: equipmentLabels.controllerBox, isGood: null, required: true },
+      { id: 'pedal', label: equipmentLabels.pedal, isGood: null, required: true },
     ];
 
     const optionalItems: InspectionItem[] = [
       { id: 'seat', label: { fr: 'Selle', en: 'Seat' }, isGood: null, required: false },
       { id: 'handlebars', label: { fr: 'Guidon', en: 'Handlebars' }, isGood: null, required: false },
-      { id: 'frame', label: { fr: 'Cadre', en: 'Frame' }, isGood: null, required: false }
+      { id: 'frame', label: { fr: 'Cadre', en: 'Frame' }, isGood: null, required: false },
+      { id: 'headlight', label: equipmentLabels.headlight, isGood: null, required: false },
+      { id: 'display', label: equipmentLabels.display, isGood: null, required: false },
+      { id: 'accelerator', label: equipmentLabels.accelerator, isGood: null, required: false },
+      { id: 'brakeLever', label: equipmentLabels.brakeLever, isGood: null, required: false },
+      { id: 'pedalSensor', label: equipmentLabels.pedalSensor, isGood: null, required: false },
+      { id: 'kickstand', label: equipmentLabels.kickstand, isGood: null, required: false },
+      { id: 'basket', label: equipmentLabels.basket, isGood: null, required: false },
     ];
 
     const equipmentItems: InspectionItem[] = (bikeEquipment || []).map(equipId => ({
