@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable react-hooks/exhaustive-deps */
 import { Text } from '@/components/ui/Text';
 import { useColorScheme } from '@/hooks/use-color-scheme';

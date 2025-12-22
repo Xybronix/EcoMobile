@@ -4,10 +4,10 @@
 import React, { useRef, useImperativeHandle, forwardRef, useEffect, useCallback } from 'react';
 import { View, StyleSheet, Platform } from 'react-native';
 
-interface Bike {
+interface MapBikeMarker {
   id: string;
-  latitude: number | null;
-  longitude: number | null;
+  latitude?: number | null | undefined;
+  longitude?: number | null | undefined;
   batteryLevel: number;
   code: string;
   distance?: number;
@@ -16,9 +16,9 @@ interface Bike {
 
 interface OSMMapProps {
   userLocation?: { lat: number; lng: number } | null;
-  bikes: Bike[];
+  bikes: MapBikeMarker[];
   radius: number;
-  onBikePress?: (bike: Bike) => void;
+  onBikePress?: (bike: MapBikeMarker) => void;
   onMapReady?: () => void;
   colorScheme: 'light' | 'dark';
 }
@@ -48,9 +48,12 @@ export const OSMMap = forwardRef<OSMMapRef, OSMMapProps>(({
   const center = userLocation || { lat: 4.0511, lng: 9.7679 };
   
   // Filtrer les vélos avec coordonnées valides
-  const bikesWithCoords = bikes.filter(b => 
-    b.latitude !== null && 
-    b.longitude !== null &&
+  const bikesWithCoords = bikes.filter((b): b is MapBikeMarker & { 
+    latitude: number; 
+    longitude: number; 
+  } => 
+    b.latitude != null &&
+    b.longitude != null && 
     !isNaN(b.latitude) && 
     !isNaN(b.longitude)
   );
