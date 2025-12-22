@@ -1,5 +1,4 @@
 import { MobileRideInProgress } from '@/components/ride/MobileRideInProgress';
-import { PageTitle } from '@/components/ui/PageTitle';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React from 'react';
 
@@ -9,33 +8,25 @@ export default function RideInProgressScreen() {
   
   const bikeData = params.bikeData ? JSON.parse(params.bikeData as string) : null;
 
-  const handleEndRide = () => {
-    router.navigate('/(tabs)/home');
-  };
-
-  const handleReportIssue = () => {
-    router.navigate({
-      pathname: '/(modals)/report-issue',
-      params: { 
-        bikeId: bikeData.id,
-        bikeName: bikeData.name
-      }
-    });
-  };
-
   const handleNavigate = (screen: string, data?: any) => {
     switch(screen) {
-      case 'bike-inspection':
+      case 'account-management':
         router.navigate({
-          pathname: '/(modals)/bike-inspection',
+          pathname: '/(modals)/account-management',
           params: data
         });
         break;
-      case 'report-issue':
+      case 'create-incident':
         router.navigate({
-          pathname: '/(modals)/report-issue',
+          pathname: '/(modals)/create-incident',
           params: data
         });
+        break;
+      case 'home':
+        router.navigate('/(tabs)/home');
+        break;
+      case 'rides':
+        router.navigate('/(tabs)/rides');
         break;
       default:
         console.log(`Navigation to ${screen} not implemented`);
@@ -47,12 +38,6 @@ export default function RideInProgressScreen() {
   }
 
   return (
-    <>
-      <PageTitle 
-        titleFr="Trajet en cours"
-        titleEn="Ride in Progress"
-      />
-      <MobileRideInProgress bike={bikeData} onEndRide={handleEndRide} onReportIssue={handleReportIssue} onNavigate={handleNavigate} />
-    </>
+    <MobileRideInProgress bike={bikeData} onEndRide={() => router.navigate('/(tabs)/home')} onReportIssue={() => handleNavigate('create-incident', { bikeId: bikeData.id })} onNavigate={handleNavigate} />
   );
 }
