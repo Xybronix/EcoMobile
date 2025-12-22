@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { User, Mail, Phone, DollarSign, Activity, Calendar, ArrowLeft, Ban, 
   CheckCircle, AlertCircle, Shield, MapPin, Bike, CreditCard,
   TrendingUp, AlertTriangle, Lock, Unlock, History } from 'lucide-react';
+import { AdminChargeModal } from './AdminChargeModal';
 import { Button } from '../../ui/button';
 import { Badge } from '../../ui/badge';
 import { Card } from '../../ui/card';
@@ -37,6 +38,7 @@ export function UserDetails() {
   const [rides, setRides] = useState<Ride[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [requests, setRequests] = useState<any[]>([]);
+  const [chargeModalOpen, setChargeModalOpen] = useState(false);
 
   const handleBack = () => {
     navigate('/admin/users');
@@ -280,6 +282,16 @@ export function UserDetails() {
                 <CheckCircle className="w-4 h-4 mr-2" />
               )}
               {user.status === 'active' ? 'Bloquer' : 'Débloquer'}
+            </Button>
+          </ProtectedAccess>
+          <ProtectedAccess mode="component" resource="wallet" action="manage" fallback={null}>
+            <Button
+              variant="outline"
+              onClick={() => setChargeModalOpen(true)}
+              className="border-orange-500 text-orange-600 hover:bg-orange-50"
+            >
+              <AlertTriangle className="w-4 h-4 mr-2" />
+              Affecter une charge
             </Button>
           </ProtectedAccess>
         </div>
@@ -837,6 +849,13 @@ export function UserDetails() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AdminChargeModal
+        open={chargeModalOpen}
+        onClose={() => setChargeModalOpen(false)}
+        onSuccess={loadUserData}
+        preselectedUserId={userId || undefined}
+      />
     </div>
   );
 }

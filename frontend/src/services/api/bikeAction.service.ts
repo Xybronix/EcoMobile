@@ -1,5 +1,17 @@
 import { apiClient } from './client';
 
+const API_BASE_URL = (() => {
+  if (typeof import.meta !== 'undefined' && (import.meta as any).env) {
+    return (import.meta as any).env.VITE_API_URL || 'http://localhost:5000/api/v1';
+  }
+  
+  if (process.env.NODE_ENV === 'production') {
+    return 'https://ecomobile-8bx0.onrender.com/api/v1';
+  }
+  
+  return 'http://localhost:5000/api/v1';
+})();
+
 export interface UnlockRequest {
   id: string;
   userId: string;
@@ -76,6 +88,7 @@ export interface LockRequest {
   ride?: {
     id: string;
     startTime: string;
+    endTime: string; // A revoir
     duration?: number;
     cost?: number;
   };
@@ -125,7 +138,28 @@ export interface PaginatedRequests<T> {
   };
 }
 
+export const normalizeImageUrls = (images: string[]): string[] => {
+  return images.map(img => {
+    if (!img) return '';
+    if (img.startsWith('http://') || img.startsWith('https://') || img.startsWith('data:')) {
+      return img;
+    }
+    return `${API_BASE_URL}${img.startsWith('/') ? img : '/' + img}`;
+  });
+};
+
 export class BikeActionService {
+  /**
+   * Récupérer une demande par ID et type (méthode générique)
+   */
+  async getRequestById(type: 'unlock' | 'lock', requestId: string): Promise<UnlockRequest | LockRequest> {
+    if (type === 'unlock') {
+      return this.getUnlockRequestById(requestId);
+    } else {
+      return this.getLockRequestById(requestId);
+    }
+  }
+
   /**
    * Créer une demande de déverrouillage
    */
@@ -188,6 +222,24 @@ export class BikeActionService {
   }): Promise<LockRequest[]> {
     const response = await this.getPendingRequests('lock', params);
     return response.requests as LockRequest[];
+  }
+
+  /**
+   * Récupérer les images d'une demande
+   */
+  async getRequestImages(requestId: string, type: 'unlock' | 'lock'): Promise<string[]> {
+    const request = await this.getRequestById(type, requestId);
+    const images: string[] = [];
+    
+    if ('metadata' in request && request.metadata?.inspectionData?.photos) {
+      images.push(...request.metadata.inspectionData.photos);
+    }
+    
+    if ('metadata' in request && request.metadata?.inspection?.photos) {
+      images.push(...request.metadata.inspection.photos);
+    }
+    
+    return normalizeImageUrls(images.filter(img => img && img.trim() !== ''));
   }
 
   /**
