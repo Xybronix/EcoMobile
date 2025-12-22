@@ -8,10 +8,17 @@ export default function RidesScreen() {
   const router = useRouter();
 
   const handleRideDetails = (ride: Ride) => {
-    router.navigate({
-      pathname: '/(modals)/ride-details' as any,
-      params: { rideData: JSON.stringify(ride) }
-    });
+    if (ride.status === 'IN_PROGRESS') {
+      router.navigate({
+        pathname: '/(modals)/ride-in-progress' as any,
+        params: { bikeData: JSON.stringify(ride.bike) }
+      });
+    } else {
+      router.navigate({
+        pathname: '/(modals)/ride-details' as any,
+        params: { rideData: JSON.stringify(ride) }
+      });
+    }
   };
 
   const handleNavigate = (screen: string) => {

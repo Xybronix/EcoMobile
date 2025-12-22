@@ -1,12 +1,6 @@
-import { View, Text } from 'react-native';
+import MobileRideDetails from '@/components/ride/MobileRideDetails';
 import React from 'react';
 
-const RideDetailsScreen = () => {
-  return (
-    <View>
-      <Text>Détails de la course</Text>
-    </View>
-  );
-};
-
-export default RideDetailsScreen;
+export default function RideDetailsScreen() {
+  return <MobileRideDetails />;
+}
