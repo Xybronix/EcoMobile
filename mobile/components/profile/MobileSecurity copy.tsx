@@ -6,10 +6,9 @@ import { userService } from '@/services/userService';
 import { getGlobalStyles } from '@/styles/globalStyles';
 import { haptics } from '@/utils/haptics';
 import { AlertTriangle, ArrowLeft, Eye, EyeOff, Lock, Shield, Smartphone } from 'lucide-react-native';
-import React, { useState, useEffect } from 'react';
-import { ActivityIndicator, Modal, ScrollView, TouchableOpacity, View, Switch, Platform } from 'react-native';
+import React, { useState } from 'react';
+import { ActivityIndicator, Modal, ScrollView, TouchableOpacity, View, Switch } from 'react-native';
 import { useMobileI18n } from '@/lib/mobile-i18n';
-import * as LocalAuthentication from 'expo-local-authentication';
 
 interface MobileSecurityProps {
   onNavigate: (screen: string) => void;
@@ -31,133 +30,6 @@ export function MobileSecurity({ onNavigate }: MobileSecurityProps) {
   const [biometricAuth, setBiometricAuth] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isBiometricAvailable, setIsBiometricAvailable] = useState(false);
-  const [biometricType, setBiometricType] = useState<string | null>(null);
-
-  // Vérifie si la biométrie est disponible sur l'appareil
-  useEffect(() => {
-    checkBiometricAvailability();
-  }, []);
-
-  const checkBiometricAvailability = async () => {
-    // Sur web, on désactive complètement la biométrie
-    if (Platform.OS === 'web') {
-      setIsBiometricAvailable(false);
-      setBiometricAuth(false);
-      return;
-    }
-
-    try {
-      const isAvailable = await LocalAuthentication.hasHardwareAsync();
-      const isEnrolled = await LocalAuthentication.isEnrolledAsync();
-      
-      setIsBiometricAvailable(isAvailable && isEnrolled);
-      
-      if (isAvailable && isEnrolled) {
-        const supportedTypes = await LocalAuthentication.supportedAuthenticationTypesAsync();
-        
-        // Détermine le type de biométrie disponible
-        if (supportedTypes.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION)) {
-          setBiometricType('Facial Recognition');
-        } else if (supportedTypes.includes(LocalAuthentication.AuthenticationType.FINGERPRINT)) {
-          setBiometricType('Fingerprint');
-        } else if (supportedTypes.includes(LocalAuthentication.AuthenticationType.IRIS)) {
-          setBiometricType('Iris');
-        }
-      }
-    } catch (error) {
-      console.error('Erreur lors de la vérification de la biométrie:', error);
-      setIsBiometricAvailable(false);
-    }
-  };
-
-  const handleBiometricToggle = async (value: boolean) => {
-    // Sur web, on empêche l'activation
-    if (Platform.OS === 'web') {
-      toast.error(t('security.biometricNotAvailableWeb'));
-      return;
-    }
-
-    if (!isBiometricAvailable) {
-      toast.error(t('security.biometricNotAvailable'));
-      return;
-    }
-
-    if (value) {
-      // Demander l'authentification biométrique pour activer
-      try {
-        const authResult = await LocalAuthentication.authenticateAsync({
-          promptMessage: t('security.authenticateToEnable'),
-          fallbackLabel: t('security.usePasscode'),
-          disableDeviceFallback: false, // IMPORTANT: permet le fallback vers le code/PIN système
-        });
-
-        if (authResult.success) {
-          haptics.success();
-          setBiometricAuth(true);
-          toast.success(t('security.biometricEnabled'));
-          
-          // Ici, vous pourriez sauvegarder le statut dans votre backend
-          // await userService.enableBiometricAuth();
-        } else {
-          haptics.error();
-          toast.error(t('security.biometricAuthFailed'));
-        }
-      } catch (error) {
-        haptics.error();
-        toast.error(t('security.biometricError'));
-        console.error('Erreur d\'authentification biométrique:', error);
-      }
-    } else {
-      // Désactiver la biométrie
-      haptics.light();
-      setBiometricAuth(false);
-      toast.info(t('security.biometricDisabled'));
-      
-      // Ici, vous pourriez mettre à jour le statut dans votre backend
-      // await userService.disableBiometricAuth();
-    }
-  };
-
-  // Fonction pour tester l'authentification biométrique
-  const testBiometricAuth = async () => {
-    if (Platform.OS === 'web') {
-      toast.error(t('security.biometricNotAvailableWeb'));
-      return;
-    }
-
-    if (!isBiometricAvailable) {
-      toast.error(t('security.biometricNotAvailable'));
-      return;
-    }
-
-    try {
-      const authResult = await LocalAuthentication.authenticateAsync({
-        promptMessage: t('security.authenticateToTest'),
-        fallbackLabel: t('security.usePasscode'),
-        disableDeviceFallback: false, // Permet le fallback automatique
-      });
-
-      if (authResult.success) {
-        haptics.success();
-        toast.success(t('security.biometricTestSuccess'));
-      } else {
-        haptics.error();
-        
-        if (authResult.error === 'user_cancel') {
-          toast.info(t('security.authenticationCancelled'));
-        } else if (authResult.error === 'not_available') {
-          toast.error(t('security.biometricNotAvailable'));
-        } else {
-          toast.error(t('security.biometricAuthFailed'));
-        }
-      }
-    } catch (error) {
-      haptics.error();
-      toast.error(t('security.biometricError'));
-      console.error('Erreur lors du test biométrique:', error);
-    }
-  };
 
   const handlePasswordChange = async () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
@@ -479,140 +351,109 @@ export function MobileSecurity({ onNavigate }: MobileSecurityProps) {
             </View>
           </View>
 
-          {/* Authentication Methods - SEULEMENT SUR MOBILE */}
-          {Platform.OS !== 'web' && (
-            <View style={styles.gap12}>
-              <Text 
-                size="sm" 
-                color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}
-                style={styles.px8}
-              >
-                {t('security.authenticationMethods')}
-              </Text>
-              <View style={[styles.card, styles.rounded12]}>
-                <View style={[
-                  styles.row, 
-                  styles.alignCenter, 
-                  styles.spaceBetween, 
-                  styles.p12
-                ]}>
-                  <View style={[styles.row, styles.alignCenter, styles.gap12]}>
-                    <View 
-                      style={[
-                        styles.roundedFull,
-                        styles.alignCenter,
-                        styles.justifyCenter
-                      ]}
-                    >
-                      <Shield size={20} color="#4f46e5" />
-                    </View>
-                    <View>
-                      <Text 
-                        variant="body" 
-                        color={colorScheme === 'light' ? '#111827' : '#f9fafb'}
-                      >
-                        {t('security.twoFactorAuth')}
-                      </Text>
-                      <Text 
-                        size="sm" 
-                        color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}
-                      >
-                        {t('security.twoFactorDescription')}
-                      </Text>
-                    </View>
-                  </View>
-                  <Switch
-                    value={twoFactorAuth}
-                    onValueChange={(value) => {
-                      haptics.light();
-                      setTwoFactorAuth(value);
-                    }}
-                    trackColor={{ false: colorScheme === 'light' ? '#d1d5db' : '#4b5563', true: '#16a34a' }}
-                    thumbColor="white"
-                    ios_backgroundColor={colorScheme === 'light' ? '#d1d5db' : '#4b5563'}
-                  />
-                </View>
-
-                <View style={{ 
-                  height: 1, 
-                  backgroundColor: colorScheme === 'light' ? '#f3f4f6' : '#374151',
-                  marginHorizontal: 16 
-                }} />
-
-                <View style={[
-                  styles.row, 
-                  styles.alignCenter, 
-                  styles.spaceBetween, 
-                  styles.p12
-                ]}>
-                  <View style={[styles.row, styles.alignCenter, styles.gap12]}>
-                    <View 
-                      style={[
-                        styles.roundedFull,
-                        styles.alignCenter,
-                        styles.justifyCenter
-                      ]}
-                    >
-                      <Smartphone size={20} color="#2563eb" />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text 
-                        variant="body" 
-                        color={colorScheme === 'light' ? '#111827' : '#f9fafb'}
-                      >
-                        {t('security.biometricAuth')}
-                      </Text>
-                      <Text 
-                        size="sm" 
-                        color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}
-                      >
-                        {isBiometricAvailable 
-                          ? (biometricType 
-                              ? `${t('security.biometricDescription')} (${biometricType})`
-                              : t('security.biometricDescription'))
-                          : t('security.biometricNotAvailableDescription')}
-                      </Text>
-                    </View>
+          {/* Authentication Methods */}
+          <View style={styles.gap12}>
+            <Text 
+              size="sm" 
+              color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}
+              style={styles.px8}
+            >
+              {t('security.authenticationMethods')}
+            </Text>
+            <View style={[styles.card, styles.rounded12]}>
+              <View style={[
+                styles.row, 
+                styles.alignCenter, 
+                styles.spaceBetween, 
+                styles.p12
+              ]}>
+                <View style={[styles.row, styles.alignCenter, styles.gap12]}>
+                  <View 
+                    style={[
+                      styles.roundedFull,
+                      styles.alignCenter,
+                      styles.justifyCenter
+                    ]}
+                  >
+                    <Shield size={20} color="#4f46e5" />
                   </View>
                   <View>
-                    <Switch
-                      value={biometricAuth}
-                      onValueChange={handleBiometricToggle}
-                      disabled={!isBiometricAvailable}
-                      trackColor={{ 
-                        false: !isBiometricAvailable 
-                          ? '#9ca3af' 
-                          : colorScheme === 'light' ? '#d1d5db' : '#4b5563', 
-                        true: '#16a34a' 
-                      }}
-                      thumbColor="white"
-                      ios_backgroundColor={colorScheme === 'light' ? '#d1d5db' : '#4b5563'}
-                    />
-                    {biometricAuth && isBiometricAvailable && (
-                      <TouchableOpacity
-                        onPress={testBiometricAuth}
-                        style={[
-                          styles.mt8,
-                          styles.px8,
-                          styles.py4,
-                          styles.rounded4,
-                          { backgroundColor: '#2563eb', alignSelf: 'center' }
-                        ]}
-                      >
-                        <Text 
-                          size="xs" 
-                          color="white"
-                          style={styles.textCenter}
-                        >
-                          {t('security.testBiometric')}
-                        </Text>
-                      </TouchableOpacity>
-                    )}
+                    <Text 
+                      variant="body" 
+                      color={colorScheme === 'light' ? '#111827' : '#f9fafb'}
+                    >
+                      {t('security.twoFactorAuth')}
+                    </Text>
+                    <Text 
+                      size="sm" 
+                      color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}
+                    >
+                      {t('security.twoFactorDescription')}
+                    </Text>
                   </View>
                 </View>
+                <Switch
+                  value={twoFactorAuth}
+                  onValueChange={(value) => {
+                    haptics.light();
+                    setTwoFactorAuth(value);
+                  }}
+                  trackColor={{ false: colorScheme === 'light' ? '#d1d5db' : '#4b5563', true: '#16a34a' }}
+                  thumbColor="white"
+                  ios_backgroundColor={colorScheme === 'light' ? '#d1d5db' : '#4b5563'}
+                />
+              </View>
+
+              <View style={{ 
+                height: 1, 
+                backgroundColor: colorScheme === 'light' ? '#f3f4f6' : '#374151',
+                marginHorizontal: 16 
+              }} />
+
+              <View style={[
+                styles.row, 
+                styles.alignCenter, 
+                styles.spaceBetween, 
+                styles.p12
+              ]}>
+                <View style={[styles.row, styles.alignCenter, styles.gap12]}>
+                  <View 
+                    style={[
+                      styles.roundedFull,
+                      styles.alignCenter,
+                      styles.justifyCenter
+                    ]}
+                  >
+                    <Smartphone size={20} color="#2563eb" />
+                  </View>
+                  <View>
+                    <Text 
+                      variant="body" 
+                      color={colorScheme === 'light' ? '#111827' : '#f9fafb'}
+                    >
+                      {t('security.biometricAuth')}
+                    </Text>
+                    <Text 
+                      size="sm" 
+                      color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}
+                    >
+                      {t('security.biometricDescription')}
+                    </Text>
+                  </View>
+                </View>
+                <Switch
+                  value={biometricAuth}
+                  onValueChange={(value) => {
+                    haptics.light();
+                    setBiometricAuth(value);
+                  }}
+                  trackColor={{ false: colorScheme === 'light' ? '#d1d5db' : '#4b5563', true: '#16a34a' }}
+                  thumbColor="white"
+                  ios_backgroundColor={colorScheme === 'light' ? '#d1d5db' : '#4b5563'}
+                />
               </View>
             </View>
-          )}
+          </View>
 
           {/* Danger Zone */}
           <View style={styles.gap12}>
