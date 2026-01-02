@@ -16,7 +16,8 @@ import { incidentService } from '@/services/incidentService';
 import { bikeRequestService } from '@/services/bikeRequestService';
 import { reservationService } from '@/services/reservationService';
 import { Calendar, Wallet, CreditCard, Clock, Shield, AlertTriangle, ArrowLeft, Lock, Unlock, FileText, MapPin, Trash2, Lightbulb } from 'lucide-react-native';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { View, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
 import { useMobileI18n } from '@/lib/mobile-i18n';
 
@@ -53,17 +54,21 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
   const [transactionFilter, setTransactionFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState('all');
 
-  useEffect(() => {
-    loadAccountData();
-  }, []);
-
-  useEffect(() => {
-    if (activeTab === 'requests') {
-      loadRequests();
-    } else if (activeTab === 'reservations') {
-      loadReservations();
-    }
-  }, [activeTab]);
+  useFocusEffect(
+    useCallback(() => {
+      loadAccountData();
+      
+      if (activeTab === 'requests') {
+        loadRequests();
+      } else if (activeTab === 'reservations') {
+        loadReservations();
+      }
+      
+      return () => {
+        // Code de nettoyage si nécessaire
+      };
+    }, [activeTab])
+  );
 
   const loadAccountData = async () => {
     try {
@@ -121,6 +126,14 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
       toast.error('Erreur lors du chargement des réservations');
     }
   };
+
+  useEffect(() => {
+    if (activeTab === 'requests') {
+      loadRequests();
+    } else if (activeTab === 'reservations') {
+      loadReservations();
+    }
+  }, [activeTab]);
 
   const getStatusColor = (status: string) => {
     switch (status) {

@@ -361,6 +361,7 @@ const translations: Translations = {
   'wallet.rechargeDeposit': { fr: 'Recharger la caution', en: 'Top up deposit' },
   'wallet.depositInsufficient': { fr: 'Caution insuffisante', en: 'Insufficient deposit' },
   'wallet.depositSufficient': { fr: 'Caution suffisante', en: 'Sufficient deposit' },
+  'wallet.depositExceeded': { fr: 'Le dépôt total ne peut pas dépasser {max} XOF. Vous pouvez ajouter au maximum {allowed} XOF.', en: 'Total deposit cannot exceed {max} XOF. You can add at most {allowed} XOF.' },
   'wallet.currentDeposit': { fr: 'Caution actuelle :', en: 'Current deposit:' },
   'wallet.requiredDeposit': { fr: 'Caution requise :', en: 'Required deposit:' },
   'wallet.missingAmount': { fr: 'Montant manquant :', en: 'Missing amount:' },
