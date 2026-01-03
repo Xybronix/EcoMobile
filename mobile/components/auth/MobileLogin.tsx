@@ -10,9 +10,10 @@ import { getGlobalStyles } from '@/styles/globalStyles';
 import { haptics } from '@/utils/haptics';
 import { ArrowLeft, Eye, EyeOff } from 'lucide-react-native';
 import React, { useState } from 'react';
-import { TouchableOpacity, View } from 'react-native';
+import { Alert, TouchableOpacity, View } from 'react-native';
 import { useMobileAuth } from '@/lib/mobile-auth';
 import { useMobileI18n } from '@/lib/mobile-i18n';
+import { authService } from '@/services/authService';
 
 interface MobileLoginProps {
   onNavigate: (screen: string) => void;
@@ -28,6 +29,7 @@ export default function MobileLogin({ onNavigate }: MobileLoginProps) {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isResending, setIsResending] = useState(false);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -51,6 +53,9 @@ export default function MobileLogin({ onNavigate }: MobileLoginProps) {
         case 'invalid_credentials':
           errorMessage = t('error.invalidCredentials');
           break;
+        case 'email_not_verified':
+          showEmailNotVerifiedAlert(email);
+          return;
         case 'network_error':
           errorMessage = t('error.networkError');
           break;
@@ -74,6 +79,65 @@ export default function MobileLogin({ onNavigate }: MobileLoginProps) {
       toast.error(errorMessage);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const showEmailNotVerifiedAlert = (email: string) => {
+    Alert.alert(
+      t('auth.emailNotVerified.title'),
+      t('auth.emailNotVerified.message'),
+      [
+        {
+          text: t('common.cancel'),
+          style: 'cancel',
+        },
+        {
+          text: t('auth.resendVerification'),
+          onPress: () => handleResendVerification(email),
+          style: 'default',
+        },
+        {
+          text: t('common.ok'),
+          style: 'default',
+        },
+      ]
+    );
+  };
+
+  const handleResendVerification = async (email: string) => {
+    setIsResending(true);
+    try {
+      await authService.resendVerification(email);
+      haptics.success();
+      toast.success(t('auth.verificationResent'));
+      
+      // Afficher une alerte supplémentaire
+      Alert.alert(
+        t('auth.verificationSent.title'),
+        t('auth.verificationSent.message')
+      );
+    } catch (error: any) {
+      haptics.error();
+      let errorMessage = t('common.error');
+      
+      switch (error.message) {
+        case 'email_already_verified':
+          errorMessage = t('auth.emailAlreadyVerified');
+          break;
+        case 'user_not_found':
+          errorMessage = t('auth.verificationSent');
+          break;
+        case 'network_error':
+          errorMessage = t('error.networkError');
+          break;
+        default:
+          errorMessage = t('auth.resendVerificationError');
+          break;
+      }
+      
+      toast.error(errorMessage);
+    } finally {
+      setIsResending(false);
     }
   };
 

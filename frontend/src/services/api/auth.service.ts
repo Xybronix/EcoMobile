@@ -189,6 +189,26 @@ export class AuthService {
     }
   }
 
+  async verifyEmail(data: { userId: string; token: string }): Promise<boolean> {
+    const response = await apiClient.post<{ verified: boolean }>('/auth/verify-email', data);
+    
+    if (!response.success || !response.data) {
+      throw new Error(response.error || 'Erreur lors de la vérification de l\'email');
+    }
+
+    return response.data.verified;
+  }
+
+  async resendVerification(email: string): Promise<boolean> {
+    const response = await apiClient.post<{ resent: boolean }>('/auth/resend-verification', { email });
+    
+    if (!response.success || !response.data) {
+      throw new Error(response.error || 'Erreur lors de l\'envoi de l\'email de vérification');
+    }
+
+    return response.data.resent;
+  }
+
   // Helper methods for permission checking
   hasPermission(user: AuthUser | null, resource: string, action: string): boolean {
     if (!user || !user.permissions) return false;

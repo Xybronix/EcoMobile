@@ -11,9 +11,11 @@ import { getGlobalStyles } from '@/styles/globalStyles';
 import { haptics } from '@/utils/haptics';
 import { ArrowLeft, Eye, EyeOff, Check, X } from 'lucide-react-native';
 import React, { useState, useEffect } from 'react';
-import { TouchableOpacity, View } from 'react-native';
+import { Alert, TouchableOpacity, View } from 'react-native';
 import { useMobileAuth } from '@/lib/mobile-auth';
 import { useMobileI18n } from '@/lib/mobile-i18n';
+import { storeUserData } from '@/utils/storage';
+import { authService } from '@/services/authService';
 
 interface MobileRegisterProps {
   onNavigate: (screen: string) => void;
@@ -126,8 +128,27 @@ export function MobileRegister({ onNavigate }: MobileRegisterProps) {
         password: formData.password,
         language,
       });
+
+      await storeUserData({ email: formData.email } as any);
+      
       haptics.success();
-      toast.success(t('success.accountCreated'));
+
+      Alert.alert(
+        'Inscription réussie !',
+        'Un email de vérification a été envoyé à votre adresse. Veuillez vérifier votre boîte de réception et cliquer sur le lien pour activer votre compte.',
+        [
+          { 
+            text: 'OK', 
+            onPress: () => onNavigate('login')
+          },
+          {
+            text: 'Renvoyer l\'email',
+            onPress: () => resendVerification(formData.email)
+          }
+        ]
+      );
+      
+      // toast.success(t('success.accountCreated'));
     } catch (error: any) {
       haptics.error();
       
@@ -153,6 +174,15 @@ export function MobileRegister({ onNavigate }: MobileRegisterProps) {
       toast.error(errorMessage);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const resendVerification = async (email: string) => {
+    try {
+      await authService.resendVerification(email);
+      toast.success(t('auth.verificationResentShort'));
+    } catch (error) {
+      toast.error(t('auth.verificationResendError'));
     }
   };
 
