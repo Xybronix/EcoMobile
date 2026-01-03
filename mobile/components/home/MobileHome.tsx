@@ -9,7 +9,7 @@ import { userService } from '@/services/userService';
 import { WalletBalance, walletService } from '@/services/walletService';
 import { getGlobalStyles } from '@/styles/globalStyles';
 import { haptics } from '@/utils/haptics';
-import { ChevronRight, Clock, MapPin, TrendingUp, Wallet, Zap, User as UserIcon } from 'lucide-react-native';
+import { AlertTriangle, ChevronRight, Clock, MapPin, TrendingUp, Wallet, Zap, User as UserIcon } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { ScrollView, TouchableOpacity, View } from 'react-native';
 import { useMobileAuth } from '@/lib/mobile-auth';
@@ -27,7 +27,9 @@ export function MobileHome({ onNavigate }: MobileHomeProps) {
   const styles = getGlobalStyles(colorScheme);
 
   const [user, setUser] = useState<User | null>(null);
+  const [depositInfo, setDepositInfo] = useState<any>(null);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
+  const [isLoadingDeposit, setIsLoadingDeposit] = useState(true);
   const [realNotificationCount, setRealNotificationCount] = useState(0);
   const [walletBalance, setWalletBalance] = useState<WalletBalance>({ 
     balance: 0, 
@@ -61,6 +63,40 @@ export function MobileHome({ onNavigate }: MobileHomeProps) {
       const count = await notificationService.getUnreadCount();
       setRealNotificationCount(count);
     } catch (error) {
+    }
+  };
+
+  useEffect(() => {
+    const loadDepositInfo = async () => {
+      if (!user) return;
+      
+      try {
+        setIsLoadingDeposit(true);
+        const depositData = await walletService.getDepositInfo();
+        setDepositInfo(depositData);
+      } catch (error) {
+        console.error('Error loading deposit info:', error);
+        setDepositInfo(null);
+      } finally {
+        setIsLoadingDeposit(false);
+      }
+    };
+
+    loadDepositInfo();
+  }, [user]);
+
+  const loadDepositInfo = async () => {
+    if (!user) return;
+    
+    try {
+      setIsLoadingDeposit(true);
+      const depositData = await walletService.getDepositInfo();
+      setDepositInfo(depositData);
+    } catch (error) {
+      console.error('Error loading deposit info:', error);
+      setDepositInfo(null);
+    } finally {
+      setIsLoadingDeposit(false);
     }
   };
 
@@ -215,6 +251,7 @@ export function MobileHome({ onNavigate }: MobileHomeProps) {
   const refreshAllData = async () => {
     await Promise.all([
       refreshUserData(),
+      loadDepositInfo(),
       refreshWallet(),
       refreshRidesData(),
       refreshNotificationCount()
@@ -282,6 +319,45 @@ export function MobileHome({ onNavigate }: MobileHomeProps) {
             {t('home.findBikeDescription')}
           </Text>
         </View>
+
+        {/* Deposit Warning */}
+        {!isLoadingDeposit && depositInfo && !depositInfo.canUseService && (
+          <View style={[
+            styles.p16, 
+            styles.rounded8, 
+            { 
+              backgroundColor: '#fef3c7', 
+              borderWidth: 1,
+              borderColor: '#f59e0b'
+            }
+          ]}>
+            <View style={[styles.row, styles.gap12, styles.alignCenter]}>
+              <AlertTriangle size={20} color="#92400e" />
+              <View style={styles.flex1}>
+                <Text size="sm" color="#92400e" weight="bold">
+                  {t('home.depositBlocked.title')}
+                </Text>
+                <Text size="sm" color="#92400e" style={styles.mt4}>
+                  {t('home.depositBlocked.current', { amount: depositInfo.currentDeposit || 0 })}
+                </Text>
+                <Text size="sm" color="#92400e" style={styles.mt4}>
+                  {t('home.depositBlocked.required', { amount: depositInfo.requiredDeposit || 0 })}
+                </Text>
+                <TouchableOpacity
+                  onPress={() => {
+                    haptics.light();
+                    onNavigate('account-management');
+                  }}
+                  style={[styles.mt8]}
+                >
+                  <Text size="sm" color="#92400e" weight="medium">
+                    {t('home.depositBlocked.action')}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        )}
 
         {/* Wallet Card */}
         <View style={[styles.card, styles.p16, { backgroundColor: '#16a34a' }]}>

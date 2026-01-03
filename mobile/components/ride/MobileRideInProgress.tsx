@@ -3,10 +3,10 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { AlertTriangle, Clock, DollarSign, MapPin, Pause, Play, Lock, Navigation, Battery, Gauge, ArrowLeft } from 'lucide-react-native';
 import React, { useEffect, useState, useRef } from 'react';
-import { ScrollView, TouchableOpacity, View, ActivityIndicator, Dimensions, Platform } from 'react-native';
+import { ScrollView, TouchableOpacity, View, ActivityIndicator, Platform } from 'react-native';
 import { Text } from '../ui/Text';
 import { toast } from 'sonner';
-import { useMobileAuth } from '@/lib/mobile-auth';
+import { Colors } from '@/constants/theme';
 import { useMobileI18n } from '@/lib/mobile-i18n';
 import { rideService } from '@/services/rideService';
 import { bikeRequestService } from '@/services/bikeRequestService';
@@ -25,14 +25,13 @@ interface MobileRideInProgressProps {
 
 export function MobileRideInProgress({
   bike,
-  onEndRide,
   onReportIssue,
   onNavigate,
 }: MobileRideInProgressProps) {
   const { t } = useMobileI18n();
-  const { user, refreshUser } = useMobileAuth();
   const colorScheme = useColorScheme();
   const styles = getGlobalStyles(colorScheme);
+  const colors = Colors[colorScheme === 'dark' ? 'dark' : 'light'];
   
   const [isPaused, setIsPaused] = useState(false);
   const [duration, setDuration] = useState(0);
@@ -111,6 +110,7 @@ export function MobileRideInProgress({
 
       return () => clearInterval(timer);
     }
+    return undefined;
   }, [isPaused, currentRide, duration, currentSubscription]);
 
   useEffect(() => {
@@ -131,6 +131,7 @@ export function MobileRideInProgress({
 
       return () => clearInterval(positionInterval);
     }
+    return undefined;
   }, [currentRide]);
 
   const updatePriceInfo = () => {
@@ -536,20 +537,22 @@ export function MobileRideInProgress({
                 </Text>
               </View>
 
-              <View style={[styles.flex1, styles.card, styles.rounded12, styles.alignCenter]}>
-                <DollarSign size={24} color={priceInfo?.willBeCharged ? "#f59e0b" : "#16a34a"} />
-                <Text variant="caption" color="muted" style={styles.mt8}>
-                  {t('ride.currentCost')}
-                </Text>
-                <Text variant="body" weight="semibold" 
-                  style={[styles.mt4, { color: priceInfo?.willBeCharged ? "#f59e0b" : "#16a34a" }]}>
-                  {priceInfo?.currentCost || 0} XOF
-                </Text>
-                <Text variant="caption" 
-                  style={[styles.mt4, { color: priceInfo?.willBeCharged ? "#f59e0b" : "#16a34a" }]}>
-                  {priceInfo?.willBeCharged ? 'À payer' : 'Inclus'}
-                </Text>
-              </View>
+              {/** 
+                <View style={[styles.flex1, styles.card, styles.rounded12, styles.alignCenter]}>
+                  <DollarSign size={24} color={priceInfo?.willBeCharged ? "#f59e0b" : "#16a34a"} />
+                  <Text variant="caption" color="muted" style={styles.mt8}>
+                    {t('ride.currentCost')}
+                  </Text>
+                  <Text variant="body" weight="semibold" 
+                    style={[styles.mt4, { color: priceInfo?.willBeCharged ? "#f59e0b" : "#16a34a" }]}>
+                    {priceInfo?.currentCost || 0} XOF
+                  </Text>
+                  <Text variant="caption" 
+                    style={[styles.mt4, { color: priceInfo?.willBeCharged ? "#f59e0b" : "#16a34a" }]}>
+                    {priceInfo?.willBeCharged ? 'À payer' : 'Inclus'}
+                  </Text>
+                </View>
+              */}
             </View>
 
             {/* Détails du Trajet */}
@@ -594,8 +597,8 @@ export function MobileRideInProgress({
                 <Text variant="body" weight="semibold">
                   {priceInfo?.willBeCharged ? 'À déduire du wallet' : 'Économies réalisées'}
                 </Text>
-                <Text variant="body" weight="bold" 
-                  style={{ color: priceInfo?.willBeCharged ? '#111827' : '#16a34a' }}>
+                <Text variant="body" weight="bold"
+                  style={{ color: priceInfo?.willBeCharged ? '#e5e7eb' : '#16a34a' }}>
                   {priceInfo?.willBeCharged 
                     ? `${priceInfo.currentCost} XOF`
                     : `${priceInfo?.currentCost || 0} XOF`

@@ -11,8 +11,9 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { MobileI18nProvider } from '@/lib/mobile-i18n';
 import { MobileAuthProvider } from '@/lib/mobile-auth';
 import { Colors } from '@/constants/theme';
+import { InternetStatusBar } from '@/components/ui/InternetStatusBar';
 import { ToastContainer } from '@/components/ui/ToastContainer';
-import "../global.css";
+import "@/global.css";
 
 const CustomLightTheme = {
   ...DefaultTheme,
@@ -66,11 +67,8 @@ export default function RootLayout() {
       <MobileAuthProvider>
         <ThemeProvider value={colorScheme === 'dark' ? CustomDarkTheme : CustomLightTheme}>
           <View style={{ flex: 1 }}>
-            <Stack 
-              screenOptions={{ 
-                headerShown: false,
-              }}
-            >
+            <InternetStatusBar showInAllScreens={true} position="top" />
+            <Stack screenOptions={{ headerShown: false }}>
               <Stack.Screen name="index" options={{ headerShown: false }} />
               <Stack.Screen name="(auth)" options={{ headerShown: false }} />
               <Stack.Screen name="(tabs)" options={{ headerShown: false }} />

@@ -16,7 +16,7 @@ import { haptics } from '@/utils/haptics';
 import { OSMMap } from '@/components/maps/OSMMap';
 import { Battery, Building2, Filter, Home, MapPin, Navigation, Search, X, Zap, RotateCcw, MapPinIcon, CheckCircle, ZoomIn, ZoomOut, RotateCw } from 'lucide-react-native';
 import React, { useEffect, useState, useRef } from 'react';
-import { Keyboard, RefreshControl, ScrollView, TouchableOpacity, TouchableWithoutFeedback, View, useWindowDimensions } from 'react-native';
+import { RefreshControl, ScrollView, TouchableOpacity, View } from 'react-native';
 import * as Location from 'expo-location';
 import { useMobileI18n } from '@/lib/mobile-i18n';
 import { MobileHeader } from '@/components/layout/MobileHeader';
@@ -46,10 +46,9 @@ export function MobileBikeMap({ onNavigate }: MobileBikeMapProps) {
   const colorScheme = useColorScheme();
   const styles = getGlobalStyles(colorScheme);
   const colors = Colors[colorScheme === 'dark' ? 'dark' : 'light'];
-  const { width: screenWidth } = useWindowDimensions();
   const mapRef = useRef<any>(null);
   
-  const [selectedBike, setSelectedBike] = useState<Bike | null>(null);
+  const [selectedBike] = useState<Bike | null>(null);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [bikes, setBikes] = useState<Bike[]>([]);
   const [areas, setAreas] = useState<Area[]>([]);
@@ -59,13 +58,12 @@ export function MobileBikeMap({ onNavigate }: MobileBikeMapProps) {
   const [areaSearchQuery, setAreaSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [mapLoaded, setMapLoaded] = useState(false);
-  const [mapZoom, setMapZoom] = useState(14);
   const [showBikeDetails, setShowBikeDetails] = useState(false);
   
   // États des filtres améliorés
   const [searchMode, setSearchMode] = useState<'proximity' | 'area'>('proximity');
   const [selectedArea, setSelectedArea] = useState<string>('');
-  const [maxDistance, setMaxDistance] = useState<number>(2); // Changement de défaut
+  const [maxDistance, setMaxDistance] = useState<number>(2);
   const [minBattery, setMinBattery] = useState<number>(0);
   const [searchLocation, setSearchLocation] = useState<{ lat: number; lng: number } | null>(null);
 
@@ -149,7 +147,7 @@ export function MobileBikeMap({ onNavigate }: MobileBikeMapProps) {
     }
   };
 
-  const handleBikePressOnMap = (bike: any) => {
+  const handleBikePressOnMap = (_bike: any) => {
     haptics.medium();
     //setSelectedBike(bike as Bike);
     //setShowBikeDetails(true);
@@ -264,769 +262,763 @@ export function MobileBikeMap({ onNavigate }: MobileBikeMapProps) {
   };
 
   return (
-    <TouchableWithoutFeedback onPress={() => {
-      setShowAreaDropdown(false);
-      setShowFilters(false);
-      Keyboard.dismiss();
-    }}>
-      <View style={styles.container}>
-        <MobileHeader 
-          title={t('nav.map')} 
-          showNotifications
-          notificationCount={2}
-          onNotifications={() => {
-            haptics.light();
-            onNavigate('notifications');
-          }}
-        />
+    <View style={styles.container}>
+      <MobileHeader 
+        title={t('nav.map')} 
+        showNotifications
+        notificationCount={2}
+        onNotifications={() => {
+          haptics.light();
+          onNavigate('notifications');
+        }}
+      />
 
-        {/* Filter Sheet */}
-        <Sheet open={showFilters} onOpenChange={setShowFilters}>
-          <SheetContent side="bottom" style={{ height: '85%', zIndex: 1000 }}>
-            <SheetHeader>
-              <SheetTitle>
-                {t('map.filters.title')}
-              </SheetTitle>
-              <SheetDescription>
-                {t('map.filters.description')}
-              </SheetDescription>
-            </SheetHeader>
+      {/* Filter Sheet */}
+      <Sheet open={showFilters} onOpenChange={setShowFilters}>
+        <SheetContent side="bottom" style={{ height: '85%', zIndex: 1000 }} onClose={() => setShowFilters(false)}>
+          <SheetHeader>
+            <SheetTitle>
+              {t('map.filters.title')}
+            </SheetTitle>
+            <SheetDescription>
+              {t('map.filters.description')}
+            </SheetDescription>
+          </SheetHeader>
 
-            <ScrollView style={{ flex: 1, marginTop: 10 }} showsVerticalScrollIndicator={false}>
-              <View style={{ gap: 24, paddingBottom: 100, marginRight: 10, marginLeft: 10 }}>
-                {/* Mode de recherche */}
-                <View style={{ gap: 12 }}>
-                  <Label>
-                    {t('map.filters.searchMode')}
-                  </Label>
-                  <View style={{ flexDirection: 'row', gap: 12 }}>
-                    <Button
-                      variant={searchMode === 'proximity' ? 'primary' : 'secondary'}
-                      onPress={resetToProximity}
-                      style={{ flex: 1 }}
-                    >
-                      <View style={[styles.row, styles.gap4, styles.alignCenter]}>
-                        <Navigation size={16} color="currentColor" />
-                        <Text style={styles.ml8}>
-                          {t('map.filters.nearby')}
-                        </Text>
-                      </View>
-                    </Button>
-                    <Button
-                      variant={searchMode === 'area' ? 'primary' : 'secondary'}
-                      onPress={() => {
-                        setSearchMode('area');
-                        haptics.light();
-                      }}
-                      style={{ flex: 1 }}
-                    >
-                      <View style={[styles.row, styles.gap4, styles.alignCenter]}>
-                        <Building2 size={16} color="currentColor" />
-                        <Text style={styles.ml8}>
-                          {t('map.filters.byArea')}
-                        </Text>
-                      </View>
-                    </Button>
-                  </View>
-                </View>
-
-                {/* Sélection de quartier */}
-                {searchMode === 'area' && (
-                  <View style={{ gap: 12 }}>
-                    <Label>
-                      {t('map.filters.selectArea')}
-                    </Label>
-                    <View style={styles.relative}>
-                      <TouchableOpacity
-                        onPress={() => setShowAreaDropdown(true)}
-                        style={[
-                          styles.input,
-                          { 
-                            flexDirection: 'row', 
-                            alignItems: 'center', 
-                            justifyContent: 'space-between',
-                            paddingRight: 12,
-                          }
-                        ]}
-                      >
-                        <Text>
-                          {selectedArea 
-                            ? areas.find(a => a.key === selectedArea)?.name 
-                            : t('map.filters.chooseArea')}
-                        </Text>
-                        <Home size={16} color="#9ca3af" />
-                      </TouchableOpacity>
-
-                      {showAreaDropdown && (
-                        <View 
-                          style={[
-                            styles.absolute,
-                            styles.card,
-                            styles.shadowLg,
-                            { 
-                              top: '100%',
-                              left: 0,
-                              right: 0,
-                              zIndex: 1000,
-                              marginTop: 4,
-                              maxHeight: 200,
-                            }
-                          ]}
-                        >
-                          <View style={[styles.relative, { padding: 8 }]}>
-                            <View style={[styles.absolute, { left: 20, top: 20, zIndex: 10 }]}>
-                              <Search size={16} color="#9ca3af" />
-                            </View>
-                            <Input
-                              value={areaSearchQuery}
-                              onChangeText={setAreaSearchQuery}
-                              placeholder={t('map.filters.searchArea')}
-                              style={{ paddingLeft: 40 }}
-                            />
-                          </View>
-
-                          <ScrollView style={{ maxHeight: 150 }} showsVerticalScrollIndicator={false}>
-                            {filteredAreas.length === 0 ? (
-                              <View style={[styles.py12, styles.px16, styles.alignCenter]}>
-                                <Text color="#6b7280">
-                                  {t('map.filters.noAreaFound')}
-                                </Text>
-                              </View>
-                            ) : (
-                              filteredAreas.map((area) => (
-                                <TouchableOpacity
-                                  key={area.key}
-                                  onPress={() => applyAreaFilter(area)}
-                                  style={[
-                                    styles.py12,
-                                    styles.px16,
-                                    { 
-                                      borderBottomWidth: 1, 
-                                      borderBottomColor: colors.border,
-                                      flexDirection: 'row',
-                                      alignItems: 'center',
-                                      gap: 8,
-                                      backgroundColor: selectedArea === area.key ? colors.primary + '20' : 'transparent',
-                                    }
-                                  ]}
-                                >
-                                  <Home size={16} color={selectedArea === area.key ? colors.primary : colors.text} />
-                                  <Text color={selectedArea === area.key ? colors.primary : colors.text}>
-                                    {area.name}
-                                  </Text>
-                                  {selectedArea === area.key && (
-                                    <CheckCircle size={16} color={colors.primary} style={{ marginLeft: 'auto' }} />
-                                  )}
-                                </TouchableOpacity>
-                              ))
-                            )}
-                          </ScrollView>
-                        </View>
-                      )}
-                    </View>
-                  </View>
-                )}
-
-                {/* Distance avec boutons prédéfinis */}
-                <View style={{ gap: 12 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Label>
-                      {t('map.filters.maxDistance')}
-                    </Label>
-                    <Badge variant="secondary">
-                      <View style={[styles.row, styles.gap4, styles.alignCenter]}>
-                        <MapPinIcon size={12} color="currentColor" />
-                        <Text style={styles.ml4}>{DISTANCE_PRESETS.find(d => d.value === maxDistance)?.label || `${maxDistance}km`}</Text>
-                      </View>
-                    </Badge>
-                  </View>
-                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                    {DISTANCE_PRESETS.map((preset) => (
-                      <TouchableOpacity
-                        key={preset.value}
-                        onPress={() => {
-                          setMaxDistance(preset.value);
-                          haptics.light();
-                        }}
-                        style={[
-                          {
-                            paddingHorizontal: 16,
-                            paddingVertical: 8,
-                            borderRadius: 20,
-                            borderWidth: 1,
-                            minWidth: 60,
-                            alignItems: 'center',
-                          },
-                          maxDistance === preset.value 
-                            ? { backgroundColor: colors.primary, borderColor: colors.primary }
-                            : { backgroundColor: 'transparent', borderColor: colors.border }
-                        ]}
-                      >
-                        <Text 
-                          size="sm" 
-                          color={maxDistance === preset.value ? 'white' : colors.text}
-                        >
-                          {preset.label}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </View>
-
-                {/* Niveau de batterie avec boutons prédéfinis */}
-                <View style={{ gap: 12 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Label>
-                      {t('map.filters.minBattery')}
-                    </Label>
-                    <Badge variant="secondary">
-                      <View style={[styles.row, styles.gap4, styles.alignCenter]}>
-                        <Battery size={14} color="currentColor" />
-                        <Text style={styles.ml4}>{BATTERY_LEVELS.find(b => b.value === minBattery)?.label || `${minBattery}%`}</Text>
-                      </View>
-                    </Badge>
-                  </View>
-                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                    {BATTERY_LEVELS.map((level) => (
-                      <TouchableOpacity
-                        key={level.value}
-                        onPress={() => {
-                          setMinBattery(level.value);
-                          haptics.light();
-                        }}
-                        style={[
-                          {
-                            paddingHorizontal: 16,
-                            paddingVertical: 8,
-                            borderRadius: 20,
-                            borderWidth: 1,
-                            minWidth: 60,
-                            alignItems: 'center',
-                          },
-                          minBattery === level.value 
-                            ? { backgroundColor: colors.primary, borderColor: colors.primary }
-                            : { backgroundColor: 'transparent', borderColor: colors.border }
-                        ]}
-                      >
-                        <Text 
-                          size="sm" 
-                          color={minBattery === level.value ? 'white' : colors.text}
-                        >
-                          {level.label}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </View>
-
-                {/* Actions */}
-                <View style={{ flexDirection: 'row', gap: 12, paddingTop: 16 }}>
-                  <Button 
-                    variant="secondary" 
-                    onPress={resetAllFilters}
+          <ScrollView style={{ flex: 1, marginTop: 10 }} showsVerticalScrollIndicator={false}>
+            <View style={{ gap: 24, paddingBottom: 100, marginRight: 10, marginLeft: 10 }}>
+              {/* Mode de recherche */}
+              <View style={{ gap: 12 }}>
+                <Label>
+                  {t('map.filters.searchMode')}
+                </Label>
+                <View style={{ flexDirection: 'row', gap: 12 }}>
+                  <Button
+                    variant={searchMode === 'proximity' ? 'primary' : 'secondary'}
+                    onPress={resetToProximity}
                     style={{ flex: 1 }}
                   >
                     <View style={[styles.row, styles.gap4, styles.alignCenter]}>
-                      <RotateCcw size={16} color="currentColor" />
-                      <Text style={styles.ml8}>{t('common.reset')}</Text>
+                      <Navigation size={16} color={colors.text} />
+                      <Text style={styles.ml8}>
+                        {t('map.filters.nearby')}
+                      </Text>
                     </View>
                   </Button>
-                  <Button 
-                    variant="primary"
+                  <Button
+                    variant={searchMode === 'area' ? 'primary' : 'secondary'}
                     onPress={() => {
-                      setShowFilters(false);
-                      loadActiveBikes();
-                      haptics.success();
+                      setSearchMode('area');
+                      haptics.light();
                     }}
                     style={{ flex: 1 }}
                   >
                     <View style={[styles.row, styles.gap4, styles.alignCenter]}>
-                      <Filter size={16} color="currentColor" />
-                      <Text style={styles.ml8}>{t('common.apply')}</Text>
+                      <Building2 size={16} color={colors.text} />
+                      <Text style={styles.ml8}>
+                        {t('map.filters.byArea')}
+                      </Text>
                     </View>
                   </Button>
                 </View>
               </View>
-            </ScrollView>
-          </SheetContent>
-        </Sheet>
 
-        {/* Sheet pour les détails du vélo */}
-        <Sheet open={showBikeDetails} onOpenChange={setShowBikeDetails}>
-          <SheetContent side="bottom" style={{ height: '60%' }}>
-            {selectedBike && (
-              <>
-                <SheetHeader>
-                  <SheetTitle>
-                    Vélo {selectedBike.code}
-                  </SheetTitle>
-                  <SheetDescription>
-                    {selectedBike.model} • {selectedBike.distance?.toFixed(1)} km de vous
-                  </SheetDescription>
-                </SheetHeader>
-
-                <View style={{ flex: 1, paddingTop: 24, gap: 20 }}>
-                  <View style={[styles.row, { gap: 16 }]}>
-                    <View style={[styles.flex1, styles.card, { padding: 16, alignItems: 'center' }]}>
-                      <Battery size={24} color={selectedBike.batteryLevel > 50 ? '#16a34a' : selectedBike.batteryLevel > 20 ? '#f59e0b' : '#ef4444'} />
-                      <Text variant="body" style={{ marginTop: 8 }}>
-                        {selectedBike.batteryLevel}%
-                      </Text>
-                      <Text size="sm" color="#6b7280">
-                        Batterie
-                      </Text>
-                    </View>
-
-                    <View style={[styles.flex1, styles.card, { padding: 16, alignItems: 'center' }]}>
-                      <MapPin size={24} color="#6b7280" />
-                      <Text variant="body" style={{ marginTop: 8 }}>
-                        {selectedBike.distance?.toFixed(1)} km
-                      </Text>
-                      <Text size="sm" color="#6b7280">
-                        Distance
-                      </Text>
-                    </View>
-
-                    <View style={[styles.flex1, styles.card, { padding: 16, alignItems: 'center' }]}>
-                      <Zap size={24} color="#5D5CDE" />
-                      <Text variant="body" style={{ marginTop: 8 }}>
-                        {selectedBike.currentPricing?.hourlyRate || '--'} XOF
-                      </Text>
-                      <Text size="sm" color="#6b7280">
-                        /heure
-                      </Text>
-                    </View>
-                  </View>
-
-                  {selectedBike.locationName && (
-                    <View style={[styles.card, { padding: 16 }]}>
-                      <Text size="sm" color="#6b7280" style={{ marginBottom: 4 }}>
-                        Localisation
-                      </Text>
-                      <Text variant="body">
-                        {selectedBike.locationName}
-                      </Text>
-                    </View>
-                  )}
-
-                  <View style={{ marginTop: 'auto', gap: 12, paddingBottom: 20 }}>
-                    <Button
-                      variant="primary"
-                      onPress={() => {
-                        setShowBikeDetails(false);
-                        haptics.success();
-                        onNavigate('bike-details', selectedBike);
-                      }}
-                      style={{ height: 54 }}
+              {/* Sélection de quartier */}
+              {searchMode === 'area' && (
+                <View style={{ gap: 12 }}>
+                  <Label>
+                    {t('map.filters.selectArea')}
+                  </Label>
+                  <View style={styles.relative}>
+                    <TouchableOpacity
+                      onPress={() => setShowAreaDropdown(true)}
+                      style={[
+                        styles.input,
+                        { 
+                          flexDirection: 'row', 
+                          alignItems: 'center', 
+                          justifyContent: 'space-between',
+                          paddingRight: 12,
+                        }
+                      ]}
                     >
-                      <Text color="white">Déverrouiller ce vélo</Text>
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      onPress={() => setShowBikeDetails(false)}
-                      style={{ height: 54 }}
-                    >
-                      <Text>Annuler</Text>
-                    </Button>
+                      <Text>
+                        {selectedArea 
+                          ? areas.find(a => a.key === selectedArea)?.name 
+                          : t('map.filters.chooseArea')}
+                      </Text>
+                      <Home size={16} color="#9ca3af" />
+                    </TouchableOpacity>
+
+                    {showAreaDropdown && (
+                      <View 
+                        style={[
+                          styles.absolute,
+                          styles.card,
+                          styles.shadowLg,
+                          { 
+                            top: '100%',
+                            left: 0,
+                            right: 0,
+                            zIndex: 1000,
+                            marginTop: 4,
+                            maxHeight: 200,
+                          }
+                        ]}
+                      >
+                        <View style={[styles.relative, { padding: 8 }]}>
+                          <View style={[styles.absolute, { left: 20, top: 20, zIndex: 10 }]}>
+                            <Search size={16} color="#9ca3af" />
+                          </View>
+                          <Input
+                            value={areaSearchQuery}
+                            onChangeText={setAreaSearchQuery}
+                            placeholder={t('map.filters.searchArea')}
+                            style={{ paddingLeft: 40 }}
+                          />
+                        </View>
+
+                        <ScrollView style={{ maxHeight: 150 }} showsVerticalScrollIndicator={false}>
+                          {filteredAreas.length === 0 ? (
+                            <View style={[styles.py12, styles.px16, styles.alignCenter]}>
+                              <Text color="#6b7280">
+                                {t('map.filters.noAreaFound')}
+                              </Text>
+                            </View>
+                          ) : (
+                            filteredAreas.map((area) => (
+                              <TouchableOpacity
+                                key={area.key}
+                                onPress={() => applyAreaFilter(area)}
+                                style={[
+                                  styles.py12,
+                                  styles.px16,
+                                  { 
+                                    borderBottomWidth: 1, 
+                                    borderBottomColor: colors.border,
+                                    flexDirection: 'row',
+                                    alignItems: 'center',
+                                    gap: 8,
+                                    backgroundColor: selectedArea === area.key ? colors.primary + '20' : 'transparent',
+                                  }
+                                ]}
+                              >
+                                <Home size={16} color={selectedArea === area.key ? colors.primary : colors.text} />
+                                <Text color={selectedArea === area.key ? colors.primary : colors.text}>
+                                  {area.name}
+                                </Text>
+                                {selectedArea === area.key && (
+                                  <CheckCircle size={16} color={colors.primary} style={{ marginLeft: 'auto' }} />
+                                )}
+                              </TouchableOpacity>
+                            ))
+                          )}
+                        </ScrollView>
+                      </View>
+                    )}
                   </View>
                 </View>
-              </>
-            )}
-          </SheetContent>
-        </Sheet>
+              )}
 
-        {/* Carte Interactive Complètement Améliorée */}
-        <View style={styles.relative}>
-          {/* Carte Interactive avec vraies fonctionnalités */}
-          <View 
-            style={[
-              styles.wT100,
-              { height: 350, backgroundColor: colorScheme === 'light' ? '#f8fafc' : '#1e293b' }
-            ]}
-          >
-            <OSMMap
-              ref={mapRef}
-              userLocation={referenceLocation}
-              bikes={getBikesWithValidCoords(filteredBikes)}
-              radius={maxDistance}
-              onBikePress={handleBikePressOnMap}
-              onMapReady={() => setMapLoaded(true)}
-              colorScheme={colorScheme}
-            />
+              {/* Distance avec boutons prédéfinis */}
+              <View style={{ gap: 12 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Label>
+                    {t('map.filters.maxDistance')}
+                  </Label>
+                  <Badge variant="secondary">
+                    <View style={[styles.row, styles.gap4, styles.alignCenter]}>
+                      <MapPinIcon size={12} color={colors.text} />
+                      <Text style={styles.ml4}>{DISTANCE_PRESETS.find(d => d.value === maxDistance)?.label || `${maxDistance}km`}</Text>
+                    </View>
+                  </Badge>
+                </View>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                  {DISTANCE_PRESETS.map((preset) => (
+                    <TouchableOpacity
+                      key={preset.value}
+                      onPress={() => {
+                        setMaxDistance(preset.value);
+                        haptics.light();
+                      }}
+                      style={[
+                        {
+                          paddingHorizontal: 16,
+                          paddingVertical: 8,
+                          borderRadius: 20,
+                          borderWidth: 1,
+                          minWidth: 60,
+                          alignItems: 'center',
+                        },
+                        maxDistance === preset.value 
+                          ? { backgroundColor: colors.primary, borderColor: colors.primary }
+                          : { backgroundColor: 'transparent', borderColor: colors.border }
+                      ]}
+                    >
+                      <Text 
+                        size="sm" 
+                        color={maxDistance === preset.value ? 'white' : colors.text}
+                      >
+                        {preset.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
 
-            {/* Info overlay mise à jour */}
-            <View style={[
-              styles.absolute,
-              { bottom: 16, left: 16, right: 16 },
-              styles.alignCenter
-            ]}>
-              <View 
-                style={[
-                  styles.row,
-                  { 
-                    backgroundColor: 'rgba(255,255,255,0.95)',
-                    paddingHorizontal: 16,
-                    paddingVertical: 8,
-                    borderRadius: 20,
-                    alignItems: 'center',
-                    gap: 8,
-                    shadowColor: '#000',
-                    shadowOffset: { width: 0, height: 2 },
-                    shadowOpacity: 0.1,
-                    shadowRadius: 4,
-                    elevation: 3,
-                  }
-                ]}
-              >
-                <View 
-                  style={{
-                    width: 12,
-                    height: 12,
-                    borderRadius: 6,
-                    backgroundColor: '#16a34a',
+              {/* Niveau de batterie avec boutons prédéfinis */}
+              <View style={{ gap: 12 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Label>
+                    {t('map.filters.minBattery')}
+                  </Label>
+                  <Badge variant="secondary">
+                    <View style={[styles.row, styles.gap4, styles.alignCenter]}>
+                      <Battery size={14} color={colors.text} />
+                      <Text style={styles.ml4}>{BATTERY_LEVELS.find(b => b.value === minBattery)?.label || `${minBattery}%`}</Text>
+                    </View>
+                  </Badge>
+                </View>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                  {BATTERY_LEVELS.map((level) => (
+                    <TouchableOpacity
+                      key={level.value}
+                      onPress={() => {
+                        setMinBattery(level.value);
+                        haptics.light();
+                      }}
+                      style={[
+                        {
+                          paddingHorizontal: 16,
+                          paddingVertical: 8,
+                          borderRadius: 20,
+                          borderWidth: 1,
+                          minWidth: 60,
+                          alignItems: 'center',
+                        },
+                        minBattery === level.value 
+                          ? { backgroundColor: colors.primary, borderColor: colors.primary }
+                          : { backgroundColor: 'transparent', borderColor: colors.border }
+                      ]}
+                    >
+                      <Text 
+                        size="sm" 
+                        color={minBattery === level.value ? 'white' : colors.text}
+                      >
+                        {level.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              {/* Actions */}
+              <View style={{ flexDirection: 'row', gap: 12, paddingTop: 16 }}>
+                <Button 
+                  variant="secondary" 
+                  onPress={resetAllFilters}
+                  style={{ flex: 1 }}
+                >
+                  <View style={[styles.row, styles.gap4, styles.alignCenter]}>
+                    <RotateCcw size={16} color={colors.text} />
+                    <Text style={styles.ml8}>{t('common.reset')}</Text>
+                  </View>
+                </Button>
+                <Button 
+                  variant="primary"
+                  onPress={() => {
+                    setShowFilters(false);
+                    loadActiveBikes();
+                    haptics.success();
                   }}
-                />
-                <Text size="sm" color="#111827">
-                  {filteredBikes.length} vélo{filteredBikes.length > 1 ? 's' : ''} trouvé{filteredBikes.length > 1 ? 's' : ''}
-                </Text>
-                {searchMode === 'area' && selectedArea && (
-                  <>
-                    <Text size="sm" color="#6b7280">•</Text>
-                    <Text size="sm" color="#6b7280">
-                      {areas.find(a => a.key === selectedArea)?.name}
-                    </Text>
-                  </>
-                )}
-                <Text size="sm" color="#6b7280">•</Text>
-                <Text size="sm" color="#6b7280">
-                  Rayon {maxDistance}km
-                </Text>
+                  style={{ flex: 1 }}
+                >
+                  <View style={[styles.row, styles.gap4, styles.alignCenter]}>
+                    <Filter size={16} color={colors.text} />
+                    <Text style={styles.ml8}>{t('common.apply')}</Text>
+                  </View>
+                </Button>
               </View>
             </View>
-          </View>
+          </ScrollView>
+        </SheetContent>
+      </Sheet>
 
-          {/* Contrôles de carte améliorés */}
-          <View style={[styles.absolute, { top: 16, right: 16 }, { gap: 8 }]}>
-            {/* Bouton de géolocalisation */}
-            <TouchableOpacity
-              onPress={centerOnUser}
-              style={[
-                { width: 48, height: 48 },
-                styles.rounded24,
-                styles.alignCenter,
-                styles.justifyCenter,
-                styles.shadow,
-                {
-                  backgroundColor: colorScheme === 'light' ? 'white' : '#374151',
-                }
-              ]}
-            >
-              <Navigation size={20} color={colorScheme === 'light' ? '#111827' : '#f9fafb'} />
-            </TouchableOpacity>
+      {/* Sheet pour les détails du vélo */}
+      <Sheet open={showBikeDetails} onOpenChange={setShowBikeDetails}>
+        <SheetContent side="bottom" style={{ height: '60%' }} onClose={() => setShowBikeDetails(false)}>
+          {selectedBike && (
+            <>
+              <SheetHeader>
+                <SheetTitle>
+                  Vélo {selectedBike.code}
+                </SheetTitle>
+                <SheetDescription>
+                  {selectedBike.model} • {selectedBike.distance?.toFixed(1)} km de vous
+                </SheetDescription>
+              </SheetHeader>
 
-            {/* Contrôles de zoom */}
-            <TouchableOpacity
-              onPress={zoomIn}
-              style={[
-                { width: 48, height: 48 },
-                styles.rounded24,
-                styles.alignCenter,
-                styles.justifyCenter,
-                styles.shadow,
-                {
-                  backgroundColor: colorScheme === 'light' ? 'white' : '#374151',
-                }
-              ]}
-            >
-              <ZoomIn size={20} color={colorScheme === 'light' ? '#111827' : '#f9fafb'} />
-            </TouchableOpacity>
+              <View style={{ flex: 1, paddingTop: 24, gap: 20 }}>
+                <View style={[styles.row, { gap: 16 }]}>
+                  <View style={[styles.flex1, styles.card, { padding: 16, alignItems: 'center' }]}>
+                    <Battery size={24} color={selectedBike.batteryLevel > 50 ? '#16a34a' : selectedBike.batteryLevel > 20 ? '#f59e0b' : '#ef4444'} />
+                    <Text variant="body" style={{ marginTop: 8 }}>
+                      {selectedBike.batteryLevel}%
+                    </Text>
+                    <Text size="sm" color="#6b7280">
+                      Batterie
+                    </Text>
+                  </View>
 
-            <TouchableOpacity
-              onPress={zoomOut}
-              style={[
-                { width: 48, height: 48 },
-                styles.rounded24,
-                styles.alignCenter,
-                styles.justifyCenter,
-                styles.shadow,
-                {
-                  backgroundColor: colorScheme === 'light' ? 'white' : '#374151',
-                }
-              ]}
-            >
-              <ZoomOut size={20} color={colorScheme === 'light' ? '#111827' : '#f9fafb'} />
-            </TouchableOpacity>
+                  <View style={[styles.flex1, styles.card, { padding: 16, alignItems: 'center' }]}>
+                    <MapPin size={24} color="#6b7280" />
+                    <Text variant="body" style={{ marginTop: 8 }}>
+                      {selectedBike.distance?.toFixed(1)} km
+                    </Text>
+                    <Text size="sm" color="#6b7280">
+                      Distance
+                    </Text>
+                  </View>
 
-            {/* Bouton pour changer le style de carte */}
-            <TouchableOpacity
-              onPress={toggleMapStyle}
-              style={[
-                { width: 48, height: 48 },
-                styles.rounded24,
-                styles.alignCenter,
-                styles.justifyCenter,
-                styles.shadow,
-                {
-                  backgroundColor: colorScheme === 'light' ? 'white' : '#374151',
-                }
-              ]}
-            >
-              <RotateCw size={20} color={colorScheme === 'light' ? '#111827' : '#f9fafb'} />
-            </TouchableOpacity>
+                  <View style={[styles.flex1, styles.card, { padding: 16, alignItems: 'center' }]}>
+                    <Zap size={24} color="#5D5CDE" />
+                    <Text variant="body" style={{ marginTop: 8 }}>
+                      {selectedBike.currentPricing?.hourlyRate || '--'} XOF
+                    </Text>
+                    <Text size="sm" color="#6b7280">
+                      /heure
+                    </Text>
+                  </View>
+                </View>
 
-            {/* Bouton de filtres */}
-            <TouchableOpacity
-              onPress={() => {
-                haptics.light();
-                setShowFilters(!showFilters);
-              }}
-              style={[
-                { width: 48, height: 48 },
-                styles.rounded24,
-                styles.alignCenter,
-                styles.justifyCenter,
-                styles.shadow,
-                {
-                  backgroundColor: hasActiveFilters
-                    ? '#16a34a'
-                    : (colorScheme === 'light' ? 'white' : '#374151'),
-                }
-              ]}
-            >
-              <Filter 
-                size={20} 
-                color={hasActiveFilters
-                  ? 'white'
-                  : (colorScheme === 'light' ? '#111827' : '#f9fafb')
-                } 
-              />
-              {hasActiveFilters && (
-                <View 
-                  style={{
-                    position: 'absolute',
-                    top: -2,
-                    right: -2,
-                    width: 8,
-                    height: 8,
-                    borderRadius: 4,
-                    backgroundColor: '#ef4444',
-                  }}
-                />
-              )}
-            </TouchableOpacity>
-          </View>
+                {selectedBike.locationName && (
+                  <View style={[styles.card, { padding: 16 }]}>
+                    <Text size="sm" color="#6b7280" style={{ marginBottom: 4 }}>
+                      Localisation
+                    </Text>
+                    <Text variant="body">
+                      {selectedBike.locationName}
+                    </Text>
+                  </View>
+                )}
 
-          {/* Search Bar */}
-          <View style={[styles.absolute, { top: 16, left: 16, right: 80 }]}>
-            <View style={styles.relative}>
-              <View style={[styles.absolute, { left: 12, top: 14, zIndex: 10 }]}>
-                <Search size={20} color="#9ca3af" />
+                <View style={{ marginTop: 'auto', gap: 12, paddingBottom: 20 }}>
+                  <Button
+                    variant="primary"
+                    onPress={() => {
+                      setShowBikeDetails(false);
+                      haptics.success();
+                      onNavigate('bike-details', selectedBike);
+                    }}
+                    style={{ height: 54 }}
+                  >
+                    <Text color="white">Déverrouiller ce vélo</Text>
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onPress={() => setShowBikeDetails(false)}
+                    style={{ height: 54 }}
+                  >
+                    <Text>Annuler</Text>
+                  </Button>
+                </View>
               </View>
-              <Input
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                placeholder={t('map.searchPlaceholder')}
-                style={[{ paddingLeft: 44 }, styles.shadow]}
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
+
+      {/* Carte Interactive Complètement Améliorée */}
+      <View style={styles.relative}>
+        {/* Carte Interactive avec vraies fonctionnalités */}
+        <View 
+          style={[
+            styles.wT100,
+            { height: 350, backgroundColor: colorScheme === 'light' ? '#f8fafc' : '#1e293b' }
+          ]}
+        >
+          <OSMMap
+            ref={mapRef}
+            userLocation={referenceLocation}
+            bikes={getBikesWithValidCoords(filteredBikes)}
+            radius={maxDistance}
+            onBikePress={handleBikePressOnMap}
+            onMapReady={() => setMapLoaded(true)}
+            colorScheme={colorScheme}
+          />
+
+          {/* Info overlay mise à jour */}
+          <View style={[
+            styles.absolute,
+            { bottom: 16, left: 16, right: 16 },
+            styles.alignCenter
+          ]}>
+            <View 
+              style={[
+                styles.row,
+                { 
+                  backgroundColor: 'rgba(255,255,255,0.95)',
+                  paddingHorizontal: 16,
+                  paddingVertical: 8,
+                  borderRadius: 20,
+                  alignItems: 'center',
+                  gap: 8,
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 4,
+                  elevation: 3,
+                }
+              ]}
+            >
+              <View 
+                style={{
+                  width: 12,
+                  height: 12,
+                  borderRadius: 6,
+                  backgroundColor: '#16a34a',
+                }}
               />
+              <Text size="sm" color="#111827">
+                {filteredBikes.length} vélo{filteredBikes.length > 1 ? 's' : ''} trouvé{filteredBikes.length > 1 ? 's' : ''}
+              </Text>
+              {searchMode === 'area' && selectedArea && (
+                <>
+                  <Text size="sm" color="#6b7280">•</Text>
+                  <Text size="sm" color="#6b7280">
+                    {areas.find(a => a.key === selectedArea)?.name}
+                  </Text>
+                </>
+              )}
+              <Text size="sm" color="#6b7280">•</Text>
+              <Text size="sm" color="#6b7280">
+                Rayon {maxDistance}km
+              </Text>
             </View>
           </View>
         </View>
 
-        {/* Liste des vélos améliorée */}
-        <ScrollView 
-          style={styles.flex1}
-          contentContainerStyle={[styles.scrollContentPadded, { gap: 16 }]}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={isLoading}
-              onRefresh={loadActiveBikes}
-              colors={['#16a34a']}
-              tintColor="#16a34a"
-            />
-          }
-        >
-          <View style={[styles.row, styles.spaceBetween, styles.alignCenter]}>
-            <Text variant="body" color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
-              {searchMode === 'area' && selectedArea
-                ? `Vélos à ${areas.find(a => a.key === selectedArea)?.name}`
-                : 'Vélos disponibles à proximité'}
-            </Text>
-            <Badge variant="secondary">
-              <View style={[styles.row, styles.gap4, styles.alignCenter]}>
-                <Zap size={12} color="currentColor" style={{marginRight: 10}} />
-                <Text>{filteredBikes.length}</Text>
-              </View>
-            </Badge>
-          </View>
+        {/* Contrôles de carte améliorés */}
+        <View style={[styles.absolute, { top: 16, right: 16 }, { gap: 8 }]}>
+          {/* Bouton de géolocalisation */}
+          <TouchableOpacity
+            onPress={centerOnUser}
+            style={[
+              { width: 48, height: 48 },
+              styles.rounded24,
+              styles.alignCenter,
+              styles.justifyCenter,
+              styles.shadow,
+              {
+                backgroundColor: colorScheme === 'light' ? 'white' : '#374151',
+              }
+            ]}
+          >
+            <Navigation size={20} color={colorScheme === 'light' ? '#111827' : '#f9fafb'} />
+          </TouchableOpacity>
 
-          {/* Résumé des filtres appliqués */}
-          {hasActiveFilters && (
-            <View style={[styles.card, { padding: 12 }]}>
-              <View style={[styles.row, { gap: 8, flexWrap: 'wrap' }]}>
-                <Text size="sm" color={colors.primary}>Filtres actifs:</Text>
-                {searchMode === 'area' && (
-                  <Badge variant="secondary" style={{ backgroundColor: colors.primary + '20' }}>
-                    <View style={[styles.row, styles.gap4, styles.alignCenter]}>
-                      <Building2 size={10} color={colors.primary} />
-                      <Text size="xs" color={colors.primary}>
-                        {areas.find(a => a.key === selectedArea)?.name}
-                      </Text>
-                    </View>
-                  </Badge>
-                )}
-                {maxDistance !== 2 && (
-                  <Badge variant="secondary" style={{ backgroundColor: colors.primary + '20' }}>
-                    <View style={[styles.row, styles.gap4, styles.alignCenter]}>
-                      <MapPin size={10} color={colors.primary} />
-                      <Text size="xs" color={colors.primary}>
-                        {DISTANCE_PRESETS.find(d => d.value === maxDistance)?.label}
-                      </Text>
-                    </View>
-                  </Badge>
-                )}
-                {minBattery > 0 && (
-                  <Badge variant="secondary" style={{ backgroundColor: colors.primary + '20' }}>
-                    <View style={[styles.row, styles.gap4, styles.alignCenter]}>
-                      <Battery size={10} color={colors.primary} />
-                      <Text size="xs" color={colors.primary}>
-                        {minBattery}%+
-                      </Text>
-                    </View>
-                  </Badge>
-                )}
-                <TouchableOpacity onPress={resetAllFilters}>
-                  <Badge variant="secondary" style={{ backgroundColor: '#ef444420' }}>
-                    <View style={[styles.row, styles.gap4, styles.alignCenter]}>
-                      <X size={10} color="#ef4444" />
-                      <Text size="xs" color="#ef4444" style={styles.ml4}>
-                        Effacer
-                      </Text>
-                    </View>
-                  </Badge>
-                </TouchableOpacity>
+          {/* Contrôles de zoom */}
+          <TouchableOpacity
+            onPress={zoomIn}
+            style={[
+              { width: 48, height: 48 },
+              styles.rounded24,
+              styles.alignCenter,
+              styles.justifyCenter,
+              styles.shadow,
+              {
+                backgroundColor: colorScheme === 'light' ? 'white' : '#374151',
+              }
+            ]}
+          >
+            <ZoomIn size={20} color={colorScheme === 'light' ? '#111827' : '#f9fafb'} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={zoomOut}
+            style={[
+              { width: 48, height: 48 },
+              styles.rounded24,
+              styles.alignCenter,
+              styles.justifyCenter,
+              styles.shadow,
+              {
+                backgroundColor: colorScheme === 'light' ? 'white' : '#374151',
+              }
+            ]}
+          >
+            <ZoomOut size={20} color={colorScheme === 'light' ? '#111827' : '#f9fafb'} />
+          </TouchableOpacity>
+
+          {/* Bouton pour changer le style de carte */}
+          <TouchableOpacity
+            onPress={toggleMapStyle}
+            style={[
+              { width: 48, height: 48 },
+              styles.rounded24,
+              styles.alignCenter,
+              styles.justifyCenter,
+              styles.shadow,
+              {
+                backgroundColor: colorScheme === 'light' ? 'white' : '#374151',
+              }
+            ]}
+          >
+            <RotateCw size={20} color={colorScheme === 'light' ? '#111827' : '#f9fafb'} />
+          </TouchableOpacity>
+
+          {/* Bouton de filtres */}
+          <TouchableOpacity
+            onPress={() => {
+              haptics.light();
+              setShowFilters(!showFilters);
+            }}
+            style={[
+              { width: 48, height: 48 },
+              styles.rounded24,
+              styles.alignCenter,
+              styles.justifyCenter,
+              styles.shadow,
+              {
+                backgroundColor: hasActiveFilters
+                  ? '#16a34a'
+                  : (colorScheme === 'light' ? 'white' : '#374151'),
+              }
+            ]}
+          >
+            <Filter 
+              size={20} 
+              color={hasActiveFilters
+                ? 'white'
+                : (colorScheme === 'light' ? '#111827' : '#f9fafb')
+              } 
+            />
+            {hasActiveFilters && (
+              <View 
+                style={{
+                  position: 'absolute',
+                  top: -2,
+                  right: -2,
+                  width: 8,
+                  height: 8,
+                  borderRadius: 4,
+                  backgroundColor: '#ef4444',
+                }}
+              />
+            )}
+          </TouchableOpacity>
+        </View>
+
+        {/* Search Bar */}
+        <View style={[styles.absolute, { top: 16, left: 16, right: 80 }]}>
+          <View style={styles.relative}>
+            <View style={[styles.absolute, { left: 12, top: 14, zIndex: 10 }]}>
+              <Search size={20} color="#9ca3af" />
+            </View>
+            <Input
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder={t('map.searchPlaceholder')}
+              style={[{ paddingLeft: 44 }, styles.shadow]}
+            />
+          </View>
+        </View>
+      </View>
+
+      {/* Liste des vélos améliorée */}
+      <ScrollView 
+        style={styles.flex1}
+        contentContainerStyle={[styles.scrollContentPadded, { gap: 16 }]}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isLoading}
+            onRefresh={loadActiveBikes}
+            colors={['#16a34a']}
+            tintColor="#16a34a"
+          />
+        }
+      >
+        <View style={[styles.row, styles.spaceBetween, styles.alignCenter]}>
+          <Text variant="body" color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
+            {searchMode === 'area' && selectedArea
+              ? `Vélos à ${areas.find(a => a.key === selectedArea)?.name}`
+              : 'Vélos disponibles à proximité'}
+          </Text>
+          <Badge variant="secondary">
+            <View style={[styles.row, styles.gap4, styles.alignCenter]}>
+              <Zap size={12} color={colors.text} style={{marginRight: 10}} />
+              <Text>{filteredBikes.length}</Text>
+            </View>
+          </Badge>
+        </View>
+
+        {/* Résumé des filtres appliqués */}
+        {hasActiveFilters && (
+          <View style={[styles.card, { padding: 12 }]}>
+            <View style={[styles.row, { gap: 8, flexWrap: 'wrap' }]}>
+              <Text size="sm" color={colors.primary}>Filtres actifs:</Text>
+              {searchMode === 'area' && (
+                <Badge variant="secondary" style={{ backgroundColor: colors.primary + '20' }}>
+                  <View style={[styles.row, styles.gap4, styles.alignCenter]}>
+                    <Building2 size={10} color={colors.primary} />
+                    <Text size="xs" color={colors.primary}>
+                      {areas.find(a => a.key === selectedArea)?.name}
+                    </Text>
+                  </View>
+                </Badge>
+              )}
+              {maxDistance !== 2 && (
+                <Badge variant="secondary" style={{ backgroundColor: colors.primary + '20' }}>
+                  <View style={[styles.row, styles.gap4, styles.alignCenter]}>
+                    <MapPin size={10} color={colors.primary} />
+                    <Text size="xs" color={colors.primary}>
+                      {DISTANCE_PRESETS.find(d => d.value === maxDistance)?.label}
+                    </Text>
+                  </View>
+                </Badge>
+              )}
+              {minBattery > 0 && (
+                <Badge variant="secondary" style={{ backgroundColor: colors.primary + '20' }}>
+                  <View style={[styles.row, styles.gap4, styles.alignCenter]}>
+                    <Battery size={10} color={colors.primary} />
+                    <Text size="xs" color={colors.primary}>
+                      {minBattery}%+
+                    </Text>
+                  </View>
+                </Badge>
+              )}
+              <TouchableOpacity onPress={resetAllFilters}>
+                <Badge variant="secondary" style={{ backgroundColor: '#ef444420' }}>
+                  <View style={[styles.row, styles.gap4, styles.alignCenter]}>
+                    <X size={10} color="#ef4444" />
+                    <Text size="xs" color="#ef4444" style={styles.ml4}>
+                      Effacer
+                    </Text>
+                  </View>
+                </Badge>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        <View style={{ gap: 12 }}>
+          {filteredBikes.length === 0 ? (
+            <View style={[styles.card, { padding: 32 }, styles.alignCenter]}>
+              <View style={[styles.alignCenter, { gap: 16 }]}>
+                <View 
+                  style={[
+                    { width: 64, height: 64 },
+                    styles.rounded24,
+                    styles.alignCenter,
+                    styles.justifyCenter,
+                    { backgroundColor: colorScheme === 'light' ? '#f3f4f6' : '#374151' }
+                  ]}
+                >
+                  <Search size={32} color={colorScheme === 'light' ? '#9ca3af' : '#6b7280'} />
+                </View>
+                <Text variant="body" color={colorScheme === 'light' ? '#111827' : '#f9fafb'} style={styles.mb8}>
+                  {t('map.noBikesFound')}
+                </Text>
+                <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={[styles.mb16, { textAlign: 'center' }]}>
+                  {t('map.adjustFilters')}
+                </Text>
+                <Button onPress={() => setShowFilters(true)} variant="secondary">
+                  <View style={[styles.row, styles.gap8, styles.alignCenter]}>
+                    <Filter size={16} color={colors.text} />
+                    <Text style={styles.ml8}>{t('map.modifyFilters')}</Text>
+                  </View>
+                </Button>
               </View>
             </View>
-          )}
-
-          <View style={{ gap: 12 }}>
-            {filteredBikes.length === 0 ? (
-              <View style={[styles.card, { padding: 32 }, styles.alignCenter]}>
-                <View style={[styles.alignCenter, { gap: 16 }]}>
-                  <View 
-                    style={[
-                      { width: 64, height: 64 },
-                      styles.rounded24,
-                      styles.alignCenter,
-                      styles.justifyCenter,
-                      { backgroundColor: colorScheme === 'light' ? '#f3f4f6' : '#374151' }
-                    ]}
-                  >
-                    <Search size={32} color={colorScheme === 'light' ? '#9ca3af' : '#6b7280'} />
-                  </View>
-                  <Text variant="body" color={colorScheme === 'light' ? '#111827' : '#f9fafb'} style={styles.mb8}>
-                    {t('map.noBikesFound')}
-                  </Text>
-                  <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={[styles.mb16, { textAlign: 'center' }]}>
-                    {t('map.adjustFilters')}
-                  </Text>
-                  <Button onPress={() => setShowFilters(true)} variant="secondary">
-                    <View style={[styles.row, styles.gap8, styles.alignCenter]}>
-                      <Filter size={16} color="currentColor" />
-                      <Text style={styles.ml8}>{t('map.modifyFilters')}</Text>
+          ) : (
+            filteredBikes.map((bike) => (
+              <TouchableOpacity
+                key={bike.id}
+                onPress={() => {
+                  haptics.light();
+                  onNavigate('bike-details', bike);
+                }}
+              >
+                <View style={[styles.card, { padding: 16 }]}>
+                  <View style={[styles.row, { gap: 12 }]}>
+                    <View 
+                      style={[
+                        { width: 48, height: 48 },
+                        styles.rounded12,
+                        styles.alignCenter,
+                        styles.justifyCenter,
+                        { backgroundColor: colorScheme === 'light' ? '#f0fdf4' : '#14532d' }
+                      ]}
+                    >
+                      <Zap size={24} color="#16a34a" />
                     </View>
-                  </Button>
-                </View>
-              </View>
-            ) : (
-              filteredBikes.map((bike) => (
-                <TouchableOpacity
-                  key={bike.id}
-                  onPress={() => {
-                    haptics.light();
-                    onNavigate('bike-details', bike);
-                  }}
-                >
-                  <View style={[styles.card, { padding: 16 }]}>
-                    <View style={[styles.row, { gap: 12 }]}>
-                      <View 
-                        style={[
-                          { width: 48, height: 48 },
-                          styles.rounded12,
-                          styles.alignCenter,
-                          styles.justifyCenter,
-                          { backgroundColor: colorScheme === 'light' ? '#f0fdf4' : '#14532d' }
-                        ]}
-                      >
-                        <Zap size={24} color="#16a34a" />
-                      </View>
 
-                      <View style={styles.flex1}>
-                        <View style={[styles.row, styles.spaceBetween, styles.alignCenter, styles.mb4]}>
-                          <View>
-                            <Text variant="body" color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
-                              {bike.code}
-                            </Text>
-                            <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
-                              {bike.model}
-                            </Text>
-                          </View>
-                          <Badge variant={bike.batteryLevel > 50 ? 'default' : 'secondary'}>
-                            <View style={[styles.row, styles.gap8, styles.alignCenter]}>
-                              <Battery size={12} color={bike.batteryLevel > 50 ? 'white' : '#111827'} />
-                              <Text style={styles.ml4} color={bike.batteryLevel > 50 ? 'white' : '#111827'}>
-                                {bike.batteryLevel}%
-                              </Text>
-                            </View>
-                          </Badge>
-                        </View>
-
-                        <View style={[styles.row, { gap: 16 }, styles.mb8]}>
-                          <View style={[styles.row, styles.alignCenter, { gap: 4 }]}>
-                            <MapPin size={16} color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} />
-                            <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
-                              {bike.distance ? `${bike.distance.toFixed(1)} km` : '--'}
-                            </Text>
-                          </View>
-                          {bike.locationName && (
-                            <Text 
-                              size="sm" 
-                              color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}
-                              numberOfLines={1}
-                              style={{ flex: 1 }}
-                            >
-                              {bike.locationName}
-                            </Text>
-                          )}
-                        </View>
-
-                        <View style={[styles.row, styles.spaceBetween, styles.alignCenter]}>
-                          <Text size="sm" color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
-                            {bike.currentPricing 
-                              ? `${bike.currentPricing.hourlyRate} XOF/h`
-                              : t('map.priceUnavailable')}
+                    <View style={styles.flex1}>
+                      <View style={[styles.row, styles.spaceBetween, styles.alignCenter, styles.mb4]}>
+                        <View>
+                          <Text variant="body" color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
+                            {bike.code}
                           </Text>
-                          <Button
-                            size="sm"
-                            variant="primary"
-                            onPress={(e) => {
-                              e?.stopPropagation?.();
-                              haptics.success();
-                              onNavigate('bike-details', bike);
-                            }}
-                          >
-                            <Text color="white" style={styles.ml4}>{t('map.unlock')}</Text>
-                          </Button>
+                          <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
+                            {bike.model}
+                          </Text>
                         </View>
+                        <Badge variant={bike.batteryLevel > 50 ? 'default' : 'secondary'}>
+                          <View style={[styles.row, styles.gap8, styles.alignCenter]}>
+                            <Battery size={12} color={bike.batteryLevel > 50 ? 'white' : '#111827'} />
+                            <Text style={styles.ml4} color={bike.batteryLevel > 50 ? 'white' : '#111827'}>
+                              {bike.batteryLevel}%
+                            </Text>
+                          </View>
+                        </Badge>
+                      </View>
+
+                      <View style={[styles.row, { gap: 16 }, styles.mb8]}>
+                        <View style={[styles.row, styles.alignCenter, { gap: 4 }]}>
+                          <MapPin size={16} color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} />
+                          <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
+                            {bike.distance ? `${bike.distance.toFixed(1)} km` : '--'}
+                          </Text>
+                        </View>
+                        {bike.locationName && (
+                          <Text 
+                            size="sm" 
+                            color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}
+                            numberOfLines={1}
+                            style={{ flex: 1 }}
+                          >
+                            {bike.locationName}
+                          </Text>
+                        )}
+                      </View>
+
+                      <View style={[styles.row, styles.spaceBetween, styles.alignCenter]}>
+                        <Text size="sm" color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
+                          {bike.currentPricing 
+                            ? `${bike.currentPricing.hourlyRate} XOF/h`
+                            : t('map.priceUnavailable')}
+                        </Text>
+                        <Button
+                          size="sm"
+                          variant="primary"
+                          onPress={(e) => {
+                            e?.stopPropagation?.();
+                            haptics.success();
+                            onNavigate('bike-details', bike);
+                          }}
+                        >
+                          <Text color="white" style={styles.ml4}>{t('map.view')}</Text>
+                        </Button>
                       </View>
                     </View>
                   </View>
-                </TouchableOpacity>
-              ))
-            )}
-          </View>
-        </ScrollView>
-      </View>
-    </TouchableWithoutFeedback>
+                </View>
+              </TouchableOpacity>
+            ))
+          )}
+        </View>
+      </ScrollView>
+    </View>
   );
 }
