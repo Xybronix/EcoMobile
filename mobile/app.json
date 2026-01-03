@@ -38,7 +38,8 @@
         "android.permission.RECORD_AUDIO"
       ],
       "package": "com.xybronix.FreeBike",
-      "versionCode": 1
+      "versionCode": 1,
+      "enableHermes": true
     },
     "web": {
       "output": "static",
@@ -50,6 +51,9 @@
         "expo-build-properties",
         {
           "android": {
+            "enableProguardInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true,
+            "extraProguardRules": "-keep class com.facebook.hermes.unicode.** { *; }",
             "buildType": "apk"
           }
         }
