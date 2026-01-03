@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { PageTitle } from '@/components/ui/PageTitle';
-import MobileWelcome from '../components/MobileWelcome';
+import MobileWelcome from '@/components/MobileWelcome';
 
 export default function WelcomeScreen() {
   const router = useRouter();

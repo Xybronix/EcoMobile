@@ -1,9 +1,10 @@
 // components/ui/Sheet.tsx
 import React from 'react';
-import { Modal, View, ViewStyle } from 'react-native';
+import { Modal, View, ViewStyle, TouchableOpacity } from 'react-native';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { getGlobalStyles } from '@/styles/globalStyles';
 import { Text } from './Text';
+import { X } from 'lucide-react-native';
 
 interface SheetProps {
   open?: boolean;
@@ -30,9 +31,11 @@ interface SheetContentProps {
   className?: string;
   style?: ViewStyle;
   gap?: number;
+  showCloseButton?: boolean;
+  onClose?: () => void;
 }
 
-function SheetContent({ children, side = "bottom", className, style, gap, ...props }: SheetContentProps) {
+function SheetContent({ children, side = "bottom", className, style, gap, showCloseButton = true, onClose, ...props }: SheetContentProps) {
   const colorScheme = useColorScheme();
   const styles = getGlobalStyles(colorScheme);
 
@@ -56,6 +59,7 @@ function SheetContent({ children, side = "bottom", className, style, gap, ...pro
           right: 0,
           borderBottomLeftRadius: 16,
           borderBottomRightRadius: 16,
+          paddingTop: showCloseButton ? 48 : 16,
         };
       case 'bottom':
         return {
@@ -102,9 +106,47 @@ function SheetContent({ children, side = "bottom", className, style, gap, ...pro
     ...(gap !== undefined ? { gap } : styles.gap16),
   };
 
+  const handleClose = () => {
+    if (onClose) {
+      onClose();
+    }
+    const parent = props as any;
+    if (parent.onOpenChange) {
+      parent.onOpenChange(false);
+    }
+  };
+
   return (
     <View style={[styles.flex1, { backgroundColor: 'rgba(0,0,0,0.5)' }]} {...props}>
+      <TouchableOpacity
+        style={styles.flex1}
+        activeOpacity={1}
+        onPress={handleClose}
+      />
+      
       <View style={[contentStyle, style]}>
+        {showCloseButton && (
+          <TouchableOpacity
+            style={[
+              styles.absolute,
+              {
+                top: 12,
+                right: 12,
+                zIndex: 10,
+                width: 32,
+                height: 32,
+                borderRadius: 16,
+                backgroundColor: colorScheme === 'light' ? '#f3f4f6' : '#374151',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }
+            ]}
+            onPress={handleClose}
+          >
+            <X size={20} color={colorScheme === 'light' ? '#374151' : '#d1d5db'} />
+          </TouchableOpacity>
+        )}
+        
         {children}
       </View>
     </View>

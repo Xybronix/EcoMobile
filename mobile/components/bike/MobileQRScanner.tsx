@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Text } from '@/components/ui/Text';
 import { toast } from '@/components/ui/Toast';
+import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { bikeService } from '@/services/bikeService';
 import type { Bike } from '@/services/bikeService';
@@ -24,6 +25,7 @@ export function MobileQRScanner({ onBikeFound, onBack }: MobileQRScannerProps) {
   const { t, language } = useMobileI18n();
   const colorScheme = useColorScheme();
   const styles = getGlobalStyles(colorScheme);
+  const colors = Colors[colorScheme === 'dark' ? 'dark' : 'light'];
   const [manualCode, setManualCode] = useState('');
   const [isScanning, setIsScanning] = useState(false);
   const [activeTab, setActiveTab] = useState('scan');
@@ -82,13 +84,13 @@ export function MobileQRScanner({ onBikeFound, onBack }: MobileQRScannerProps) {
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList style={{ marginBottom: 24 }}>
             <TabsTrigger value="scan" style={styles.row}>
-              <Camera size={18} color="currentColor" />
+              <Camera size={18} color={colors.text} />
               <Text style={styles.ml8}>
                 {t('qr.scan')}
               </Text>
             </TabsTrigger>
             <TabsTrigger value="manual" style={styles.row}>
-              <Type size={18} color="currentColor" />
+              <Type size={18} color={colors.text} />
               <Text style={styles.ml8}>
                 {t('qr.manual')}
               </Text>
@@ -146,19 +148,19 @@ export function MobileQRScanner({ onBikeFound, onBack }: MobileQRScannerProps) {
               style={{ height: 56 }}
             >
               {isScanning ? (
-                <>
+                <View style={[styles.row, styles.gap4, styles.alignCenter, styles.justifyCenter]}>
                   <ScanLine size={20} color="white" />
                   <Text style={styles.ml8} color="white" size="lg">
                     {t('qr.scanning')}
                   </Text>
-                </>
+                </View>
               ) : (
-                <>
+                <View style={[styles.row, styles.gap4, styles.alignCenter, styles.justifyCenter]}>
                   <Camera size={20} color="white" />
                   <Text style={styles.ml8} color="white" size="lg">
                     {t('qr.startScanning')}
                   </Text>
-                </>
+                </View>
               )}
             </Button>
           </TabsContent>

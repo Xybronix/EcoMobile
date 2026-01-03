@@ -8,6 +8,7 @@ import { toast } from '@/components/ui/Toast';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { bikeService } from '@/services/bikeService';
 import type { Bike } from '@/services/bikeService';
+import { rideService } from '@/services/rideService';
 import { walletService } from '@/services/walletService';
 import { getGlobalStyles } from '@/styles/globalStyles';
 import { haptics } from '@/utils/haptics';
@@ -25,14 +26,15 @@ interface MobileBikeDetailsProps {
   onNavigate?: (screen: string, data?: any) => void;
 }
 
-export function MobileBikeDetails({ bike: initialBike, onBack, onStartRide, onNavigate }: MobileBikeDetailsProps) {
+export function MobileBikeDetails({ bike: initialBike, onBack, onNavigate }: MobileBikeDetailsProps) {
   const { t } = useMobileI18n();
   const { user } = useMobileAuth();
   const colorScheme = useColorScheme();
   const styles = getGlobalStyles(colorScheme);
   
-  const [showUnlockDialog, setShowUnlockDialog] = useState(false);
   const [bike, setBike] = useState<Bike>(initialBike);
+  const [hasActiveRide, setHasActiveRide] = useState(false);
+  const [isCheckingRide, setIsCheckingRide] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [depositInfo, setDepositInfo] = useState<any>(null);
   const [currentSubscription, setCurrentSubscription] = useState<any>(null);
@@ -45,6 +47,7 @@ export function MobileBikeDetails({ bike: initialBike, onBack, onStartRide, onNa
   useEffect(() => {
     loadBikeDetails();
     checkUserEligibility();
+    checkActiveRide();
   }, [initialBike.id]);
 
   const loadBikeDetails = async () => {
@@ -56,6 +59,19 @@ export function MobileBikeDetails({ bike: initialBike, onBack, onStartRide, onNa
       console.error('Error loading bike details:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const checkActiveRide = async () => {
+    try {
+      setIsCheckingRide(true);
+      const activeRide = await rideService.getActiveRide();
+      setHasActiveRide(!!activeRide);
+    } catch (error) {
+      console.error('Error checking active ride:', error);
+      setHasActiveRide(false);
+    } finally {
+      setIsCheckingRide(false);
     }
   };
 
@@ -96,6 +112,13 @@ export function MobileBikeDetails({ bike: initialBike, onBack, onStartRide, onNa
   const handleUnlock = async () => {
     if (!user) {
       toast.error(t('auth.mustBeLoggedIn'));
+      return;
+    }
+
+    // Vérifier si l'utilisateur a un trajet en cours
+    if (hasActiveRide) {
+      haptics.error();
+      toast.error(t('bike.details.activeRideError'));
       return;
     }
 
@@ -368,15 +391,14 @@ export function MobileBikeDetails({ bike: initialBike, onBack, onStartRide, onNa
                 fullWidth
                 style={{ 
                   height: 56,
-                  backgroundColor: depositInfo?.canUseService ? '#16a34a' : '#9ca3af',
-                  opacity: depositInfo?.canUseService ? 1 : 0.6
+                  backgroundColor: hasActiveRide || isCheckingRide || !depositInfo?.canUseService ? '#9ca3af' : '#16a34a',
                 }}
-                disabled={!depositInfo?.canUseService}
+                disabled={hasActiveRide || isCheckingRide || !depositInfo?.canUseService}
               >
                 <View style={[styles.row, styles.gap8]}>
                   <Unlock size={20} color="white" />
                   <Text style={styles.ml8} color="white" size="lg">
-                    {depositInfo?.canUseService ? t('map.unlock') : t('bike.details.unlockBlocked')}
+                    {isCheckingRide ? t('common.checking') : hasActiveRide ? t('bike.details.hasActiveRide') : depositInfo?.canUseService ? t('map.unlock') : t('bike.details.unlockBlocked')}
                   </Text>
                 </View>
               </Button>
@@ -406,6 +428,18 @@ export function MobileBikeDetails({ bike: initialBike, onBack, onStartRide, onNa
                   </Text>
                 </View>
               </Button>
+
+              {/* Warning for active ride */}
+              {hasActiveRide && (
+                <Card style={[styles.p12, { backgroundColor: '#fef3c7' }]}>
+                  <View style={[styles.row, styles.gap8]}>
+                    <AlertTriangle size={16} color="#f59e0b" />
+                    <Text size="xs" color="#92400e">
+                      {t('bike.details.activeRideWarning')}
+                    </Text>
+                  </View>
+                </Card>
+              )}
 
               {/* Warning for blocked actions */}
               {!depositInfo?.canUseService && (

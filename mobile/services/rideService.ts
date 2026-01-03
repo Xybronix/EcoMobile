@@ -219,4 +219,4 @@ class RideService {
 
 export const rideService = new RideService();
 
-export { Ride, RideStats };
+export type { Ride, RideStats };
