@@ -5,6 +5,7 @@ import { AdminLayout } from './components/layout/AdminLayout';
 import { ProtectedAccess } from './components/shared/ProtectedAccess';
 import { Login } from './components/auth/Login';
 import { LandingPage } from './components/LandingPage';
+import { VerifyEmail } from './components/auth/VerifyEmail';
 import { ReviewsPage } from './components/ReviewsPage';
 
 // Admin Components
@@ -43,6 +44,7 @@ export default function App() {
             {/* Public Routes */}
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/verify-email" element={<VerifyEmail />} />
             <Route path="/reviews" element={<ReviewsPage />} />
             
             {/* Admin Routes */}

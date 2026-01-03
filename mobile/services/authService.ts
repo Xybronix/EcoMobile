@@ -48,6 +48,23 @@ export interface AuthResponse {
   refreshToken?: string;
 }
 
+export interface VerifyEmailRequest {
+  userId: string;
+  token: string;
+}
+
+export interface VerifyEmailResponse {
+  verified: boolean;
+}
+
+export interface ResendVerificationRequest {
+  email: string;
+}
+
+export interface ResendVerificationResponse {
+  resent: boolean;
+}
+
 class AuthService {
   private baseUrl = `${API_CONFIG.BASE_URL}/auth`;
 
@@ -99,6 +116,46 @@ class AuthService {
         throw new Error('network_error');
       }
     }, 'auth.internetRequiredForRegister');
+  }
+
+  async verifyEmail(data: VerifyEmailRequest): Promise<VerifyEmailResponse> {
+    return withNetworkCheck(async () => {
+      try {
+        const response = await fetch(`${this.baseUrl}/verify-email`, {
+          method: 'POST',
+          headers: API_CONFIG.HEADERS,
+          body: JSON.stringify(data),
+        });
+
+        const responseData = await handleApiResponse(response);
+        return responseData.data;
+      } catch (error) {
+        if (error instanceof ApiError) {
+          throw new Error(this.getErrorMessage(error));
+        }
+        throw new Error('network_error');
+      }
+    }, 'auth.internetRequiredForVerification');
+  }
+
+  async resendVerification(email: string): Promise<ResendVerificationResponse> {
+    return withNetworkCheck(async () => {
+      try {
+        const response = await fetch(`${this.baseUrl}/resend-verification`, {
+          method: 'POST',
+          headers: API_CONFIG.HEADERS,
+          body: JSON.stringify({ email }),
+        });
+
+        const responseData = await handleApiResponse(response);
+        return responseData.data;
+      } catch (error) {
+        if (error instanceof ApiError) {
+          throw new Error(this.getErrorMessage(error));
+        }
+        throw new Error('network_error');
+      }
+    }, 'auth.internetRequiredForVerification');
   }
 
   async getCurrentUser(): Promise<User> {

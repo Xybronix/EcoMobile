@@ -46,6 +46,17 @@ const translations: Translations = {
   'auth.emailSentDescription': { fr: 'Nous avons envoyé un lien de réinitialisation à votre adresse email.', en: 'We have sent a reset link to your email address.' },
   'auth.newPasswordDescription': { fr: 'Votre nouveau mot de passe doit être différent des mots de passe précédents.', en: 'Your new password must be different from previous passwords.' },
   'auth.mustBeLoggedIn': { fr: 'Vous devez être connecté', en: 'You must be logged in' },
+  'auth.emailNotVerified.title': { fr: 'Email Non Vérifié', en: 'Email Not Verified' },
+  'auth.emailNotVerified.message': { fr: 'Veuillez vérifier votre email avant de vous connecter. Vérifiez votre boîte de réception et cliquez sur le lien de vérification.', en: 'Please verify your email before logging in. Check your inbox and click on the verification link.' },
+  'auth.resendVerification': { fr: "Renvoyer l'email", en: 'Resend Email' },
+  'auth.verificationResent': { fr: "Email de vérification renvoyé avec succès !", en: 'Verification email resent successfully!' },
+  'auth.verificationSent.title': { fr: 'Email Envoyé', en: 'Email Sent' },
+  'auth.verificationSent.message': { fr: "Un nouvel email de vérification a été envoyé à votre adresse. Veuillez vérifier votre boîte de réception.", en: 'A new verification email has been sent to your address. Please check your inbox.' },
+  'auth.emailAlreadyVerified': { fr: 'Votre email est déjà vérifié. Vous pouvez vous connecter.', en: 'Your email is already verified. You can log in.' },
+  'auth.resendVerificationError': { fr: "Erreur lors de l'envoi de l'email de vérification", en: 'Error resending verification email' },
+  'auth.verificationEmailSent.message': { fr: 'Un email de vérification a été envoyé à votre adresse. Veuillez vérifier votre boîte de réception et cliquer sur le lien pour activer votre compte.', en: 'A verification email has been sent to your address. Please check your inbox and click the link to activate your account.' },
+  'auth.verificationResentShort': { fr: 'Email de vérification renvoyé !', en: 'Verification email resent!' },
+  'auth.verificationResendError': { fr: 'Erreur lors de l\'envoi de l\'email', en: 'Error sending email' },
 
   // Validation messages
   'validation.fillAllFields': { fr: 'Veuillez remplir tous les champs', en: 'Please fill in all fields' },
@@ -73,6 +84,7 @@ const translations: Translations = {
   // Success messages
   'success.loginSuccessful': { fr: 'Connexion réussie !', en: 'Login successful!' },
   'success.accountCreated': { fr: 'Compte créé avec succès !', en: 'Account created successfully!' },
+  'success.registrationSuccessful': { fr: 'Inscription réussie !', en: 'Registration successful!' },
 
   // Placeholders
   'placeholder.email': { fr: 'exemple@email.com', en: 'example@email.com' },
@@ -824,6 +836,7 @@ const translations: Translations = {
   'common.change': { fr: 'Modifier', en: 'Change' },
   'common.cancel': { fr: 'Annuler', en: 'Cancel' },
   'common.confirm': { fr: 'Confirmer', en: 'Confirm' },
+  'common.ok': { fr: 'Oui', en: 'Yes' },
   'common.save': { fr: 'Enregistrer', en: 'Save' },
   'common.close': { fr: 'Fermer', en: 'Close' },
   'common.back': { fr: 'Retour', en: 'Back' },

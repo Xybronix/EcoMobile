@@ -109,7 +109,13 @@ export function MobileAuthProvider({ children }: AuthProviderProps) {
       setUser(authResponse.user);
       
       await storeUserData(authResponse.user);
-    } catch (error) {
+    } catch (error: any) {
+      if (error.message === 'email_not_verified') {
+        const storedUser = await getUserData<User>();
+        if (storedUser && storedUser.email === credentials.email) {
+          throw new Error('email_not_verified');
+        }
+      }
       throw error;
     } finally {
       setIsLoading(false);
