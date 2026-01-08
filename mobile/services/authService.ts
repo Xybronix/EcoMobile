@@ -29,12 +29,15 @@ export interface User {
   firstName: string;
   lastName: string;
   email: string;
-  phone: string;
+  phone?: string;
   language: string;
   role: string;
-  isActive: boolean;
+  status: 'pending' | 'pending_verification' | 'active' | 'inactive' | 'suspended' | 'banned';
+  isActive?: boolean;
   emailVerified: boolean;
-  verificationStatus: {
+  phoneVerified?: boolean;
+  accountVerified?: boolean;
+  verificationStatus?: {
     email: boolean;
     phone: boolean;
   };
@@ -280,6 +283,109 @@ class AuthService {
 
   async logout(): Promise<void> {
     await clearAuthData();
+  }
+
+  async initiatePhoneVerification(phone: string): Promise<{ code?: string }> {
+    return withNetworkCheck(async () => {
+      const token = await this.getToken();
+      
+      if (!token) {
+        throw new Error('not_authenticated');
+      }
+
+      try {
+        const response = await fetch(`${this.baseUrl}/verify-phone/initiate`, {
+          method: 'POST',
+          headers: {
+            ...API_CONFIG.HEADERS,
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({ phone }),
+        });
+
+        const result = await handleApiResponse(response);
+        return result.data || {};
+      } catch (error) {
+        if (error instanceof ApiError) {
+          throw new Error(this.getErrorMessage(error));
+        }
+        throw new Error('network_error');
+      }
+    }, 'auth.internetRequiredForPhoneVerification');
+  }
+
+  async verifyPhoneCode(code: string): Promise<void> {
+    return withNetworkCheck(async () => {
+      const token = await this.getToken();
+      
+      if (!token) {
+        throw new Error('not_authenticated');
+      }
+
+      try {
+        const response = await fetch(`${this.baseUrl}/verify-phone/verify`, {
+          method: 'POST',
+          headers: {
+            ...API_CONFIG.HEADERS,
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({ code }),
+        });
+
+        await handleApiResponse(response);
+      } catch (error) {
+        if (error instanceof ApiError) {
+          throw new Error(this.getErrorMessage(error));
+        }
+        throw new Error('network_error');
+      }
+    }, 'auth.internetRequiredForPhoneVerification');
+  }
+
+  async resendPhoneVerification(): Promise<void> {
+    return withNetworkCheck(async () => {
+      const token = await this.getToken();
+      
+      if (!token) {
+        throw new Error('not_authenticated');
+      }
+
+      try {
+        const response = await fetch(`${this.baseUrl}/verify-phone/resend`, {
+          method: 'POST',
+          headers: {
+            ...API_CONFIG.HEADERS,
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+
+        await handleApiResponse(response);
+      } catch (error) {
+        if (error instanceof ApiError) {
+          throw new Error(this.getErrorMessage(error));
+        }
+        throw new Error('network_error');
+      }
+    }, 'auth.internetRequiredForPhoneVerification');
+  }
+
+  async resendEmailVerification(): Promise<void> {
+    return withNetworkCheck(async () => {
+      try {
+        const response = await fetch(`${this.baseUrl}/resend-verification`, {
+          method: 'POST',
+          headers: API_CONFIG.HEADERS,
+          body: JSON.stringify({ email: (await this.getUser())?.email }),
+        });
+
+        await handleApiResponse(response);
+      } catch (error) {
+        if (error instanceof ApiError) {
+          throw new Error(this.getErrorMessage(error));
+        }
+        throw new Error('network_error');
+      }
+    }, 'auth.internetRequiredForEmailVerification');
   }
 
   private getErrorMessage(error: ApiError): string {

@@ -134,16 +134,16 @@ export function MobileRegister({ onNavigate }: MobileRegisterProps) {
       haptics.success();
 
       Alert.alert(
-        'Inscription réussie !',
-        'Un email de vérification a été envoyé à votre adresse. Veuillez vérifier votre boîte de réception et cliquer sur le lien pour activer votre compte.',
+        t('success.accountCreated'),
+        t('auth.register.successMessage'),
         [
           { 
-            text: 'OK', 
-            onPress: () => onNavigate('login')
+            text: t('auth.phone.verifyNow'), 
+            onPress: () => onNavigate('verify-phone')
           },
           {
-            text: 'Renvoyer l\'email',
-            onPress: () => resendVerification(formData.email)
+            text: t('common.later'),
+            onPress: () => onNavigate('login')
           }
         ]
       );

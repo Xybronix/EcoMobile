@@ -12,6 +12,10 @@ export default function RegisterScreen() {
       router.replace('/(tabs)/home');
     } else if (screen === 'login') {
       router.navigate('/(auth)/login');
+    } else if (screen === 'verify-phone') {
+      router.replace('/(auth)/verify-phone');
+    } else if (screen === 'submit-documents') {
+      router.replace('/(auth)/submit-documents');
     }
   };
 
