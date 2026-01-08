@@ -153,7 +153,9 @@ export function Dashboard() {
           <MapPin className="w-5 h-5 text-green-600" />
           <h2>{t('dashboard.realtimeMap')}</h2>
         </div>
-        <BikeMap />
+        <div style={{ height: '500px', width: '100%', position: 'relative' }}>
+          <BikeMap />
+        </div>
       </Card>
 
       {/* Two Column Layout */}

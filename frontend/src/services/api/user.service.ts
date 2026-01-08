@@ -6,9 +6,9 @@ export interface User {
   firstName: string;
   lastName: string;
   email: string;
-  phone: string;
+  phone?: string;
   role: string;
-  status: 'active' | 'blocked' | 'pending';
+  status: 'pending' | 'pending_verification' | 'active' | 'inactive' | 'blocked' | 'suspended' | 'banned';
   accountBalance: number;
   totalSpent: number;
   totalTrips: number;
@@ -20,7 +20,10 @@ export interface User {
     packageType: string;
     endDate: string;
   };
-  isActive: boolean;
+  isActive?: boolean;
+  emailVerified?: boolean;
+  phoneVerified?: boolean;
+  accountVerified?: boolean;
   address?: string;
   avatar?: string;
   createdAt: string;

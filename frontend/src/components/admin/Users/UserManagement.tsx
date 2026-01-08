@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, Search, Star, DollarSign, Activity, Ban, CheckCircle } from 'lucide-react';
+import { Users, Search, Star, DollarSign, Activity, Ban, CheckCircle, Mail, Phone, Shield, AlertCircle } from 'lucide-react';
 import { Card } from '../../ui/card';
 import { Input } from '../../ui/input';
 import { Badge } from '../../ui/badge';
@@ -169,12 +169,26 @@ export function UserManagement() {
     navigate(`/admin/users/${user.id}`)
   };
 
-  const getStatusBadge = (status: string) => {
-    return status === 'active' ? (
-      <Badge variant="default" className="bg-green-100 text-green-800">Actif</Badge>
-    ) : (
-      <Badge variant="destructive">Bloqué</Badge>
-    );
+  const getStatusBadge = (status: string | undefined) => {
+    if (!status) {
+      return <Badge variant="secondary">Inconnu</Badge>;
+    }
+    
+    switch (status) {
+      case 'active':
+        return <Badge className="bg-green-100 text-green-800">Actif</Badge>;
+      case 'blocked':
+      case 'suspended':
+      case 'banned':
+        return <Badge className="bg-red-100 text-red-800">Bloqué</Badge>;
+      case 'pending_verification':
+        return <Badge className="bg-yellow-100 text-yellow-800">En attente de validation</Badge>;
+      case 'pending':
+      case 'inactive':
+        return <Badge className="bg-gray-100 text-gray-800">En attente</Badge>;
+      default:
+        return <Badge variant="secondary">{status}</Badge>;
+    }
   };
 
   // Calculate stats from current users data with safe fallbacks
@@ -342,6 +356,7 @@ export function UserManagement() {
                   <TableHead className="text-right">Dépenses</TableHead>
                 </ProtectedAccess>
                 <TableHead className="text-center">Score</TableHead>
+                <TableHead className="text-center">Vérification</TableHead>
                 <TableHead className="text-center">Statut</TableHead>
                 <TableHead className="text-center">Actions</TableHead>
               </TableRow>
@@ -390,6 +405,25 @@ export function UserManagement() {
                     <div className="flex items-center justify-center gap-1">
                       <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
                       <span>{(user.reliabilityScore || 0).toFixed(1)}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <div className="flex items-center justify-center gap-1">
+                      {user.emailVerified ? (
+                        <CheckCircle className="w-4 h-4 text-green-600" title="Email vérifié" />
+                      ) : (
+                        <AlertCircle className="w-4 h-4 text-yellow-600" title="Email non vérifié" />
+                      )}
+                      {user.phoneVerified ? (
+                        <Phone className="w-4 h-4 text-green-600" title="Téléphone vérifié" />
+                      ) : (
+                        <Phone className="w-4 h-4 text-gray-400" title="Téléphone non vérifié" />
+                      )}
+                      {user.accountVerified ? (
+                        <Shield className="w-4 h-4 text-green-600" title="Compte validé" />
+                      ) : (
+                        <Shield className="w-4 h-4 text-yellow-600" title="Compte en attente" />
+                      )}
                     </div>
                   </TableCell>
                   <TableCell className="text-center">

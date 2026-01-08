@@ -37,11 +37,18 @@ export function MobileAuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     const inAuthGroup = segments[0] === '(auth)';
     const inIndexGroup = !segments[0];
-    const isAuthRoute = inAuthGroup && segments[1] && ['login', 'register', 'forgot-password', 'reset-password', 'welcome'].includes(segments[1]);
+    const isAuthRoute = inAuthGroup && segments[1] && ['login', 'register', 'forgot-password', 'reset-password', 'welcome', 'verify-phone', 'submit-documents'].includes(segments[1]);
+    const isDocumentRoute = inAuthGroup && segments[1] === 'submit-documents';
+    const isPhoneVerificationRoute = inAuthGroup && segments[1] === 'verify-phone';
 
     if (!isLoading) {
       if (user && (inAuthGroup || inIndexGroup)) {
-        router.replace('/(tabs)/home');
+        // If account is not verified, redirect to document submission
+        if (user.status === 'pending_verification' && !isDocumentRoute && !isPhoneVerificationRoute) {
+          router.replace('/(auth)/submit-documents');
+        } else if (!isAuthRoute) {
+          router.replace('/(tabs)/home');
+        }
       } 
       else if (!user && !inAuthGroup && !inIndexGroup) {
         router.replace('/');

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { User, Mail, Phone, DollarSign, Activity, Calendar, ArrowLeft, Ban, 
   CheckCircle, AlertCircle, Shield, MapPin, Bike, CreditCard,
-  TrendingUp, AlertTriangle, Lock, Unlock, History } from 'lucide-react';
+  TrendingUp, AlertTriangle, Lock, Unlock, History, FileText, MapPin as MapPinIcon, Download, X, Check } from 'lucide-react';
 import { AdminChargeModal } from './AdminChargeModal';
 import { Button } from '../../ui/button';
 import { Badge } from '../../ui/badge';
@@ -17,6 +17,7 @@ import { userService, type User as UserType } from '../../../services/api/user.s
 import { type Ride } from '../../../services/api/ride.service';
 import { type Transaction } from '../../../services/api/wallet.service';
 import { type Incident } from '../../../services/api/incident.service';
+import { documentService, type DocumentsStatus, type IdentityDocument, type ResidenceProof } from '../../../services/api/document.service';
 
 export function UserDetails() {
   const { id } = useParams<{ id: string }>();
@@ -39,6 +40,19 @@ export function UserDetails() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [requests, setRequests] = useState<any[]>([]);
   const [chargeModalOpen, setChargeModalOpen] = useState(false);
+  const [documentsStatus, setDocumentsStatus] = useState<DocumentsStatus | null>(null);
+  const [documentActionLoading, setDocumentActionLoading] = useState<string | null>(null);
+  const [rejectDialog, setRejectDialog] = useState<{
+    open: boolean;
+    type: 'identity' | 'residence' | null;
+    documentId: string | null;
+    reason: string;
+  }>({
+    open: false,
+    type: null,
+    documentId: null,
+    reason: ''
+  });
 
   const handleBack = () => {
     navigate('/admin/users');
@@ -93,6 +107,14 @@ export function UserDetails() {
       setRides(userData.rides || []);
       setTransactions(userData.transactions || []);
       setRequests(userData.requests || []);
+      
+      // Load documents status
+      try {
+        const docsStatus = await documentService.getUserDocumentsStatus(userId);
+        setDocumentsStatus(docsStatus);
+      } catch (error) {
+        console.error('Error loading documents:', error);
+      }
       
     } catch (error) {
       console.error('Erreur lors du chargement des données:', error);
@@ -173,12 +195,23 @@ export function UserDetails() {
     return `${amount.toLocaleString('fr-FR')} FCFA`;
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string | undefined) => {
+    if (!status) return 'bg-gray-100 text-gray-800';
+    
     switch (status) {
-      case 'active': return 'bg-green-100 text-green-800';
-      case 'blocked': return 'bg-red-100 text-red-800';
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'active':
+        return 'bg-green-100 text-green-800';
+      case 'blocked':
+      case 'suspended':
+      case 'banned':
+        return 'bg-red-100 text-red-800';
+      case 'pending_verification':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'pending':
+      case 'inactive':
+        return 'bg-gray-100 text-gray-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -513,6 +546,10 @@ export function UserDetails() {
             <History className="w-4 h-4 mr-2" />
             Demandes ({requests.length})
           </TabsTrigger>
+          <TabsTrigger value="documents">
+            <FileText className="w-4 h-4 mr-2" />
+            Documents
+          </TabsTrigger>
         </TabsList>
 
         {/* Historique des Trajets */}
@@ -808,7 +845,347 @@ export function UserDetails() {
             )}
           </Card>
         </TabsContent>
+
+        <TabsContent value="documents">
+          <Card>
+            <div className="p-6 space-y-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <FileText className="w-5 h-5" />
+                  Documents d'identité et preuve de résidence
+                </h3>
+                {documentsStatus?.allDocumentsApproved && user?.status === 'pending_verification' && (
+                  <Button
+                    onClick={async () => {
+                      if (!userId) return;
+                      try {
+                        setDocumentActionLoading('verify');
+                        await documentService.verifyUserAccount(userId);
+                        toast.success('Compte utilisateur validé avec succès');
+                        await loadUserData();
+                      } catch (error: any) {
+                        toast.error(error.message || 'Erreur lors de la validation');
+                      } finally {
+                        setDocumentActionLoading(null);
+                      }
+                    }}
+                    disabled={documentActionLoading === 'verify'}
+                  >
+                    {documentActionLoading === 'verify' ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    ) : (
+                      <CheckCircle className="w-4 h-4 mr-2" />
+                    )}
+                    Valider le compte
+                  </Button>
+                )}
+              </div>
+
+              {/* Verification Status */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <Card className="p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Mail className="w-5 h-5" color={user?.emailVerified ? '#16a34a' : '#d97706'} />
+                    <span className="font-semibold">Email</span>
+                  </div>
+                  <Badge variant={user?.emailVerified ? 'default' : 'secondary'}>
+                    {user?.emailVerified ? 'Vérifié' : 'Non vérifié'}
+                  </Badge>
+                </Card>
+                <Card className="p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Phone className="w-5 h-5" color={user?.phoneVerified ? '#16a34a' : '#d97706'} />
+                    <span className="font-semibold">Téléphone</span>
+                  </div>
+                  <Badge variant={user?.phoneVerified ? 'default' : 'secondary'}>
+                    {user?.phoneVerified ? 'Vérifié' : 'Non vérifié'}
+                  </Badge>
+                </Card>
+                <Card className="p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Shield className="w-5 h-5" color={user?.accountVerified ? '#16a34a' : '#d97706'} />
+                    <span className="font-semibold">Compte</span>
+                  </div>
+                  <Badge variant={user?.accountVerified ? 'default' : 'secondary'}>
+                    {user?.accountVerified ? 'Validé' : 'En attente'}
+                  </Badge>
+                </Card>
+              </div>
+
+              {/* Identity Documents */}
+              <div className="space-y-4">
+                <h4 className="text-md font-semibold flex items-center gap-2">
+                  <FileText className="w-4 h-4" />
+                  Documents d'identité
+                </h4>
+                {documentsStatus?.identityDocuments && documentsStatus.identityDocuments.length > 0 ? (
+                  documentsStatus.identityDocuments.map((doc) => (
+                    <Card key={doc.id} className="p-4">
+                      <div className="flex items-start justify-between mb-4">
+                        <div>
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="font-semibold">
+                              {doc.documentType === 'CNI' ? 'CNI' : 'Récépissé'}
+                            </span>
+                            <Badge variant={
+                              doc.status === 'APPROVED' ? 'default' :
+                              doc.status === 'REJECTED' ? 'destructive' : 'secondary'
+                            }>
+                              {doc.status === 'APPROVED' ? 'Approuvé' :
+                               doc.status === 'REJECTED' ? 'Rejeté' : 'En attente'}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-gray-500">
+                            Soumis le {new Date(doc.submittedAt).toLocaleDateString('fr-FR')}
+                          </p>
+                          {doc.rejectionReason && (
+                            <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded">
+                              <p className="text-sm text-red-800">
+                                <strong>Raison du rejet:</strong> {doc.rejectionReason}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => window.open(`${import.meta.env.VITE_API_URL || ''}${doc.frontImage}`, '_blank')}
+                          >
+                            <Download className="w-4 h-4 mr-2" />
+                            Recto
+                          </Button>
+                          {doc.backImage && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => window.open(`${import.meta.env.VITE_API_URL || ''}${doc.backImage}`, '_blank')}
+                            >
+                              <Download className="w-4 h-4 mr-2" />
+                              Verso
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                      {doc.status === 'PENDING' && (
+                        <div className="flex items-center gap-2 mt-4 pt-4 border-t">
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={async () => {
+                              try {
+                                setDocumentActionLoading(`approve-${doc.id}`);
+                                await documentService.approveIdentityDocument(doc.id);
+                                toast.success('Document approuvé');
+                                await loadUserData();
+                              } catch (error: any) {
+                                toast.error(error.message || 'Erreur');
+                              } finally {
+                                setDocumentActionLoading(null);
+                              }
+                            }}
+                            disabled={documentActionLoading === `approve-${doc.id}`}
+                          >
+                            <Check className="w-4 h-4 mr-2" />
+                            Approuver
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => setRejectDialog({
+                              open: true,
+                              type: 'identity',
+                              documentId: doc.id,
+                              reason: ''
+                            })}
+                            disabled={documentActionLoading === `reject-${doc.id}`}
+                          >
+                            <X className="w-4 h-4 mr-2" />
+                            Rejeter
+                          </Button>
+                        </div>
+                      )}
+                    </Card>
+                  ))
+                ) : (
+                  <Card className="p-6 text-center">
+                    <FileText className="w-12 h-12 mx-auto mb-3 opacity-50 text-gray-400" />
+                    <p className="text-gray-500">Aucun document d'identité soumis</p>
+                  </Card>
+                )}
+              </div>
+
+              {/* Residence Proof */}
+              <div className="space-y-4 mt-6">
+                <h4 className="text-md font-semibold flex items-center gap-2">
+                  <MapPinIcon className="w-4 h-4" />
+                  Preuve de résidence
+                </h4>
+                {documentsStatus?.residenceProof ? (
+                  <Card className="p-4">
+                    <div className="flex items-start justify-between mb-4">
+                      <div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="font-semibold">
+                            {documentsStatus.residenceProof.proofType === 'DOCUMENT' 
+                              ? 'Document' 
+                              : 'Coordonnées GPS'}
+                          </span>
+                          <Badge variant={
+                            documentsStatus.residenceProof.status === 'APPROVED' ? 'default' :
+                            documentsStatus.residenceProof.status === 'REJECTED' ? 'destructive' : 'secondary'
+                          }>
+                            {documentsStatus.residenceProof.status === 'APPROVED' ? 'Approuvé' :
+                             documentsStatus.residenceProof.status === 'REJECTED' ? 'Rejeté' : 'En attente'}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-gray-500 mb-2">
+                          Soumis le {new Date(documentsStatus.residenceProof.submittedAt).toLocaleDateString('fr-FR')}
+                        </p>
+                        {documentsStatus.residenceProof.address && (
+                          <p className="text-sm text-gray-600">
+                            <strong>Adresse:</strong> {documentsStatus.residenceProof.address}
+                          </p>
+                        )}
+                        {documentsStatus.residenceProof.latitude && documentsStatus.residenceProof.longitude && (
+                          <p className="text-sm text-gray-600">
+                            <strong>Coordonnées:</strong> {documentsStatus.residenceProof.latitude.toFixed(6)}, {documentsStatus.residenceProof.longitude.toFixed(6)}
+                          </p>
+                        )}
+                        {documentsStatus.residenceProof.details && (
+                          <p className="text-sm text-gray-600 mt-2">
+                            <strong>Détails:</strong> {documentsStatus.residenceProof.details}
+                          </p>
+                        )}
+                        {documentsStatus.residenceProof.rejectionReason && (
+                          <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded">
+                            <p className="text-sm text-red-800">
+                              <strong>Raison du rejet:</strong> {documentsStatus.residenceProof.rejectionReason}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                      {documentsStatus.residenceProof.documentFile && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => window.open(`${import.meta.env.VITE_API_URL || ''}${documentsStatus.residenceProof?.documentFile}`, '_blank')}
+                        >
+                          <Download className="w-4 h-4 mr-2" />
+                          Télécharger
+                        </Button>
+                      )}
+                    </div>
+                    {documentsStatus.residenceProof.status === 'PENDING' && (
+                      <div className="flex items-center gap-2 mt-4 pt-4 border-t">
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={async () => {
+                            if (!documentsStatus.residenceProof) return;
+                            try {
+                              setDocumentActionLoading(`approve-res-${documentsStatus.residenceProof.id}`);
+                              await documentService.approveResidenceProof(documentsStatus.residenceProof.id);
+                              toast.success('Preuve de résidence approuvée');
+                              await loadUserData();
+                            } catch (error: any) {
+                              toast.error(error.message || 'Erreur');
+                            } finally {
+                              setDocumentActionLoading(null);
+                            }
+                          }}
+                          disabled={documentActionLoading === `approve-res-${documentsStatus.residenceProof.id}`}
+                        >
+                          <Check className="w-4 h-4 mr-2" />
+                          Approuver
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => setRejectDialog({
+                            open: true,
+                            type: 'residence',
+                            documentId: documentsStatus.residenceProof!.id,
+                            reason: ''
+                          })}
+                          disabled={documentActionLoading === `reject-res-${documentsStatus.residenceProof.id}`}
+                        >
+                          <X className="w-4 h-4 mr-2" />
+                          Rejeter
+                        </Button>
+                      </div>
+                    )}
+                  </Card>
+                ) : (
+                  <Card className="p-6 text-center">
+                    <MapPinIcon className="w-12 h-12 mx-auto mb-3 opacity-50 text-gray-400" />
+                    <p className="text-gray-500">Aucune preuve de résidence soumise</p>
+                  </Card>
+                )}
+              </div>
+            </div>
+          </Card>
+        </TabsContent>
       </Tabs>
+
+      {/* Reject Dialog */}
+      <Dialog open={rejectDialog.open} onOpenChange={(open) => setRejectDialog({ ...rejectDialog, open })}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rejeter le document</DialogTitle>
+            <DialogDescription>
+              Veuillez indiquer la raison du rejet. Cette raison sera visible par l'utilisateur.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Raison du rejet *</label>
+              <textarea
+                className="w-full mt-1 p-2 border rounded-md"
+                rows={4}
+                value={rejectDialog.reason}
+                onChange={(e) => setRejectDialog({ ...rejectDialog, reason: e.target.value })}
+                placeholder="Ex: Photo floue, document expiré, coordonnées incorrectes..."
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setRejectDialog({ open: false, type: null, documentId: null, reason: '' })}
+            >
+              Annuler
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={async () => {
+                if (!rejectDialog.documentId || !rejectDialog.reason.trim()) {
+                  toast.error('Veuillez indiquer une raison');
+                  return;
+                }
+                try {
+                  setDocumentActionLoading(`reject-${rejectDialog.documentId}`);
+                  if (rejectDialog.type === 'identity') {
+                    await documentService.rejectIdentityDocument(rejectDialog.documentId, rejectDialog.reason);
+                  } else {
+                    await documentService.rejectResidenceProof(rejectDialog.documentId, rejectDialog.reason);
+                  }
+                  toast.success('Document rejeté');
+                  setRejectDialog({ open: false, type: null, documentId: null, reason: '' });
+                  await loadUserData();
+                } catch (error: any) {
+                  toast.error(error.message || 'Erreur');
+                } finally {
+                  setDocumentActionLoading(null);
+                }
+              }}
+              disabled={!rejectDialog.reason.trim() || documentActionLoading !== null}
+            >
+              Rejeter
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Dialog de confirmation */}
       <Dialog open={confirmDialog.open} onOpenChange={closeConfirmDialog}>
