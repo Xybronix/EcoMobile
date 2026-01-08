@@ -9,7 +9,10 @@ import { AlertTriangle, ArrowLeft, Eye, EyeOff, Lock, Shield, Smartphone } from 
 import React, { useState, useEffect } from 'react';
 import { ActivityIndicator, Modal, ScrollView, TouchableOpacity, View, Switch, Platform } from 'react-native';
 import { useMobileI18n } from '@/lib/mobile-i18n';
+<<<<<<< HEAD
 import { useMobileAuth } from '@/lib/mobile-auth';
+=======
+>>>>>>> origin/main
 import * as LocalAuthentication from 'expo-local-authentication';
 
 interface MobileSecurityProps {
@@ -18,7 +21,10 @@ interface MobileSecurityProps {
 
 export function MobileSecurity({ onNavigate }: MobileSecurityProps) {
   const { t } = useMobileI18n();
+<<<<<<< HEAD
   const { logout } = useMobileAuth();
+=======
+>>>>>>> origin/main
   const colorScheme = useColorScheme();
   const styles = getGlobalStyles(colorScheme);
   
@@ -223,6 +229,7 @@ export function MobileSecurity({ onNavigate }: MobileSecurityProps) {
       haptics.success();
       toast.success(t('security.deleteSuccess'));
       setShowDeleteDialog(false);
+<<<<<<< HEAD
       
       // Déconnecter l'utilisateur et rediriger vers le login
       // userService.deleteAccount() appelle déjà authService.logout() qui nettoie le localStorage
@@ -239,6 +246,11 @@ export function MobileSecurity({ onNavigate }: MobileSecurityProps) {
         return;
       }
       
+=======
+    } catch (error: any) {
+      haptics.error();
+      
+>>>>>>> origin/main
       let errorMessage = t('security.deleteError');
       
       switch (error.message) {

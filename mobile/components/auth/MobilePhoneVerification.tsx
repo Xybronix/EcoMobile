@@ -7,7 +7,11 @@ import { KeyboardAvoidingContainer } from '@/components/ui/KeyboardAvoidingConta
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { getGlobalStyles } from '@/styles/globalStyles';
 import { haptics } from '@/utils/haptics';
+<<<<<<< HEAD
 import { MobileHeader } from '@/components/layout/MobileHeader';
+=======
+import { ArrowLeft, Phone, CheckCircle } from 'lucide-react-native';
+>>>>>>> origin/main
 import React, { useState, useEffect, useRef } from 'react';
 import { View, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { authService } from '@/services/authService';
@@ -133,6 +137,7 @@ export default function MobilePhoneVerification({ onNavigate }: MobilePhoneVerif
 
   if (step === 'phone') {
     return (
+<<<<<<< HEAD
       <View style={[styles.container, { backgroundColor: colorScheme === 'light' ? '#f9fafb' : '#111827' }]}>
         <MobileHeader 
           title={t('auth.phone.verification')}
@@ -222,24 +227,58 @@ export default function MobilePhoneVerification({ onNavigate }: MobilePhoneVerif
               keyboardType="number-pad"
               maxLength={6}
               style={[styles.textCenter, styles.text2xl, styles.textBold]}
+=======
+      <KeyboardAvoidingContainer>
+        <View style={[styles.flex1, styles.p16]}>
+          <View style={[styles.mb8]}>
+            <Text style={[styles.text2xl, styles.fontBold, styles.mb2]}>
+              {t('auth.phone.enterPhone')}
+            </Text>
+            <Text style={[styles.text, styles.textGray, styles.mb6]}>
+              {t('auth.phone.enterPhoneDescription')}
+            </Text>
+          </View>
+
+          <View style={[styles.mb6]}>
+            <Label>{t('auth.phone.phoneNumber')}</Label>
+            <Input
+              value={phone}
+              onChangeText={setPhone}
+              placeholder={t('auth.phone.phonePlaceholder')}
+              keyboardType="phone-pad"
+              autoComplete="tel"
+              leftIcon={<Phone size={20} color={colorScheme === 'dark' ? '#9ca3af' : '#6b7280'} />}
+>>>>>>> origin/main
             />
           </View>
 
           <Button
+<<<<<<< HEAD
             onPress={handleVerifyCode}
             disabled={isLoading || code.length < 4}
             style={[styles.mb16]}
             fullWidth
+=======
+            onPress={handleSendCode}
+            disabled={isLoading || !phone}
+            style={[styles.mb4]}
+>>>>>>> origin/main
           >
             {isLoading ? (
               <ActivityIndicator color="white" />
             ) : (
+<<<<<<< HEAD
               <Text style={{ color: 'white', fontWeight: '500' }}>
                 {t('auth.phone.verify')}
+=======
+              <Text style={[styles.textWhite, styles.fontSemibold]}>
+                {t('auth.phone.sendCode')}
+>>>>>>> origin/main
               </Text>
             )}
           </Button>
 
+<<<<<<< HEAD
           <View style={[styles.row, styles.alignCenter, styles.justifyCenter, styles.mt16]}>
             <Text style={[styles.text, { color: colorScheme === 'light' ? '#6b7280' : '#9ca3af' }, styles.mr8]}>
               {t('auth.phone.didntReceive')}
@@ -272,10 +311,97 @@ export default function MobilePhoneVerification({ onNavigate }: MobilePhoneVerif
           >
             <Text style={[styles.text, { color: colorScheme === 'light' ? '#6b7280' : '#9ca3af' }]}>
               {t('auth.phone.changePhone')}
+=======
+          <TouchableOpacity
+            onPress={() => onNavigate('home')}
+            style={[styles.mt4, styles.alignCenter]}
+          >
+            <Text style={[styles.text, styles.textGray]}>
+              {t('common.skipForNow')}
+>>>>>>> origin/main
             </Text>
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingContainer>
+<<<<<<< HEAD
     </View>
   );
 }
+=======
+    );
+  }
+
+  return (
+    <KeyboardAvoidingContainer>
+      <View style={[styles.flex1, styles.p16]}>
+        <View style={[styles.mb8]}>
+          <Text style={[styles.text2xl, styles.fontBold, styles.mb2]}>
+            {t('auth.phone.enterCode')}
+          </Text>
+          <Text style={[styles.text, styles.textGray, styles.mb2]}>
+            {t('auth.phone.enterCodeDescription', { phone })}
+          </Text>
+        </View>
+
+        <View style={[styles.mb6]}>
+          <Label>{t('auth.phone.verificationCode')}</Label>
+          <Input
+            ref={codeInputRef}
+            value={code}
+            onChangeText={setCode}
+            placeholder="000000"
+            keyboardType="number-pad"
+            maxLength={6}
+            style={[styles.textCenter, styles.text2xl, styles.fontBold]}
+          />
+        </View>
+
+        <Button
+          onPress={handleVerifyCode}
+          disabled={isLoading || code.length < 4}
+          style={[styles.mb4]}
+        >
+          {isLoading ? (
+            <ActivityIndicator color="white" />
+          ) : (
+            <Text style={[styles.textWhite, styles.fontSemibold]}>
+              {t('auth.phone.verify')}
+            </Text>
+          )}
+        </Button>
+
+        <View style={[styles.row, styles.alignCenter, styles.justifyCenter, styles.mt4]}>
+          <Text style={[styles.text, styles.textGray, styles.mr2]}>
+            {t('auth.phone.didntReceive')}
+          </Text>
+          <TouchableOpacity
+            onPress={handleResendCode}
+            disabled={countdown > 0 || isResending}
+          >
+            <Text
+              style={[
+                styles.text,
+                countdown > 0 ? styles.textGray : styles.textPrimary,
+                styles.fontSemibold,
+              ]}
+            >
+              {countdown > 0
+                ? `${t('auth.phone.resendIn')} ${countdown}s`
+                : t('auth.phone.resend')}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <TouchableOpacity
+          onPress={() => setStep('phone')}
+          style={[styles.mt6, styles.alignCenter]}
+        >
+          <Text style={[styles.text, styles.textGray]}>
+            {t('auth.phone.changePhone')}
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </KeyboardAvoidingContainer>
+  );
+}
+>>>>>>> origin/main

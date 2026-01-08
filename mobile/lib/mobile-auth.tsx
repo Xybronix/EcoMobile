@@ -46,11 +46,15 @@ export function MobileAuthProvider({ children }: AuthProviderProps) {
         // If account is not verified, redirect to document submission
         if (user.status === 'pending_verification' && !isDocumentRoute && !isPhoneVerificationRoute) {
           router.replace('/(auth)/submit-documents');
+<<<<<<< HEAD
           return;
         } else if (user.status === 'pending_verification' && isDocumentRoute) {
           // Already on document submission page, stay there
           return;
         } else if (!isAuthRoute && user.status !== 'pending_verification') {
+=======
+        } else if (!isAuthRoute) {
+>>>>>>> origin/main
           router.replace('/(tabs)/home');
         }
       } 
@@ -70,6 +74,7 @@ export function MobileAuthProvider({ children }: AuthProviderProps) {
         try {
           const freshUserData = await authService.getCurrentUser();
           setUser(freshUserData);
+<<<<<<< HEAD
           
           // Vérifier le statut après récupération des données
           if (freshUserData.status === 'pending_verification') {
@@ -88,10 +93,14 @@ export function MobileAuthProvider({ children }: AuthProviderProps) {
           }
           
           // Si erreur réseau ou autre, utiliser les données stockées mais vérifier le statut
+=======
+        } catch (apiError) {
+>>>>>>> origin/main
           console.warn('API unavailable, using stored user data:', apiError);
           const storedUser = await getUserData<User>();
           if (storedUser) {
             setUser(storedUser);
+<<<<<<< HEAD
             
             // Vérifier le statut même avec les données stockées
             if (storedUser.status === 'pending_verification') {
@@ -100,6 +109,8 @@ export function MobileAuthProvider({ children }: AuthProviderProps) {
                 router.replace('/(auth)/submit-documents');
               }
             }
+=======
+>>>>>>> origin/main
           } else {
             await authService.logout();
             setUser(null);
@@ -109,8 +120,11 @@ export function MobileAuthProvider({ children }: AuthProviderProps) {
         setUser(null);
       }
     } catch (error) {
+<<<<<<< HEAD
       console.error('Error loading stored user:', error);
       await authService.logout();
+=======
+>>>>>>> origin/main
       setUser(null);
     } finally {
       setIsLoading(false);
@@ -207,6 +221,7 @@ export function MobileAuthProvider({ children }: AuthProviderProps) {
       setUser(userData);
       
       await storeUserData(userData);
+<<<<<<< HEAD
       
       // Vérifier le statut après rafraîchissement
       if (userData.status === 'pending_verification') {
@@ -234,6 +249,12 @@ export function MobileAuthProvider({ children }: AuthProviderProps) {
             router.replace('/(auth)/submit-documents');
           }
         }
+=======
+    } catch (error) {
+      const storedUser = await getUserData<User>();
+      if (storedUser) {
+        setUser(storedUser);
+>>>>>>> origin/main
       } else {
         await logout();
       }

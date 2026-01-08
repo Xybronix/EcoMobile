@@ -1,7 +1,10 @@
 import { API_CONFIG, handleApiResponse, ApiError } from '@/lib/api/config';
 import { getAuthToken } from '@/utils/storage';
+<<<<<<< HEAD
 import { withNetworkCheck } from '@/lib/api/networkInterceptor';
 import { authService } from './authService';
+=======
+>>>>>>> origin/main
 
 export interface IdentityDocument {
   id: string;
@@ -49,6 +52,7 @@ class DocumentService {
     frontImage: string; // Base64
     backImage?: string; // Base64
   }): Promise<IdentityDocument> {
+<<<<<<< HEAD
     return withNetworkCheck(async () => {
       try {
         const response = await fetch(`${this.baseUrl}/identity`, {
@@ -71,6 +75,23 @@ class DocumentService {
         throw new Error('network_error');
       }
     }, 'auth.internetRequired');
+=======
+    try {
+      const response = await fetch(`${this.baseUrl}/identity`, {
+        method: 'POST',
+        headers: await this.getAuthHeaders(),
+        body: JSON.stringify(data),
+      });
+
+      const result = await handleApiResponse(response);
+      return result.data;
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new Error(error.message || 'document.submissionFailed');
+      }
+      throw new Error('network_error');
+    }
+>>>>>>> origin/main
   }
 
   async submitResidenceProof(data: {
@@ -81,6 +102,7 @@ class DocumentService {
     address?: string;
     details?: string;
   }): Promise<ResidenceProof> {
+<<<<<<< HEAD
     return withNetworkCheck(async () => {
       try {
         const response = await fetch(`${this.baseUrl}/residence`, {
@@ -127,6 +149,40 @@ class DocumentService {
         throw new Error('network_error');
       }
     }, 'auth.internetRequired');
+=======
+    try {
+      const response = await fetch(`${this.baseUrl}/residence`, {
+        method: 'POST',
+        headers: await this.getAuthHeaders(),
+        body: JSON.stringify(data),
+      });
+
+      const result = await handleApiResponse(response);
+      return result.data;
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new Error(error.message || 'document.submissionFailed');
+      }
+      throw new Error('network_error');
+    }
+  }
+
+  async getDocumentsStatus(): Promise<DocumentsStatus> {
+    try {
+      const response = await fetch(`${this.baseUrl}/status`, {
+        method: 'GET',
+        headers: await this.getAuthHeaders(),
+      });
+
+      const result = await handleApiResponse(response);
+      return result.data;
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new Error(error.message || 'document.fetchFailed');
+      }
+      throw new Error('network_error');
+    }
+>>>>>>> origin/main
   }
 }
 

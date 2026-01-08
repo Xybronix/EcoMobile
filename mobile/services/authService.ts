@@ -184,6 +184,7 @@ class AuthService {
         
         return user;
       } catch (error) {
+<<<<<<< HEAD
         // Si erreur d'autorisation (401, 403), déconnecter et ne pas retourner les données stockées
         if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
           await this.logout();
@@ -191,6 +192,13 @@ class AuthService {
         }
         
         // Pour les autres erreurs (réseau, etc.), retourner les données stockées si disponibles
+=======
+        if (error instanceof ApiError && error.status === 401) {
+          await this.logout();
+          throw error;
+        }
+        
+>>>>>>> origin/main
         const storedUser = await getUserData<User>();
         if (storedUser) {
           return storedUser;

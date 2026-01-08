@@ -77,6 +77,7 @@ export class IncidentService {
 
     return response.data;
   }
+<<<<<<< HEAD
 
   async createAdminCharge(data: {
     userId: string;
@@ -93,6 +94,8 @@ export class IncidentService {
 
     return response.data;
   }
+=======
+>>>>>>> origin/main
 }
 
 export const incidentService = new IncidentService();

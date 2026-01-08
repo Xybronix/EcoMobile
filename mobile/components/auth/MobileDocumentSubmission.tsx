@@ -1,4 +1,7 @@
+<<<<<<< HEAD
 /* eslint-disable react-hooks/exhaustive-deps */
+=======
+>>>>>>> origin/main
 import { Button } from '@/components/ui/Button';
 import { Text } from '@/components/ui/Text';
 import { toast } from '@/components/ui/Toast';
@@ -9,9 +12,15 @@ import { Label } from '@/components/ui/Label';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { getGlobalStyles } from '@/styles/globalStyles';
 import { haptics } from '@/utils/haptics';
+<<<<<<< HEAD
 import { documentService, type DocumentsStatus } from '@/services/documentService';
 import { useMobileI18n } from '@/lib/mobile-i18n';
 import { MobileHeader } from '@/components/layout/MobileHeader';
+=======
+import { documentService, type DocumentsStatus, type IdentityDocument, type ResidenceProof } from '@/services/documentService';
+import { useMobileAuth } from '@/lib/mobile-auth';
+import { useMobileI18n } from '@/lib/mobile-i18n';
+>>>>>>> origin/main
 import { 
   FileText, 
   MapPin, 
@@ -20,6 +29,10 @@ import {
   XCircle, 
   Clock, 
   AlertCircle,
+<<<<<<< HEAD
+=======
+  Upload,
+>>>>>>> origin/main
   Image as ImageIcon
 } from 'lucide-react-native';
 import React, { useState, useEffect } from 'react';
@@ -30,8 +43,12 @@ import {
   ActivityIndicator, 
   Image,
   Alert,
+<<<<<<< HEAD
   RefreshControl,
   Dimensions
+=======
+  RefreshControl
+>>>>>>> origin/main
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
@@ -41,6 +58,7 @@ interface MobileDocumentSubmissionProps {
   onNavigate: (screen: string) => void;
 }
 
+<<<<<<< HEAD
 const { width: screenWidth } = Dimensions.get('window');
 
 export default function MobileDocumentSubmission({ onNavigate }: MobileDocumentSubmissionProps) {
@@ -48,6 +66,14 @@ export default function MobileDocumentSubmission({ onNavigate }: MobileDocumentS
   const colorScheme = useColorScheme();
   const styles = getGlobalStyles(colorScheme);
   
+=======
+export default function MobileDocumentSubmission({ onNavigate }: MobileDocumentSubmissionProps) {
+  const { user, refreshUser } = useMobileAuth();
+  const { t } = useMobileI18n();
+  const colorScheme = useColorScheme();
+  const styles = getGlobalStyles(colorScheme);
+
+>>>>>>> origin/main
   const [documentsStatus, setDocumentsStatus] = useState<DocumentsStatus | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -91,6 +117,7 @@ export default function MobileDocumentSubmission({ onNavigate }: MobileDocumentS
       }
     } catch (error: any) {
       console.error('Error loading documents status:', error);
+<<<<<<< HEAD
       
       // Si erreur d'autorisation, le service a déjà géré la déconnexion
       if (error.message === 'unauthorized' || error.message === 'not_authenticated') {
@@ -99,6 +126,8 @@ export default function MobileDocumentSubmission({ onNavigate }: MobileDocumentS
         return;
       }
       
+=======
+>>>>>>> origin/main
       toast.error(error.message || t('common.error'));
     } finally {
       setIsLoading(false);
@@ -106,7 +135,11 @@ export default function MobileDocumentSubmission({ onNavigate }: MobileDocumentS
     }
   };
 
+<<<<<<< HEAD
   const pickImage = async (_side: 'front' | 'back' | 'residence'): Promise<string | null> => {
+=======
+  const pickImage = async (side: 'front' | 'back' | 'residence'): Promise<string | null> => {
+>>>>>>> origin/main
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
@@ -136,7 +169,11 @@ export default function MobileDocumentSubmission({ onNavigate }: MobileDocumentS
     }
   };
 
+<<<<<<< HEAD
   const takePhoto = async (_side: 'front' | 'back' | 'residence'): Promise<string | null> => {
+=======
+  const takePhoto = async (side: 'front' | 'back' | 'residence'): Promise<string | null> => {
+>>>>>>> origin/main
     try {
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
       if (status !== 'granted') {
@@ -302,6 +339,7 @@ export default function MobileDocumentSubmission({ onNavigate }: MobileDocumentS
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'APPROVED':
+<<<<<<< HEAD
         return (
           <Badge variant="default" style={[styles.row, styles.alignCenter, { backgroundColor: '#16a34a' }]}>
             <CheckCircle size={14} color="white" style={styles.mr4} />
@@ -322,11 +360,19 @@ export default function MobileDocumentSubmission({ onNavigate }: MobileDocumentS
             <Text style={[styles.textSm, { color: colorScheme === 'light' ? '#374151' : '#d1d5db' }]}>{t('document.pending')}</Text>
           </Badge>
         );
+=======
+        return <Badge variant="success"><CheckCircle size={14} /> {t('document.approved')}</Badge>;
+      case 'REJECTED':
+        return <Badge variant="destructive"><XCircle size={14} /> {t('document.rejected')}</Badge>;
+      default:
+        return <Badge variant="secondary"><Clock size={14} /> {t('document.pending')}</Badge>;
+>>>>>>> origin/main
     }
   };
 
   if (isLoading) {
     return (
+<<<<<<< HEAD
       <View style={[styles.container, { backgroundColor: colorScheme === 'light' ? '#f9fafb' : '#111827' }]}>
         <MobileHeader title={t('document.submission')} />
         <View style={[styles.flex1, styles.justifyCenter, styles.alignCenter]}>
@@ -335,6 +381,13 @@ export default function MobileDocumentSubmission({ onNavigate }: MobileDocumentS
             {t('common.loading')}
           </Text>
         </View>
+=======
+      <View style={[styles.flex1, styles.alignCenter, styles.justifyCenter]}>
+        <ActivityIndicator size="large" color="#5D5CDE" />
+        <Text style={[styles.text, styles.mt4, styles.textGray]}>
+          {t('common.loading')}
+        </Text>
+>>>>>>> origin/main
       </View>
     );
   }
@@ -343,6 +396,7 @@ export default function MobileDocumentSubmission({ onNavigate }: MobileDocumentS
   const allSubmitted = documentsStatus?.allDocumentsSubmitted;
 
   return (
+<<<<<<< HEAD
     <View style={[styles.container, { backgroundColor: colorScheme === 'light' ? '#f9fafb' : '#111827' }]}>
       <MobileHeader 
         title={t('document.submission')}
@@ -370,10 +424,29 @@ export default function MobileDocumentSubmission({ onNavigate }: MobileDocumentS
               </Text>
             </View>
             <Text style={[styles.text, { color: colorScheme === 'light' ? '#6b7280' : '#9ca3af' }]}>
+=======
+    <ScrollView
+      style={styles.flex1}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={loadDocumentsStatus} />
+      }
+    >
+      <View style={[styles.p16]}>
+        {allApproved ? (
+          <Card style={[styles.p6, styles.mb6, { backgroundColor: '#d1fae5' }]}>
+            <View style={[styles.row, styles.alignCenter, styles.mb2]}>
+              <CheckCircle size={24} color="#16a34a" />
+              <Text style={[styles.textLg, styles.fontBold, styles.ml2, { color: '#16a34a' }]}>
+                {t('document.allApproved')}
+              </Text>
+            </View>
+            <Text style={[styles.text, styles.textGray]}>
+>>>>>>> origin/main
               {t('document.waitingAdminValidation')}
             </Text>
           </Card>
         ) : allSubmitted ? (
+<<<<<<< HEAD
           <Card style={[styles.mb24, styles.p16, { backgroundColor: colorScheme === 'light' ? '#fef3c7' : '#92400e' }]}>
             <View style={[styles.row, styles.alignCenter, styles.mb8]}>
               <Clock size={24} color={colorScheme === 'light' ? '#d97706' : '#fbbf24'} />
@@ -382,21 +455,39 @@ export default function MobileDocumentSubmission({ onNavigate }: MobileDocumentS
               </Text>
             </View>
             <Text style={[styles.text, { color: colorScheme === 'light' ? '#6b7280' : '#9ca3af' }]}>
+=======
+          <Card style={[styles.p6, styles.mb6, { backgroundColor: '#fef3c7' }]}>
+            <View style={[styles.row, styles.alignCenter, styles.mb2]}>
+              <Clock size={24} color="#d97706" />
+              <Text style={[styles.textLg, styles.fontBold, styles.ml2, { color: '#d97706' }]}>
+                {t('document.allSubmitted')}
+              </Text>
+            </View>
+            <Text style={[styles.text, styles.textGray]}>
+>>>>>>> origin/main
               {t('document.waitingAdminReview')}
             </Text>
           </Card>
         ) : null}
 
         {/* Identity Document Section */}
+<<<<<<< HEAD
         <Card style={[styles.mb24]}>
           <View style={[styles.row, styles.alignCenter, styles.mb16]}>
             <FileText size={24} color="#5D5CDE" />
             <Text style={[styles.textXl, styles.textBold, styles.ml8]}>
+=======
+        <Card style={[styles.p6, styles.mb6]}>
+          <View style={[styles.row, styles.alignCenter, styles.mb4]}>
+            <FileText size={24} color="#5D5CDE" />
+            <Text style={[styles.textXl, styles.fontBold, styles.ml2]}>
+>>>>>>> origin/main
               {t('document.identityDocument')}
             </Text>
           </View>
 
           {documentsStatus?.identityDocuments.map((doc) => (
+<<<<<<< HEAD
             <View 
               key={doc.id} 
               style={[
@@ -412,11 +503,17 @@ export default function MobileDocumentSubmission({ onNavigate }: MobileDocumentS
             >
               <View style={[styles.row, styles.alignCenter, styles.justifyBetween, styles.mb8]}>
                 <Text style={[styles.text, styles.textSemiBold]}>
+=======
+            <View key={doc.id} style={[styles.mb4, styles.p4, { backgroundColor: '#f3f4f6', borderRadius: 8 }]}>
+              <View style={[styles.row, styles.alignCenter, styles.justifyBetween, styles.mb2]}>
+                <Text style={[styles.text, styles.fontSemibold]}>
+>>>>>>> origin/main
                   {doc.documentType === 'CNI' ? t('document.cni') : t('document.recepisse')}
                 </Text>
                 {getStatusBadge(doc.status)}
               </View>
               {doc.rejectionReason && (
+<<<<<<< HEAD
                 <View style={[
                   styles.mt8, 
                   styles.p8, 
@@ -432,6 +529,16 @@ export default function MobileDocumentSubmission({ onNavigate }: MobileDocumentS
                     </Text>
                   </View>
                   <Text style={[styles.textSm, { color: colorScheme === 'light' ? '#991b1b' : '#fca5a5' }]}>
+=======
+                <View style={[styles.mt2, styles.p3, { backgroundColor: '#fee2e2', borderRadius: 6 }]}>
+                  <View style={[styles.row, styles.alignStart, styles.mb1]}>
+                    <AlertCircle size={16} color="#dc2626" />
+                    <Text style={[styles.textSm, styles.fontSemibold, styles.ml1, { color: '#dc2626' }]}>
+                      {t('document.rejectionReason')}
+                    </Text>
+                  </View>
+                  <Text style={[styles.textSm, { color: '#991b1b' }]}>
+>>>>>>> origin/main
                     {doc.rejectionReason}
                   </Text>
                 </View>
@@ -439,29 +546,49 @@ export default function MobileDocumentSubmission({ onNavigate }: MobileDocumentS
             </View>
           ))}
 
+<<<<<<< HEAD
           <View style={[styles.mb16]}>
             <Label>{t('document.documentType')}</Label>
             <View style={[styles.row, styles.gap8]}>
+=======
+          <View style={[styles.mb4]}>
+            <Label>{t('document.documentType')}</Label>
+            <View style={[styles.row, styles.gap2]}>
+>>>>>>> origin/main
               <TouchableOpacity
                 onPress={() => setDocumentType('CNI')}
                 style={[
                   styles.flex1,
+<<<<<<< HEAD
                   styles.p12,
                   styles.rounded8,
                   { 
                     backgroundColor: documentType === 'CNI' ? '#5D5CDE' : (colorScheme === 'light' ? '#f3f4f6' : '#374151'),
                     borderWidth: 1,
                     borderColor: documentType === 'CNI' ? '#5D5CDE' : (colorScheme === 'light' ? '#e5e7eb' : '#4b5563'),
+=======
+                  styles.p4,
+                  styles.rounded,
+                  { 
+                    backgroundColor: documentType === 'CNI' ? '#5D5CDE' : '#f3f4f6',
+                    borderWidth: 1,
+                    borderColor: documentType === 'CNI' ? '#5D5CDE' : '#e5e7eb',
+>>>>>>> origin/main
                   }
                 ]}
               >
                 <Text style={[
                   styles.text,
+<<<<<<< HEAD
                   styles.textSemiBold,
                   { 
                     color: documentType === 'CNI' ? 'white' : (colorScheme === 'light' ? '#374151' : '#d1d5db'),
                     textAlign: 'center'
                   }
+=======
+                  styles.fontSemibold,
+                  { color: documentType === 'CNI' ? 'white' : '#374151' }
+>>>>>>> origin/main
                 ]}>
                   {t('document.cni')}
                 </Text>
@@ -470,22 +597,36 @@ export default function MobileDocumentSubmission({ onNavigate }: MobileDocumentS
                 onPress={() => setDocumentType('RECEPISSE')}
                 style={[
                   styles.flex1,
+<<<<<<< HEAD
                   styles.p12,
                   styles.rounded8,
                   { 
                     backgroundColor: documentType === 'RECEPISSE' ? '#5D5CDE' : (colorScheme === 'light' ? '#f3f4f6' : '#374151'),
                     borderWidth: 1,
                     borderColor: documentType === 'RECEPISSE' ? '#5D5CDE' : (colorScheme === 'light' ? '#e5e7eb' : '#4b5563'),
+=======
+                  styles.p4,
+                  styles.rounded,
+                  { 
+                    backgroundColor: documentType === 'RECEPISSE' ? '#5D5CDE' : '#f3f4f6',
+                    borderWidth: 1,
+                    borderColor: documentType === 'RECEPISSE' ? '#5D5CDE' : '#e5e7eb',
+>>>>>>> origin/main
                   }
                 ]}
               >
                 <Text style={[
                   styles.text,
+<<<<<<< HEAD
                   styles.textSemiBold,
                   { 
                     color: documentType === 'RECEPISSE' ? 'white' : (colorScheme === 'light' ? '#374151' : '#d1d5db'),
                     textAlign: 'center'
                   }
+=======
+                  styles.fontSemibold,
+                  { color: documentType === 'RECEPISSE' ? 'white' : '#374151' }
+>>>>>>> origin/main
                 ]}>
                   {t('document.recepisse')}
                 </Text>
@@ -493,11 +634,16 @@ export default function MobileDocumentSubmission({ onNavigate }: MobileDocumentS
             </View>
           </View>
 
+<<<<<<< HEAD
           <View style={[styles.mb16]}>
+=======
+          <View style={[styles.mb4]}>
+>>>>>>> origin/main
             <Label>{t('document.frontImage')} *</Label>
             <TouchableOpacity
               onPress={() => showImageSourceOptions('front')}
               style={[
+<<<<<<< HEAD
                 styles.p12,
                 styles.rounded8,
                 { 
@@ -526,6 +672,20 @@ export default function MobileDocumentSubmission({ onNavigate }: MobileDocumentS
                 <View style={[styles.alignCenter]}>
                   <Camera size={32} color={colorScheme === 'light' ? '#9ca3af' : '#6b7280'} />
                   <Text style={[styles.text, { color: colorScheme === 'light' ? '#6b7280' : '#9ca3af' }, styles.mt8]}>
+=======
+                styles.p4,
+                styles.rounded,
+                styles.border,
+                { borderColor: '#d1d5db', minHeight: 150, justifyContent: 'center', alignItems: 'center' }
+              ]}
+            >
+              {frontImage ? (
+                <Image source={{ uri: frontImage }} style={{ width: '100%', height: 150, borderRadius: 8 }} resizeMode="cover" />
+              ) : (
+                <View style={[styles.alignCenter]}>
+                  <Camera size={32} color="#9ca3af" />
+                  <Text style={[styles.text, styles.textGray, styles.mt2]}>
+>>>>>>> origin/main
                     {t('document.takeOrSelectPhoto')}
                   </Text>
                 </View>
@@ -533,11 +693,16 @@ export default function MobileDocumentSubmission({ onNavigate }: MobileDocumentS
             </TouchableOpacity>
           </View>
 
+<<<<<<< HEAD
           <View style={[styles.mb16]}>
+=======
+          <View style={[styles.mb4]}>
+>>>>>>> origin/main
             <Label>{t('document.backImage')} ({t('common.optional')})</Label>
             <TouchableOpacity
               onPress={() => showImageSourceOptions('back')}
               style={[
+<<<<<<< HEAD
                 styles.p12,
                 styles.rounded8,
                 { 
@@ -566,6 +731,20 @@ export default function MobileDocumentSubmission({ onNavigate }: MobileDocumentS
                 <View style={[styles.alignCenter]}>
                   <Camera size={32} color={colorScheme === 'light' ? '#9ca3af' : '#6b7280'} />
                   <Text style={[styles.text, { color: colorScheme === 'light' ? '#6b7280' : '#9ca3af' }, styles.mt8]}>
+=======
+                styles.p4,
+                styles.rounded,
+                styles.border,
+                { borderColor: '#d1d5db', minHeight: 150, justifyContent: 'center', alignItems: 'center' }
+              ]}
+            >
+              {backImage ? (
+                <Image source={{ uri: backImage }} style={{ width: '100%', height: 150, borderRadius: 8 }} resizeMode="cover" />
+              ) : (
+                <View style={[styles.alignCenter]}>
+                  <Camera size={32} color="#9ca3af" />
+                  <Text style={[styles.text, styles.textGray, styles.mt2]}>
+>>>>>>> origin/main
                     {t('document.takeOrSelectPhoto')}
                   </Text>
                 </View>
@@ -576,12 +755,19 @@ export default function MobileDocumentSubmission({ onNavigate }: MobileDocumentS
           <Button
             onPress={handleSubmitIdentityDocument}
             disabled={isSubmitting || !frontImage}
+<<<<<<< HEAD
             fullWidth
+=======
+>>>>>>> origin/main
           >
             {isSubmitting ? (
               <ActivityIndicator color="white" />
             ) : (
+<<<<<<< HEAD
               <Text style={{ color: 'white', fontWeight: '500' }}>
+=======
+              <Text style={[styles.textWhite, styles.fontSemibold]}>
+>>>>>>> origin/main
                 {t('document.submit')}
               </Text>
             )}
@@ -589,15 +775,23 @@ export default function MobileDocumentSubmission({ onNavigate }: MobileDocumentS
         </Card>
 
         {/* Residence Proof Section */}
+<<<<<<< HEAD
         <Card>
           <View style={[styles.row, styles.alignCenter, styles.mb16]}>
             <MapPin size={24} color="#5D5CDE" />
             <Text style={[styles.textXl, styles.textBold, styles.ml8]}>
+=======
+        <Card style={[styles.p6]}>
+          <View style={[styles.row, styles.alignCenter, styles.mb4]}>
+            <MapPin size={24} color="#5D5CDE" />
+            <Text style={[styles.textXl, styles.fontBold, styles.ml2]}>
+>>>>>>> origin/main
               {t('document.residenceProof')}
             </Text>
           </View>
 
           {documentsStatus?.residenceProof && (
+<<<<<<< HEAD
             <View 
               style={[
                 styles.mb16, 
@@ -612,6 +806,11 @@ export default function MobileDocumentSubmission({ onNavigate }: MobileDocumentS
             >
               <View style={[styles.row, styles.alignCenter, styles.justifyBetween, styles.mb8]}>
                 <Text style={[styles.text, styles.textSemiBold]}>
+=======
+            <View style={[styles.mb4, styles.p4, { backgroundColor: '#f3f4f6', borderRadius: 8 }]}>
+              <View style={[styles.row, styles.alignCenter, styles.justifyBetween, styles.mb2]}>
+                <Text style={[styles.text, styles.fontSemibold]}>
+>>>>>>> origin/main
                   {documentsStatus.residenceProof.proofType === 'DOCUMENT' 
                     ? t('document.document') 
                     : t('document.mapCoordinates')}
@@ -619,6 +818,7 @@ export default function MobileDocumentSubmission({ onNavigate }: MobileDocumentS
                 {getStatusBadge(documentsStatus.residenceProof.status)}
               </View>
               {documentsStatus.residenceProof.rejectionReason && (
+<<<<<<< HEAD
                 <View style={[
                   styles.mt8, 
                   styles.p8, 
@@ -634,6 +834,16 @@ export default function MobileDocumentSubmission({ onNavigate }: MobileDocumentS
                     </Text>
                   </View>
                   <Text style={[styles.textSm, { color: colorScheme === 'light' ? '#991b1b' : '#fca5a5' }]}>
+=======
+                <View style={[styles.mt2, styles.p3, { backgroundColor: '#fee2e2', borderRadius: 6 }]}>
+                  <View style={[styles.row, styles.alignStart, styles.mb1]}>
+                    <AlertCircle size={16} color="#dc2626" />
+                    <Text style={[styles.textSm, styles.fontSemibold, styles.ml1, { color: '#dc2626' }]}>
+                      {t('document.rejectionReason')}
+                    </Text>
+                  </View>
+                  <Text style={[styles.textSm, { color: '#991b1b' }]}>
+>>>>>>> origin/main
                     {documentsStatus.residenceProof.rejectionReason}
                   </Text>
                 </View>
@@ -641,29 +851,49 @@ export default function MobileDocumentSubmission({ onNavigate }: MobileDocumentS
             </View>
           )}
 
+<<<<<<< HEAD
           <View style={[styles.mb16]}>
             <Label>{t('document.proofType')}</Label>
             <View style={[styles.row, styles.gap8]}>
+=======
+          <View style={[styles.mb4]}>
+            <Label>{t('document.proofType')}</Label>
+            <View style={[styles.row, styles.gap2]}>
+>>>>>>> origin/main
               <TouchableOpacity
                 onPress={() => setProofType('DOCUMENT')}
                 style={[
                   styles.flex1,
+<<<<<<< HEAD
                   styles.p12,
                   styles.rounded8,
                   { 
                     backgroundColor: proofType === 'DOCUMENT' ? '#5D5CDE' : (colorScheme === 'light' ? '#f3f4f6' : '#374151'),
                     borderWidth: 1,
                     borderColor: proofType === 'DOCUMENT' ? '#5D5CDE' : (colorScheme === 'light' ? '#e5e7eb' : '#4b5563'),
+=======
+                  styles.p4,
+                  styles.rounded,
+                  { 
+                    backgroundColor: proofType === 'DOCUMENT' ? '#5D5CDE' : '#f3f4f6',
+                    borderWidth: 1,
+                    borderColor: proofType === 'DOCUMENT' ? '#5D5CDE' : '#e5e7eb',
+>>>>>>> origin/main
                   }
                 ]}
               >
                 <Text style={[
                   styles.text,
+<<<<<<< HEAD
                   styles.textSemiBold,
                   { 
                     color: proofType === 'DOCUMENT' ? 'white' : (colorScheme === 'light' ? '#374151' : '#d1d5db'),
                     textAlign: 'center'
                   }
+=======
+                  styles.fontSemibold,
+                  { color: proofType === 'DOCUMENT' ? 'white' : '#374151' }
+>>>>>>> origin/main
                 ]}>
                   {t('document.document')}
                 </Text>
@@ -672,22 +902,36 @@ export default function MobileDocumentSubmission({ onNavigate }: MobileDocumentS
                 onPress={() => setProofType('MAP_COORDINATES')}
                 style={[
                   styles.flex1,
+<<<<<<< HEAD
                   styles.p12,
                   styles.rounded8,
                   { 
                     backgroundColor: proofType === 'MAP_COORDINATES' ? '#5D5CDE' : (colorScheme === 'light' ? '#f3f4f6' : '#374151'),
                     borderWidth: 1,
                     borderColor: proofType === 'MAP_COORDINATES' ? '#5D5CDE' : (colorScheme === 'light' ? '#e5e7eb' : '#4b5563'),
+=======
+                  styles.p4,
+                  styles.rounded,
+                  { 
+                    backgroundColor: proofType === 'MAP_COORDINATES' ? '#5D5CDE' : '#f3f4f6',
+                    borderWidth: 1,
+                    borderColor: proofType === 'MAP_COORDINATES' ? '#5D5CDE' : '#e5e7eb',
+>>>>>>> origin/main
                   }
                 ]}
               >
                 <Text style={[
                   styles.text,
+<<<<<<< HEAD
                   styles.textSemiBold,
                   { 
                     color: proofType === 'MAP_COORDINATES' ? 'white' : (colorScheme === 'light' ? '#374151' : '#d1d5db'),
                     textAlign: 'center'
                   }
+=======
+                  styles.fontSemibold,
+                  { color: proofType === 'MAP_COORDINATES' ? 'white' : '#374151' }
+>>>>>>> origin/main
                 ]}>
                   {t('document.mapCoordinates')}
                 </Text>
@@ -696,11 +940,16 @@ export default function MobileDocumentSubmission({ onNavigate }: MobileDocumentS
           </View>
 
           {proofType === 'DOCUMENT' ? (
+<<<<<<< HEAD
             <View style={[styles.mb16]}>
+=======
+            <View style={[styles.mb4]}>
+>>>>>>> origin/main
               <Label>{t('document.residenceDocument')} *</Label>
               <TouchableOpacity
                 onPress={() => showImageSourceOptions('residence')}
                 style={[
+<<<<<<< HEAD
                   styles.p12,
                   styles.rounded8,
                   { 
@@ -729,6 +978,20 @@ export default function MobileDocumentSubmission({ onNavigate }: MobileDocumentS
                   <View style={[styles.alignCenter]}>
                     <ImageIcon size={32} color={colorScheme === 'light' ? '#9ca3af' : '#6b7280'} />
                     <Text style={[styles.text, { color: colorScheme === 'light' ? '#6b7280' : '#9ca3af' }, styles.mt8]}>
+=======
+                  styles.p4,
+                  styles.rounded,
+                  styles.border,
+                  { borderColor: '#d1d5db', minHeight: 150, justifyContent: 'center', alignItems: 'center' }
+                ]}
+              >
+                {residenceDocument ? (
+                  <Image source={{ uri: residenceDocument }} style={{ width: '100%', height: 150, borderRadius: 8 }} resizeMode="cover" />
+                ) : (
+                  <View style={[styles.alignCenter]}>
+                    <ImageIcon size={32} color="#9ca3af" />
+                    <Text style={[styles.text, styles.textGray, styles.mt2]}>
+>>>>>>> origin/main
                       {t('document.takeOrSelectPhoto')}
                     </Text>
                   </View>
@@ -737,22 +1000,37 @@ export default function MobileDocumentSubmission({ onNavigate }: MobileDocumentS
             </View>
           ) : (
             <>
+<<<<<<< HEAD
               <View style={[styles.mb16]}>
+=======
+              <View style={[styles.mb4]}>
+>>>>>>> origin/main
                 <Label>{t('document.residenceLocation')} *</Label>
                 <Button
                   onPress={getCurrentLocation}
                   variant="outline"
+<<<<<<< HEAD
                   style={[styles.mb12]}
                   fullWidth
                 >
                   <MapPin size={20} color="#5D5CDE" />
                   <Text style={[styles.ml8, { color: '#5D5CDE', fontWeight: '500' }]}>
+=======
+                  style={[styles.mb2]}
+                >
+                  <MapPin size={20} color="#5D5CDE" />
+                  <Text style={[styles.textPrimary, styles.fontSemibold, styles.ml2]}>
+>>>>>>> origin/main
                     {t('document.getCurrentLocation')}
                   </Text>
                 </Button>
                 
                 {residenceLocation && (
+<<<<<<< HEAD
                   <View style={[styles.mt8, { height: 200, borderRadius: 8, overflow: 'hidden' }]}>
+=======
+                  <View style={[styles.mt2, { height: 200, borderRadius: 8, overflow: 'hidden' }]}>
+>>>>>>> origin/main
                     <OSMMap
                       userLocation={residenceLocation}
                       bikes={[]}
@@ -763,26 +1041,42 @@ export default function MobileDocumentSubmission({ onNavigate }: MobileDocumentS
                 )}
               </View>
 
+<<<<<<< HEAD
               <View style={[styles.mb16]}>
+=======
+              <View style={[styles.mb4]}>
+>>>>>>> origin/main
                 <Label>{t('document.address')}</Label>
                 <Input
                   value={residenceAddress}
                   onChangeText={setResidenceAddress}
                   placeholder={t('document.addressPlaceholder')}
+<<<<<<< HEAD
                   placeholderTextColor={colorScheme === 'light' ? '#9ca3af' : '#6b7280'}
                 />
               </View>
 
               <View style={[styles.mb16]}>
+=======
+                />
+              </View>
+
+              <View style={[styles.mb4]}>
+>>>>>>> origin/main
                 <Label>{t('document.details')}</Label>
                 <Input
                   value={residenceDetails}
                   onChangeText={setResidenceDetails}
                   placeholder={t('document.detailsPlaceholder')}
+<<<<<<< HEAD
                   placeholderTextColor={colorScheme === 'light' ? '#9ca3af' : '#6b7280'}
                   multiline
                   numberOfLines={4}
                   style={{ height: 100 }}
+=======
+                  multiline
+                  numberOfLines={4}
+>>>>>>> origin/main
                 />
               </View>
             </>
@@ -791,18 +1085,32 @@ export default function MobileDocumentSubmission({ onNavigate }: MobileDocumentS
           <Button
             onPress={handleSubmitResidenceProof}
             disabled={isSubmitting || (proofType === 'DOCUMENT' && !residenceDocument) || (proofType === 'MAP_COORDINATES' && !residenceLocation)}
+<<<<<<< HEAD
             fullWidth
+=======
+>>>>>>> origin/main
           >
             {isSubmitting ? (
               <ActivityIndicator color="white" />
             ) : (
+<<<<<<< HEAD
               <Text style={{ color: 'white', fontWeight: '500' }}>
+=======
+              <Text style={[styles.textWhite, styles.fontSemibold]}>
+>>>>>>> origin/main
                 {t('document.submit')}
               </Text>
             )}
           </Button>
         </Card>
+<<<<<<< HEAD
       </ScrollView>
     </View>
   );
 }
+=======
+      </View>
+    </ScrollView>
+  );
+}
+>>>>>>> origin/main
