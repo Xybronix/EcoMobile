@@ -1,4 +1,5 @@
 import { API_CONFIG, handleApiResponse, ApiError } from '@/lib/api/config';
+import { withNetworkCheck } from '@/lib/api/networkInterceptor';
 import { authService, User } from './authService';
 import { storeLanguage, storeUserData } from '@/utils/storage';
 
@@ -51,53 +52,57 @@ class UserService {
   }
 
   async getProfile(): Promise<User> {
-    const headers = await this.getAuthHeaders();
-    
-    try {
-      const response = await fetch(`${this.baseUrl}/profile`, {
-        method: 'GET',
-        headers,
-      });
-
-      const result = await handleApiResponse(response);
-      const user = result.data;
+    return withNetworkCheck(async () => {
+      const headers = await this.getAuthHeaders();
       
-      await storeUserData(user);
-      return user;
-    } catch (error) {
-      if (error instanceof ApiError && error.status === 401) {
-        await authService.logout();
+      try {
+        const response = await fetch(`${this.baseUrl}/profile`, {
+          method: 'GET',
+          headers,
+        });
+
+        const result = await handleApiResponse(response);
+        const user = result.data;
+        
+        await storeUserData(user);
+        return user;
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 401) {
+          await authService.logout();
+        }
+        throw error;
       }
-      throw error;
-    }
+    }, 'auth.internetRequired');
   }
 
   async updateProfile(profileData: UpdateProfileData): Promise<User> {
-    const headers = await this.getAuthHeaders();
-    
-    try {
-      const response = await fetch(`${this.baseUrl}/profile`, {
-        method: 'PUT',
-        headers,
-        body: JSON.stringify(profileData),
-      });
-
-      const result = await handleApiResponse(response);
-      const user = result.data;
+    return withNetworkCheck(async () => {
+      const headers = await this.getAuthHeaders();
       
-      await storeUserData(user);
-      
-      if (profileData.language) {
-        await storeLanguage(profileData.language);
-      }
+      try {
+        const response = await fetch(`${this.baseUrl}/profile`, {
+          method: 'PUT',
+          headers,
+          body: JSON.stringify(profileData),
+        });
 
-      return user;
-    } catch (error) {
-      if (error instanceof ApiError) {
-        throw new Error(this.getErrorMessage(error));
+        const result = await handleApiResponse(response);
+        const user = result.data;
+        
+        await storeUserData(user);
+        
+        if (profileData.language) {
+          await storeLanguage(profileData.language);
+        }
+
+        return user;
+      } catch (error) {
+        if (error instanceof ApiError) {
+          throw new Error(this.getErrorMessage(error));
+        }
+        throw new Error('network_error');
       }
-      throw new Error('network_error');
-    }
+    }, 'auth.internetRequired');
   }
 
   async updatePassword(currentPassword: string, newPassword: string): Promise<void> {

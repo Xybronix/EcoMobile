@@ -77,6 +77,22 @@ export class IncidentService {
 
     return response.data;
   }
+
+  async createAdminCharge(data: {
+    userId: string;
+    bikeId?: string;
+    amount: number;
+    reason: string;
+    description?: string;
+  }): Promise<any> {
+    const response = await apiClient.post('/incidents/admin/charge', data);
+    
+    if (!response.success || !response.data) {
+      throw new Error(response.error || 'Erreur lors de la création de la charge');
+    }
+
+    return response.data;
+  }
 }
 
 export const incidentService = new IncidentService();

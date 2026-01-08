@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { walletService } from '../../../services/api/wallet.service';
 import { bikeService, type BikePosition } from '../../../services/api/bike.service';
 import { userService, type User as UserType } from '../../../services/api/user.service';
+import { incidentService } from '../../../services/api/incident.service';
 
 interface AdminChargeModalProps {
   open: boolean;
@@ -95,34 +96,21 @@ export function AdminChargeModal({
     try {
       setIsLoading(true);
 
-      // Appeler l'API pour créer la charge
-      const response = await fetch('/api/v1/incidents/admin/charge', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          userId: formData.userId,
-          bikeId: formData.bikeId || undefined,
-          amount,
-          reason: formData.reason,
-          description: formData.description
-        })
+      // Appeler l'API pour créer la charge via le service
+      await incidentService.createAdminCharge({
+        userId: formData.userId,
+        bikeId: formData.bikeId || undefined,
+        amount,
+        reason: formData.reason,
+        description: formData.description
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Erreur lors de la création de la charge');
-      }
 
       toast.success(`Charge de ${amount} FCFA affectée avec succès`);
       
       // Reset form
       setFormData({
-        userId: '',
-        bikeId: '',
+        userId: preselectedUserId || '',
+        bikeId: preselectedBikeId || '',
         amount: '',
         reason: '',
         description: ''
