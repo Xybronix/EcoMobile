@@ -62,7 +62,7 @@ export function Sidebar({ isCollapsed, isMobileMenuOpen, onCloseMobileMenu }: Si
         },
         { 
           id: 'bikesAction', 
-          label: t('nav.bikes'), 
+          label: t('nav.bikeActions'), 
           path: '/admin/bikes/actions',
           resource: 'bikes',
           action: 'read'

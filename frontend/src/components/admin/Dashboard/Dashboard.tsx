@@ -118,7 +118,7 @@ export function Dashboard() {
   ];
 
   return (
-    <div className="p-4 md:p-8 space-y-6">
+    <div className="p-4 md:p-8 space-y-6 pb-12 w-full">
       <div>
         <h1 className="text-green-600">{t('dashboard.title')}</h1>
         <p className="text-gray-600">{t('dashboard.overview')}</p>
@@ -147,13 +147,13 @@ export function Dashboard() {
         })}
       </div>
 
-      {/* Map Section */}
-      <Card className="p-6">
+      {/* Map Section - S'assurer que la carte est visible et défilable */}
+      <Card className="p-6 flex-shrink-0">
         <div className="flex items-center gap-2 mb-4">
           <MapPin className="w-5 h-5 text-green-600" />
           <h2>{t('dashboard.realtimeMap')}</h2>
         </div>
-        <div style={{ height: '500px', width: '100%', position: 'relative' }}>
+        <div className="relative overflow-hidden rounded-lg" style={{ height: '500px', width: '100%', minHeight: '500px', maxHeight: '500px' }}>
           <BikeMap />
         </div>
       </Card>
@@ -279,6 +279,9 @@ export function Dashboard() {
           </div>
         </Card>
       </div>
+      
+      {/* Padding en bas pour s'assurer que tout est visible */}
+      <div className="h-8"></div>
     </div>
   );
 }

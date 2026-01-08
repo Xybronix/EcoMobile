@@ -892,6 +892,7 @@ const translations: Translations = {
   'auth.phone.verifyNow': { fr: 'Vérifier maintenant', en: 'Verify now' },
 
   // Document Submission
+  'document.submission': {fr: 'Soumission de documents', en: 'Document submission'},
   'document.identityDocument': { fr: 'Pièce d\'identité', en: 'Identity document' },
   'document.residenceProof': { fr: 'Preuve de résidence', en: 'Residence proof' },
   'document.documentType': { fr: 'Type de document', en: 'Document type' },

@@ -9,6 +9,68 @@ import type { FeatureGroup } from 'leaflet';
 
 import 'leaflet/dist/leaflet.css';
 
+// Styles pour éviter que les éléments de la carte sortent de leur zone
+const mapStyles = `
+  .leaflet-container {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+    z-index: 0;
+  }
+  .leaflet-control-container {
+    z-index: 1000;
+  }
+  .leaflet-popup {
+    z-index: 1001;
+    max-width: 300px;
+  }
+  .leaflet-popup-content-wrapper {
+    max-width: 100%;
+    overflow: hidden;
+  }
+  .leaflet-popup-content {
+    margin: 13px 19px;
+    overflow: hidden;
+    word-wrap: break-word;
+    max-width: 300px;
+  }
+  .custom-bike-popup {
+    max-width: 300px !important;
+  }
+  .custom-bike-popup .leaflet-popup-content-wrapper {
+    max-width: 300px;
+    overflow: hidden;
+  }
+  .custom-bike-popup .leaflet-popup-content {
+    max-width: 280px;
+    overflow: hidden;
+    word-wrap: break-word;
+  }
+  #map {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+  }
+  .leaflet-pane {
+    z-index: 400;
+  }
+  .leaflet-control {
+    z-index: 1000;
+  }
+`;
+
+// Injecter les styles dans le document
+if (typeof document !== 'undefined') {
+  const styleElement = document.createElement('style');
+  styleElement.textContent = mapStyles;
+  if (!document.head.querySelector('style[data-leaflet-map-styles]')) {
+    styleElement.setAttribute('data-leaflet-map-styles', 'true');
+    document.head.appendChild(styleElement);
+  }
+}
+
 interface BikeMarker {
   id: string;
   code: string;
@@ -38,6 +100,7 @@ export function BikeMap() {
   const mapRef = useRef<HTMLDivElement>(null);
   const leafletMapRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
+  const resizeHandlerRef = useRef<(() => void) | null>(null);
   
   const [bikes, setBikes] = useState<BikeMarker[]>([]);
   const [selectedBike, setSelectedBike] = useState<BikeMarker | null>(null);
@@ -55,22 +118,66 @@ export function BikeMap() {
   };
 
   useEffect(() => {
-    initializeMap();
+    // Initialiser la carte quand le composant est monté ou quand id change
+    if (mapRef.current && !leafletMapRef.current) {
+      // Attendre que le DOM soit prêt et que le conteneur ait une taille
+      const initTimer = setTimeout(() => {
+        if (mapRef.current && !leafletMapRef.current) {
+          initializeMap();
+        }
+      }, 300);
+      
+      return () => {
+        clearTimeout(initTimer);
+      };
+    }
+  }, [id]);
+
+  useEffect(() => {
     loadBikes();
     
     const interval = setInterval(() => {
-      if (!loading) {
+      if (!loading && leafletMapRef.current) {
         refreshPositions();
       }
     }, 30000);
 
     return () => {
       clearInterval(interval);
-      if (leafletMapRef.current) {
-        leafletMapRef.current.remove();
-      }
     };
   }, [id]);
+
+  useEffect(() => {
+    // Redimensionner la carte quand les vélos sont chargés
+    if (bikes.length > 0 && leafletMapRef.current) {
+      setTimeout(() => {
+        if (leafletMapRef.current) {
+          leafletMapRef.current.invalidateSize(true);
+        }
+      }, 100);
+    }
+  }, [bikes.length]);
+
+  useEffect(() => {
+    // Nettoyer lors du démontage
+    return () => {
+      // Retirer le listener resize
+      if (resizeHandlerRef.current) {
+        window.removeEventListener('resize', resizeHandlerRef.current);
+        resizeHandlerRef.current = null;
+      }
+      
+      // Nettoyer la carte Leaflet
+      if (leafletMapRef.current) {
+        try {
+          leafletMapRef.current.remove();
+        } catch (e) {
+          console.warn('Error removing map:', e);
+        }
+        leafletMapRef.current = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (leafletMapRef.current && bikes.length > 0) {
@@ -78,8 +185,8 @@ export function BikeMap() {
     }
   }, [bikes, showInactive, showOffline]);
 
-  const initializeMap = async() => {
-    if (!mapRef.current) return;
+  const initializeMap = async () => {
+    if (!mapRef.current || leafletMapRef.current) return;
 
     const L = await import('leaflet');
 
@@ -96,7 +203,17 @@ export function BikeMap() {
     // Centrer sur Douala par défaut
     const doualaCenter = [4.0511, 9.7679] as [number, number];
     
-    leafletMapRef.current = L.map(mapRef.current).setView(doualaCenter, 12);
+    // S'assurer que le conteneur a une taille
+    if (mapRef.current.clientHeight === 0 || mapRef.current.clientWidth === 0) {
+      console.warn('Map container has no size, waiting...');
+      setTimeout(() => initializeMap(), 100);
+      return;
+    }
+    
+    leafletMapRef.current = L.map(mapRef.current, {
+      zoomControl: true,
+      attributionControl: true,
+    }).setView(doualaCenter, 12);
 
     // Ajouter les tuiles OpenStreetMap
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -104,12 +221,27 @@ export function BikeMap() {
       maxZoom: 18,
     }).addTo(leafletMapRef.current);
 
+    // Forcer le redimensionnement de la carte après un court délai
+    // Important pour s'assurer que la carte s'affiche correctement
+    setTimeout(() => {
+      if (leafletMapRef.current && mapRef.current) {
+        leafletMapRef.current.invalidateSize(true);
+      }
+    }, 300);
+    
+    // Forcer à nouveau après un délai plus long pour s'assurer que tout est chargé
+    setTimeout(() => {
+      if (leafletMapRef.current && mapRef.current) {
+        leafletMapRef.current.invalidateSize(true);
+      }
+    }, 600);
+
     // Contrôles personnalisés
     const customControl = new Control({ position: 'topright' });
     customControl.onAdd = function() {
       const div = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
       div.innerHTML = `
-        <a href="#" id="center-map" title="Centrer sur les vélos">
+        <a href="#" id="center-map-${Date.now()}" title="Centrer sur les vélos">
           <svg style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="10"></circle>
             <circle cx="12" cy="12" r="3"></circle>
@@ -126,14 +258,28 @@ export function BikeMap() {
 
     // Event listener pour centrer
     setTimeout(() => {
-      const centerBtn = document.getElementById('center-map');
+      const centerBtn = document.querySelector(`[id^="center-map"]`);
       if (centerBtn) {
-        centerBtn.onclick = (e) => {
+        centerBtn.addEventListener('click', (e) => {
           e.preventDefault();
           centerMapOnBikes();
-        };
+        });
       }
-    }, 100);
+    }, 300);
+    
+    // Ajouter un listener pour le redimensionnement de la fenêtre
+    const handleResize = () => {
+      if (leafletMapRef.current) {
+        setTimeout(() => {
+          if (leafletMapRef.current) {
+            leafletMapRef.current.invalidateSize(true);
+          }
+        }, 100);
+      }
+    };
+    
+    resizeHandlerRef.current = handleResize;
+    window.addEventListener('resize', handleResize);
   };
 
   const getLeaflet = async () => {
@@ -270,29 +416,29 @@ export function BikeMap() {
       const marker = L.marker([bike.latitude, bike.longitude], { icon: customIcon })
         .addTo(leafletMapRef.current);
 
-      // Popup détaillé
+      // Popup détaillé avec styles pour rester contenu
       const popupContent = `
-        <div style="min-width: 200px;">
-          <div style="font-weight: bold; margin-bottom: 8px; color: #1f2937;">
+        <div style="min-width: 200px; max-width: 280px; overflow: hidden;">
+          <div style="font-weight: bold; margin-bottom: 8px; color: #1f2937; word-wrap: break-word;">
             ${bike.code} - ${bike.model}
           </div>
           
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; font-size: 12px;">
-            <div>
+            <div style="word-wrap: break-word;">
               <strong>Statut:</strong><br>
               <span style="color: ${iconColor};">${bike.status}</span>
             </div>
-            <div>
+            <div style="word-wrap: break-word;">
               <strong>État:</strong><br>
               <span style="color: ${bike.isActive ? '#16a34a' : '#dc2626'};">
                 ${bike.isActive ? 'Actif' : 'Inactif'}
               </span>
             </div>
-            <div>
+            <div style="word-wrap: break-word;">
               <strong>Batterie:</strong><br>
               <span style="color: ${getBatteryColor(bike.battery)};">${bike.battery}%</span>
             </div>
-            <div>
+            <div style="word-wrap: break-word;">
               <strong>GPS:</strong><br>
               <span style="color: ${bike.isOnline ? '#16a34a' : '#dc2626'};">
                 ${bike.isOnline ? 'En ligne' : 'Hors ligne'}
@@ -301,13 +447,13 @@ export function BikeMap() {
           </div>
 
           ${bike.gpsDeviceId ? `
-            <div style="font-size: 11px; color: #6b7280; margin-bottom: 8px;">
+            <div style="font-size: 11px; color: #6b7280; margin-bottom: 8px; word-wrap: break-word;">
               GPS ID: ${bike.gpsDeviceId}
             </div>
           ` : ''}
 
           ${bike.locationName ? `
-            <div style="font-size: 11px; color: #6b7280; margin-bottom: 8px;">
+            <div style="font-size: 11px; color: #6b7280; margin-bottom: 8px; word-wrap: break-word;">
               <svg style="width: 12px; height: 12px; display: inline; vertical-align: middle; margin-right: 4px;" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
               </svg>
@@ -316,7 +462,7 @@ export function BikeMap() {
           ` : ''}
 
           ${bike.lastUpdate ? `
-            <div style="font-size: 11px; color: #6b7280; margin-bottom: 8px;">
+            <div style="font-size: 11px; color: #6b7280; margin-bottom: 8px; word-wrap: break-word;">
               <svg style="width: 12px; height: 12px; display: inline; vertical-align: middle; margin-right: 4px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <circle cx="12" cy="12" r="10"></circle>
                 <polyline points="12 6 12 12 16 14"></polyline>
@@ -337,6 +483,7 @@ export function BikeMap() {
                 cursor: pointer;
                 font-size: 12px;
                 width: 100%;
+                box-sizing: border-box;
               "
             >
               Voir détails
@@ -345,13 +492,28 @@ export function BikeMap() {
         </div>
       `;
 
-      marker.bindPopup(popupContent);
+      marker.bindPopup(popupContent, {
+        maxWidth: 300,
+        className: 'custom-bike-popup'
+      });
       markersRef.current.push(marker);
     });
 
-    // Auto-center if first load
+    // Auto-center if first load et forcer le redimensionnement
     if (!loading && visibleBikes.length > 0) {
-      setTimeout(() => centerMapOnBikes(), 500);
+      setTimeout(() => {
+        if (leafletMapRef.current) {
+          leafletMapRef.current.invalidateSize(true);
+          centerMapOnBikes();
+        }
+      }, 500);
+    } else if (leafletMapRef.current) {
+      // Toujours forcer le redimensionnement même sans vélos
+      setTimeout(() => {
+        if (leafletMapRef.current) {
+          leafletMapRef.current.invalidateSize(true);
+        }
+      }, 300);
     }
   };
 
@@ -514,41 +676,47 @@ export function BikeMap() {
       </div>
 
       {/* Carte interactive Leaflet */}
-      <Card className="relative overflow-hidden" style={{ height: '70vh' }}>
+      <Card className="relative overflow-hidden" style={{ height: '70vh', minHeight: '500px' }}>
         <div
           ref={mapRef}
-          style={{ height: '100%', width: '100%' }}
-          className="relative z-0"
+          style={{ 
+            height: '100%', 
+            width: '100%', 
+            position: 'relative',
+            zIndex: 0,
+            overflow: 'hidden',
+            borderRadius: '8px'
+          }}
         />
         
         {/* Légende */}
-        <div className="absolute bottom-4 left-4 bg-white p-4 rounded-lg shadow-lg max-w-xs">
+        <div className="absolute bottom-4 left-4 bg-white p-4 rounded-lg shadow-lg max-w-xs z-10 pointer-events-auto">
           <h4 className="text-sm font-medium mb-3">Légende</h4>
           <div className="space-y-2 text-xs">
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-green-600 rounded-full border border-white" />
+              <div className="w-4 h-4 bg-green-600 rounded-full border border-white flex-shrink-0" />
               <span>Disponible (actif)</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-blue-600 rounded-full border border-white" />
+              <div className="w-4 h-4 bg-blue-600 rounded-full border border-white flex-shrink-0" />
               <span>En utilisation</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-red-600 rounded-full border border-white" />
+              <div className="w-4 h-4 bg-red-600 rounded-full border border-white flex-shrink-0" />
               <span>Maintenance</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-gray-400 rounded-full border border-white" />
+              <div className="w-4 h-4 bg-gray-400 rounded-full border border-white flex-shrink-0" />
               <span>Hors ligne / Inactif</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-white border border-gray-400 rounded-full flex items-center justify-center">
+              <div className="w-3 h-3 bg-white border border-gray-400 rounded-full flex items-center justify-center flex-shrink-0">
                 <div className="w-1 h-1 bg-gray-400 rounded-full" />
               </div>
               <span>Point creux = Hors ligne</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="relative w-4 h-4 bg-green-600 rounded-full border border-white">
+              <div className="relative w-4 h-4 bg-green-600 rounded-full border border-white flex-shrink-0">
                 <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full border border-white" />
               </div>
               <span>Point rouge = Inactif</span>

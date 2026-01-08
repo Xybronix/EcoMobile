@@ -950,7 +950,10 @@ export function UserDetails() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => window.open(`${import.meta.env.VITE_API_URL || ''}${doc.frontImage}`, '_blank')}
+                            onClick={() => {
+                              const baseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1').replace('/api/v1', '');
+                              window.open(`${baseUrl}${doc.frontImage}`, '_blank');
+                            }}
                           >
                             <Download className="w-4 h-4 mr-2" />
                             Recto
@@ -959,7 +962,10 @@ export function UserDetails() {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => window.open(`${import.meta.env.VITE_API_URL || ''}${doc.backImage}`, '_blank')}
+                              onClick={() => {
+                                const baseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1').replace('/api/v1', '');
+                                window.open(`${baseUrl}${doc.backImage}`, '_blank');
+                              }}
                             >
                               <Download className="w-4 h-4 mr-2" />
                               Verso
@@ -1069,7 +1075,10 @@ export function UserDetails() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => window.open(`${import.meta.env.VITE_API_URL || ''}${documentsStatus.residenceProof?.documentFile}`, '_blank')}
+                          onClick={() => {
+                            const baseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1').replace('/api/v1', '');
+                            window.open(`${baseUrl}${documentsStatus.residenceProof?.documentFile}`, '_blank');
+                          }}
                         >
                           <Download className="w-4 h-4 mr-2" />
                           Télécharger

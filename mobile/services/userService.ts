@@ -67,8 +67,10 @@ class UserService {
         await storeUserData(user);
         return user;
       } catch (error) {
-        if (error instanceof ApiError && error.status === 401) {
+        // Si erreur d'autorisation (401, 403), déconnecter l'utilisateur
+        if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
           await authService.logout();
+          throw new Error('not_authenticated');
         }
         throw error;
       }
@@ -97,6 +99,11 @@ class UserService {
 
         return user;
       } catch (error) {
+        // Si erreur d'autorisation (401, 403), déconnecter l'utilisateur
+        if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
+          await authService.logout();
+          throw new Error('not_authenticated');
+        }
         if (error instanceof ApiError) {
           throw new Error(this.getErrorMessage(error));
         }
@@ -117,6 +124,11 @@ class UserService {
 
       await handleApiResponse(response);
     } catch (error) {
+      // Si erreur d'autorisation (401, 403), déconnecter l'utilisateur
+      if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
+        await authService.logout();
+        throw new Error('not_authenticated');
+      }
       if (error instanceof ApiError) {
         throw new Error(this.getErrorMessage(error));
       }

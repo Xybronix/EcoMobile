@@ -22,6 +22,7 @@ const translations: Translations = {
   // Navigation
   'nav.dashboard': { fr: 'Tableau de bord', en: 'Dashboard' },
   'nav.bikes': { fr: 'Gestion Vélos', en: 'Bike Management' },
+  'nav.bikeActions': { fr: 'Déverrouillage Vélos', en: 'Bike Unlock' },
   'nav.users': { fr: 'Utilisateurs', en: 'Users' },
   'nav.financial': { fr: 'Finances', en: 'Financial' },
   'nav.incidents': { fr: 'Signalements', en: 'Incidents' },

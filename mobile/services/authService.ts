@@ -184,11 +184,13 @@ class AuthService {
         
         return user;
       } catch (error) {
-        if (error instanceof ApiError && error.status === 401) {
+        // Si erreur d'autorisation (401, 403), déconnecter et ne pas retourner les données stockées
+        if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
           await this.logout();
-          throw error;
+          throw new Error('not_authenticated');
         }
         
+        // Pour les autres erreurs (réseau, etc.), retourner les données stockées si disponibles
         const storedUser = await getUserData<User>();
         if (storedUser) {
           return storedUser;

@@ -46,7 +46,11 @@ export function MobileAuthProvider({ children }: AuthProviderProps) {
         // If account is not verified, redirect to document submission
         if (user.status === 'pending_verification' && !isDocumentRoute && !isPhoneVerificationRoute) {
           router.replace('/(auth)/submit-documents');
-        } else if (!isAuthRoute) {
+          return;
+        } else if (user.status === 'pending_verification' && isDocumentRoute) {
+          // Already on document submission page, stay there
+          return;
+        } else if (!isAuthRoute && user.status !== 'pending_verification') {
           router.replace('/(tabs)/home');
         }
       } 
@@ -66,11 +70,36 @@ export function MobileAuthProvider({ children }: AuthProviderProps) {
         try {
           const freshUserData = await authService.getCurrentUser();
           setUser(freshUserData);
-        } catch (apiError) {
+          
+          // Vérifier le statut après récupération des données
+          if (freshUserData.status === 'pending_verification') {
+            const currentPath = segments[0] === '(auth)' ? segments[1] : null;
+            if (currentPath !== 'submit-documents' && currentPath !== 'verify-phone') {
+              router.replace('/(auth)/submit-documents');
+            }
+          }
+        } catch (apiError: any) {
+          // Si erreur d'autorisation (401, 403), déconnecter l'utilisateur
+          if (apiError instanceof Error && (apiError.message.includes('401') || apiError.message.includes('403') || apiError.message === 'not_authenticated')) {
+            console.warn('Unauthorized access, logging out:', apiError);
+            await authService.logout();
+            setUser(null);
+            return;
+          }
+          
+          // Si erreur réseau ou autre, utiliser les données stockées mais vérifier le statut
           console.warn('API unavailable, using stored user data:', apiError);
           const storedUser = await getUserData<User>();
           if (storedUser) {
             setUser(storedUser);
+            
+            // Vérifier le statut même avec les données stockées
+            if (storedUser.status === 'pending_verification') {
+              const currentPath = segments[0] === '(auth)' ? segments[1] : null;
+              if (currentPath !== 'submit-documents' && currentPath !== 'verify-phone') {
+                router.replace('/(auth)/submit-documents');
+              }
+            }
           } else {
             await authService.logout();
             setUser(null);
@@ -80,6 +109,8 @@ export function MobileAuthProvider({ children }: AuthProviderProps) {
         setUser(null);
       }
     } catch (error) {
+      console.error('Error loading stored user:', error);
+      await authService.logout();
       setUser(null);
     } finally {
       setIsLoading(false);
@@ -176,10 +207,33 @@ export function MobileAuthProvider({ children }: AuthProviderProps) {
       setUser(userData);
       
       await storeUserData(userData);
-    } catch (error) {
+      
+      // Vérifier le statut après rafraîchissement
+      if (userData.status === 'pending_verification') {
+        const currentPath = segments[0] === '(auth)' ? segments[1] : null;
+        if (currentPath !== 'submit-documents' && currentPath !== 'verify-phone') {
+          router.replace('/(auth)/submit-documents');
+        }
+      }
+    } catch (error: any) {
+      // Si erreur d'autorisation, déconnecter
+      if (error instanceof Error && (error.message.includes('401') || error.message.includes('403') || error.message === 'not_authenticated')) {
+        await logout();
+        return;
+      }
+      
+      // Sinon, utiliser les données stockées
       const storedUser = await getUserData<User>();
       if (storedUser) {
         setUser(storedUser);
+        
+        // Vérifier le statut même avec les données stockées
+        if (storedUser.status === 'pending_verification') {
+          const currentPath = segments[0] === '(auth)' ? segments[1] : null;
+          if (currentPath !== 'submit-documents' && currentPath !== 'verify-phone') {
+            router.replace('/(auth)/submit-documents');
+          }
+        }
       } else {
         await logout();
       }
