@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Send, User, Search, MoreVertical, Paperclip, Smile, AlertCircle, Lock, RefreshCw } from 'lucide-react';
 import { Card } from '../../ui/card';
 import { Input } from '../../ui/input';

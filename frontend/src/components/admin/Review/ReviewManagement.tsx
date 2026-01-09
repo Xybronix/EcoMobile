@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Star, Check, X, Trash2, MessageCircle, ThumbsUp, ThumbsDown, Plus, Edit } from 'lucide-react';
 import { reviewService, Review } from '../../../services/api/review.service';
 import { Button } from '../../ui/button';

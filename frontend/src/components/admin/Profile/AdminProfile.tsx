@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User, Mail, Phone, MapPin, Lock, Monitor, Save, X, AlertTriangle, CheckCircle } from 'lucide-react';
 import { Card } from '../../ui/card';
 import { Input } from '../../ui/input';

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Save, Building2, Mail, MapPin, CreditCard, Facebook, Twitter, Instagram, Linkedin, Globe } from 'lucide-react';
 import { Card } from '../../ui/card';
 import { Button } from '../../ui/button';

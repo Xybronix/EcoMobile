@@ -1,6 +1,6 @@
 import { Star, Quote } from 'lucide-react';
 import { useI18n } from '../../lib/i18n';
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { reviewService, Review } from '../../services/api/review.service';
 
 export function Testimonials() {

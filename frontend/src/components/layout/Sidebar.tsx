@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Bike, Settings, ChevronDown, ChevronRight, Gauge, CreditCard, MessageSquare, X } from 'lucide-react';
 import { useTranslation } from '../../lib/i18n';
@@ -62,11 +62,7 @@ export function Sidebar({ isCollapsed, isMobileMenuOpen, onCloseMobileMenu }: Si
         },
         { 
           id: 'bikesAction', 
-<<<<<<< HEAD
           label: t('nav.bikeActions'), 
-=======
-          label: t('nav.bikes'), 
->>>>>>> origin/main
           path: '/admin/bikes/actions',
           resource: 'bikes',
           action: 'read'

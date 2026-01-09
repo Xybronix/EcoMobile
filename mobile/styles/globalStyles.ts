@@ -52,6 +52,21 @@ export const createGlobalStyles = (colorScheme: 'light' | 'dark') => {
       fontSize: 16,
       fontFamily: Fonts.regular,
     },
+    textSm: {
+      color: colors.text,
+      fontSize: 14,
+      fontFamily: Fonts.regular,
+    },
+    textXs: {
+      color: colors.text,
+      fontSize: 12,
+      fontFamily: Fonts.regular,
+    },
+    textXl: {
+      color: colors.text,
+      fontSize: 18,
+      fontFamily: Fonts.regular,
+    },
     textLeft: {
       textAlign: 'left',
     },
@@ -72,6 +87,44 @@ export const createGlobalStyles = (colorScheme: 'light' | 'dark') => {
     textMedium: {
       fontFamily: Fonts.medium,
       fontWeight: '500',
+    },
+
+    // Text base styles avec couleur personnalisée
+    textPrimary: {
+      color: colors.primary,
+    },
+    textGray: {
+      color: colors.icon,
+    },
+    textWhite: {
+      color: 'white',
+    },
+    textBlack: {
+      color: 'black',
+    },
+    textRed: {
+      color: '#ef4444',
+    },
+    textGreen: {
+      color: '#10b981',
+    },
+    textBlue: {
+      color: '#5D5CDE',
+    },
+    textPurple: {
+      color: '#5D5CDE',
+    },
+    textOrange: {
+      color: '#d97706',
+    },
+    textYellow: {
+      color: '#fef3c7',
+    },
+    textPink: {
+      color: '#f9a8d4',
+    },
+    textBrown: {
+      color: '#a87632',
     },
     
     // Button base styles
@@ -157,6 +210,9 @@ export const createGlobalStyles = (colorScheme: 'light' | 'dark') => {
     },
     justifyEnd: {
       justifyContent: 'flex-end',
+    },
+    justifyBetween: {
+      justifyContent: 'space-between',
     },
     spaceBetween: {
       justifyContent: 'space-between',

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Wallet, Search, DollarSign, Activity, Clock, CheckCircle, XCircle, Eye, Filter, Calendar, User, CreditCard } from 'lucide-react';
 import { Card } from '../../ui/card';

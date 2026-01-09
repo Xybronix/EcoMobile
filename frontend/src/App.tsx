@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import React from 'react';
 import { AuthProvider } from './hooks/useAuth';
 import { I18nProvider } from './lib/i18n';
 import { AdminLayout } from './components/layout/AdminLayout';

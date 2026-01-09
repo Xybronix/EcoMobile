@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Bell, Check, Trash2, AlertCircle, Info, CheckCircle, XCircle, Lock, Search, RefreshCw, Send, Mail } from 'lucide-react';
 import { Card } from '../../ui/card';
 import { Button } from '../../ui/button';

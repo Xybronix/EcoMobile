@@ -1,3 +1,4 @@
+import React from 'react';
 import { Bike, Facebook, Instagram, Twitter, Mail, Phone, MapPin, Globe } from 'lucide-react';
 import { useI18n } from '../../lib/i18n';
 import { useCompanyInfo } from '../../hooks/useCompanyInfo';

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AlertTriangle, Search, Check, X, Clock, Eye } from 'lucide-react';
 import { Card } from '../../ui/card';
 import { Input } from '../../ui/input';

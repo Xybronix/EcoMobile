@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { Menu, X, Bike } from 'lucide-react';
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useI18n } from '../../lib/i18n';
 import { useCompanyInfo } from '../../hooks/useCompanyInfo';
 import { Button } from '../ui/button';

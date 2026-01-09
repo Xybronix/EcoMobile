@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bike, Battery, MapPin, Signal, DollarSign, AlertCircle, Search, Filter, Plus, Edit, Trash2, X, Check } from 'lucide-react';
 import { Card } from '../../ui/card';

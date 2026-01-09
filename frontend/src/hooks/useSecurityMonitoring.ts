@@ -1,5 +1,5 @@
 // hooks/useSecurityMonitoring.ts
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { monitoringService, SuspiciousMovement } from '../services/api/monitoring.service';
 import { toast } from 'sonner';
 

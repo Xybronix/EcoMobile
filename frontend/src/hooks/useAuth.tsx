@@ -1,5 +1,5 @@
 // hooks/useAuth.tsx
-import { useState, useEffect, useContext, createContext } from 'react';
+import React, { useState, useEffect, useContext, createContext } from 'react';
 import { authService, AuthUser } from '../services/api/auth.service';
 import { getAuthToken, TokenManager } from '../services/api/client';
 

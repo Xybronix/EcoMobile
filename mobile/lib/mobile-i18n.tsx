@@ -57,12 +57,9 @@ const translations: Translations = {
   'auth.verificationEmailSent.message': { fr: 'Un email de vérification a été envoyé à votre adresse. Veuillez vérifier votre boîte de réception et cliquer sur le lien pour activer votre compte.', en: 'A verification email has been sent to your address. Please check your inbox and click the link to activate your account.' },
   'auth.verificationResentShort': { fr: 'Email de vérification renvoyé !', en: 'Verification email resent!' },
   'auth.verificationResendError': { fr: 'Erreur lors de l\'envoi de l\'email', en: 'Error sending email' },
-<<<<<<< HEAD
   'auth.register.successMessage': { fr: 'Votre compte a été créé avec succès ! Veuillez vérifier votre email pour activer votre compte.', en: 'Your account has been created successfully! Please verify your email to activate your account.' },
   'auth.email.verificationSent': { fr: 'Email de vérification envoyé', en: 'Verification email sent' },
   'auth.email.resendVerification': { fr: 'Renvoyer l\'email de vérification', en: 'Resend verification email' },
-=======
->>>>>>> origin/main
 
   // Validation messages
   'validation.fillAllFields': { fr: 'Veuillez remplir tous les champs', en: 'Please fill in all fields' },
@@ -440,7 +437,6 @@ const translations: Translations = {
   'profile.security': { fr: 'Sécurité', en: 'Security' },
   'profile.chatSupport': { fr: 'Chat avec le support', en: 'Chat with support' },
   'profile.emailVerified': { fr: 'Email vérifié', en: 'Email verified' },
-<<<<<<< HEAD
   'profile.emailNotVerified': { fr: 'Email non vérifié', en: 'Email not verified' },
   'profile.phoneVerified': { fr: 'Téléphone vérifié', en: 'Phone verified' },
   'profile.phoneNotVerified': { fr: 'Téléphone non vérifié', en: 'Phone not verified' },
@@ -450,9 +446,6 @@ const translations: Translations = {
   'profile.accountPendingVerification': { fr: 'Compte en attente de vérification', en: 'Account pending verification' },
   'profile.submitDocumentsToActivate': { fr: 'Soumettez vos documents pour activer votre compte', en: 'Submit your documents to activate your account' },
   'profile.submitDocuments': { fr: 'Soumettre les documents', en: 'Submit documents' },
-=======
-  'profile.phoneVerified': { fr: 'Téléphone vérifié', en: 'Phone verified' },
->>>>>>> origin/main
   'profile.yourStats': { fr: 'Vos statistiques', en: 'Your statistics' },
   'profile.helpComingSoon': { fr: 'Page d\'aide bientôt disponible', en: 'Help page coming soon' },
   'profile.legalComingSoon': { fr: 'Page légale bientôt disponible', en: 'Legal page coming soon' },
@@ -871,16 +864,12 @@ const translations: Translations = {
   'common.loadingBikes': { fr: 'Chargement des vélos disponibles...', en: 'Loading available bikes...' },
   'common.photo': { fr: 'Photo {number}', en: 'Photo {number}' },
   'common.minutes': { fr: 'minutes', en: 'minutes' },
-<<<<<<< HEAD
   'common.verified': { fr: 'Vérifié', en: 'Verified' },
   'common.notVerified': { fr: 'Non vérifié', en: 'Not verified' },
-=======
->>>>>>> origin/main
 
   // Formats de date
   'date.timeFormat': { fr: 'HH:mm', en: 'hh:mm a' },
   'date.dateFormat': { fr: 'dd/MM/yyyy', en: 'MM/dd/yyyy' },
-<<<<<<< HEAD
 
   // Phone Verification
   'auth.phone.enterPhone': { fr: 'Entrez votre numéro de téléphone', en: 'Enter your phone number' },
@@ -949,8 +938,6 @@ const translations: Translations = {
   'common.later': { fr: 'Plus tard', en: 'Later' },
   'common.optional': { fr: 'Optionnel', en: 'Optional' },
   'validation.invalidCode': { fr: 'Code invalide', en: 'Invalid code' },
-=======
->>>>>>> origin/main
 };
 
 interface MobileI18nContextType {

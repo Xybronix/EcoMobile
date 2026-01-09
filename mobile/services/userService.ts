@@ -1,8 +1,5 @@
 import { API_CONFIG, handleApiResponse, ApiError } from '@/lib/api/config';
-<<<<<<< HEAD
 import { withNetworkCheck } from '@/lib/api/networkInterceptor';
-=======
->>>>>>> origin/main
 import { authService, User } from './authService';
 import { storeLanguage, storeUserData } from '@/utils/storage';
 
@@ -55,7 +52,6 @@ class UserService {
   }
 
   async getProfile(): Promise<User> {
-<<<<<<< HEAD
     return withNetworkCheck(async () => {
       const headers = await this.getAuthHeaders();
       
@@ -114,55 +110,6 @@ class UserService {
         throw new Error('network_error');
       }
     }, 'auth.internetRequired');
-=======
-    const headers = await this.getAuthHeaders();
-    
-    try {
-      const response = await fetch(`${this.baseUrl}/profile`, {
-        method: 'GET',
-        headers,
-      });
-
-      const result = await handleApiResponse(response);
-      const user = result.data;
-      
-      await storeUserData(user);
-      return user;
-    } catch (error) {
-      if (error instanceof ApiError && error.status === 401) {
-        await authService.logout();
-      }
-      throw error;
-    }
-  }
-
-  async updateProfile(profileData: UpdateProfileData): Promise<User> {
-    const headers = await this.getAuthHeaders();
-    
-    try {
-      const response = await fetch(`${this.baseUrl}/profile`, {
-        method: 'PUT',
-        headers,
-        body: JSON.stringify(profileData),
-      });
-
-      const result = await handleApiResponse(response);
-      const user = result.data;
-      
-      await storeUserData(user);
-      
-      if (profileData.language) {
-        await storeLanguage(profileData.language);
-      }
-
-      return user;
-    } catch (error) {
-      if (error instanceof ApiError) {
-        throw new Error(this.getErrorMessage(error));
-      }
-      throw new Error('network_error');
-    }
->>>>>>> origin/main
   }
 
   async updatePassword(currentPassword: string, newPassword: string): Promise<void> {
@@ -177,14 +124,11 @@ class UserService {
 
       await handleApiResponse(response);
     } catch (error) {
-<<<<<<< HEAD
       // Si erreur d'autorisation (401, 403), déconnecter l'utilisateur
       if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
         await authService.logout();
         throw new Error('not_authenticated');
       }
-=======
->>>>>>> origin/main
       if (error instanceof ApiError) {
         throw new Error(this.getErrorMessage(error));
       }

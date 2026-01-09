@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Bike as BikeIcon, Battery, MapPin, Signal, ArrowLeft, Activity, Settings } from 'lucide-react';
 import { Button } from '../../ui/button';
