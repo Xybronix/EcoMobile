@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode } from 'react';
 
 type Language = 'fr' | 'en';
 
@@ -22,10 +22,7 @@ const translations: Translations = {
   // Navigation
   'nav.dashboard': { fr: 'Tableau de bord', en: 'Dashboard' },
   'nav.bikes': { fr: 'Gestion Vélos', en: 'Bike Management' },
-<<<<<<< HEAD
   'nav.bikeActions': { fr: 'Déverrouillage Vélos', en: 'Bike Unlock' },
-=======
->>>>>>> origin/main
   'nav.users': { fr: 'Utilisateurs', en: 'Users' },
   'nav.financial': { fr: 'Finances', en: 'Financial' },
   'nav.incidents': { fr: 'Signalements', en: 'Incidents' },
