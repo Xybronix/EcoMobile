@@ -143,7 +143,7 @@ export default function MobilePhoneVerification({ onNavigate }: MobilePhoneVerif
         <KeyboardAvoidingContainer>
           <View style={[styles.scrollContentPadded, { paddingTop: 24 }]}>
             <View style={[styles.mb24]}>
-              <Text style={[styles.text2xl, styles.textBold, styles.mb8, { color: colorScheme === 'light' ? '#111827' : '#f9fafb' }]}>
+              <Text style={[styles.textXl, styles.textBold, styles.mb8, { color: colorScheme === 'light' ? '#111827' : '#f9fafb' }]}>
                 {t('auth.phone.enterPhone')}
               </Text>
               <Text style={[styles.text, { color: colorScheme === 'light' ? '#6b7280' : '#9ca3af' }]}>
@@ -203,7 +203,7 @@ export default function MobilePhoneVerification({ onNavigate }: MobilePhoneVerif
       <KeyboardAvoidingContainer>
         <View style={[styles.scrollContentPadded, { paddingTop: 24 }]}>
           <View style={[styles.mb24]}>
-            <Text style={[styles.text2xl, styles.textBold, styles.mb8, { color: colorScheme === 'light' ? '#111827' : '#f9fafb' }]}>
+            <Text style={[styles.textXl, styles.textBold, styles.mb8, { color: colorScheme === 'light' ? '#111827' : '#f9fafb' }]}>
               {t('auth.phone.enterCode')}
             </Text>
             <Text style={[styles.text, { color: colorScheme === 'light' ? '#6b7280' : '#9ca3af' }]}>
@@ -221,7 +221,7 @@ export default function MobilePhoneVerification({ onNavigate }: MobilePhoneVerif
               placeholderTextColor={colorScheme === 'light' ? '#9ca3af' : '#6b7280'}
               keyboardType="number-pad"
               maxLength={6}
-              style={[styles.textCenter, styles.text2xl, styles.textBold]}
+              style={[styles.textCenter, styles.textXl, styles.textBold]}
             />
           </View>
 

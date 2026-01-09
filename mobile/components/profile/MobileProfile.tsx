@@ -8,7 +8,7 @@ import type { UserStats } from '@/services/userService';
 import { getGlobalStyles } from '@/styles/globalStyles';
 import { haptics } from '@/utils/haptics';
 import { storeLanguage } from '@/utils/storage';
-import { Bell, ChevronRight, FileText, Globe, HelpCircle, LogOut, MessageCircle, Shield, User, Wallet, Mail, Phone, CheckCircle, XCircle, AlertCircle } from 'lucide-react-native';
+import { Bell, ChevronRight, FileText, Globe, HelpCircle, LogOut, MessageCircle, Shield, User, Wallet, Mail, Phone, CheckCircle, AlertCircle } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { RefreshControl, ScrollView, Switch, TouchableOpacity, View } from 'react-native';
 import { useMobileAuth } from '@/lib/mobile-auth';
@@ -373,17 +373,17 @@ export default function MobileProfile({ onNavigate }: MobileProfileProps) {
         </View>
 
         {/* Verification Status Card */}
-        <Card style={[styles.p6, styles.mb6]}>
-          <Text style={[styles.textLg, styles.fontBold, styles.mb4]}>
+        <Card style={[styles.p4, styles.mb4]}>
+          <Text style={[styles.textXl, styles.textBold, styles.mb4]}>
             {t('profile.verificationStatus')}
           </Text>
           
           {/* Email Verification */}
           <View style={[styles.mb4, styles.p4, { backgroundColor: '#f3f4f6', borderRadius: 8 }]}>
-            <View style={[styles.row, styles.alignCenter, styles.justifyBetween, styles.mb2]}>
+            <View style={[styles.row, styles.alignCenter, styles.justifyBetween, styles.mb4]}>
               <View style={[styles.row, styles.alignCenter]}>
                 <Mail size={20} color={user?.emailVerified ? '#16a34a' : '#d97706'} />
-                <Text style={[styles.text, styles.fontSemibold, styles.ml2]}>
+                <Text style={[styles.text, styles.textSemiBold, styles.ml4]}>
                   {t('profile.emailVerification')}
                 </Text>
               </View>
@@ -405,9 +405,9 @@ export default function MobileProfile({ onNavigate }: MobileProfileProps) {
                     toast.error(error.message || t('common.error'));
                   }
                 }}
-                style={[styles.mt2]}
+                style={[styles.mt4]}
               >
-                <Text style={[styles.text, styles.textPrimary, styles.fontSemibold]}>
+                <Text style={[styles.text, styles.textPrimary, styles.textSemiBold]}>
                   {t('auth.email.resendVerification')}
                 </Text>
               </TouchableOpacity>
@@ -416,10 +416,10 @@ export default function MobileProfile({ onNavigate }: MobileProfileProps) {
 
           {/* Phone Verification */}
           <View style={[styles.mb4, styles.p4, { backgroundColor: '#f3f4f6', borderRadius: 8 }]}>
-            <View style={[styles.row, styles.alignCenter, styles.justifyBetween, styles.mb2]}>
+            <View style={[styles.row, styles.alignCenter, styles.justifyBetween, styles.mb4]}>
               <View style={[styles.row, styles.alignCenter]}>
                 <Phone size={20} color={user?.phoneVerified ? '#16a34a' : '#d97706'} />
-                <Text style={[styles.text, styles.fontSemibold, styles.ml2]}>
+                <Text style={[styles.text, styles.textSemiBold, styles.ml4]}>
                   {t('profile.phoneVerification')}
                 </Text>
               </View>
@@ -435,9 +435,9 @@ export default function MobileProfile({ onNavigate }: MobileProfileProps) {
                   haptics.light();
                   onNavigate('verify-phone');
                 }}
-                style={[styles.mt2]}
+                style={[styles.mt4]}
               >
-                <Text style={[styles.text, styles.textPrimary, styles.fontSemibold]}>
+                <Text style={[styles.text, styles.textPrimary, styles.textSemiBold]}>
                   {t('auth.phone.verifyNow')}
                 </Text>
               </TouchableOpacity>
@@ -447,13 +447,13 @@ export default function MobileProfile({ onNavigate }: MobileProfileProps) {
           {/* Account Status */}
           {user?.status === 'pending_verification' && (
             <View style={[styles.p4, { backgroundColor: '#fef3c7', borderRadius: 8 }]}>
-              <View style={[styles.row, styles.alignCenter, styles.mb2]}>
+              <View style={[styles.row, styles.alignCenter, styles.mb4]}>
                 <AlertCircle size={20} color="#d97706" />
-                <Text style={[styles.text, styles.fontSemibold, styles.ml2, { color: '#92400e' }]}>
+                <Text style={[styles.text, styles.textSemiBold, styles.ml4, { color: '#92400e' }]}>
                   {t('profile.accountPendingVerification')}
                 </Text>
               </View>
-              <Text style={[styles.textSm, { color: '#78350f' }, styles.mb2]}>
+              <Text style={[styles.textSm, { color: '#78350f' }, styles.mb4]}>
                 {t('profile.submitDocumentsToActivate')}
               </Text>
               <TouchableOpacity
@@ -461,9 +461,9 @@ export default function MobileProfile({ onNavigate }: MobileProfileProps) {
                   haptics.light();
                   onNavigate('submit-documents');
                 }}
-                style={[styles.mt2]}
+                style={[styles.mt4]}
               >
-                <Text style={[styles.text, styles.textPrimary, styles.fontSemibold]}>
+                <Text style={[styles.text, styles.textPrimary, styles.textSemiBold]}>
                   {t('profile.submitDocuments')} →
                 </Text>
               </TouchableOpacity>
