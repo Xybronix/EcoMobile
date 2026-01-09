@@ -133,6 +133,7 @@ export function MobileRegister({ onNavigate }: MobileRegisterProps) {
       
       haptics.success();
 
+      /*
       Alert.alert(
         t('success.accountCreated'),
         t('auth.register.successMessage'),
@@ -147,8 +148,9 @@ export function MobileRegister({ onNavigate }: MobileRegisterProps) {
           }
         ]
       );
+      */
       
-      // toast.success(t('success.accountCreated'));
+      toast.success(t('success.accountCreated'));
     } catch (error: any) {
       haptics.error();
       
