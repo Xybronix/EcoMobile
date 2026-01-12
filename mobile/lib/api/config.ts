@@ -3,7 +3,7 @@ import Constants from 'expo-constants';
 const getApiBaseUrl = () => {
   //return 'https://ecomobile-8bx0.onrender.com/api/v1';
   if (__DEV__) {
-    return 'http://10.161.205.189:5000/api/v1';
+    return 'http://10.61.180.189:5000/api/v1';
   }
   
   return Constants.expoConfig?.extra?.apiUrl || 'https://ecomobile-8bx0.onrender.com/api/v1';
@@ -41,14 +41,28 @@ export const handleApiResponse = async (response: Response) => {
       errorData = await response.json();
     } catch {
       errorData = { 
+        error: `HTTP ${response.status} - ${response.statusText}`,
         message: `HTTP ${response.status} - ${response.statusText}`,
         code: 'UNKNOWN_ERROR'
       };
     }
     
+    // Le backend peut renvoyer soit 'error' soit 'message', on prend les deux en compte
+    const errorMessage = errorData.error || errorData.message || `Request failed with status ${response.status}`;
+    
+    // Si c'est un 403 (Forbidden), déconnecter l'utilisateur automatiquement
+    if (response.status === 403) {
+      const { authService } = await import('@/services/authService');
+      try {
+        await authService.logout();
+      } catch (logoutError) {
+        console.error('Error during logout on 403:', logoutError);
+      }
+    }
+    
     throw new ApiError(
       response.status, 
-      errorData.message || `Request failed with status ${response.status}`, 
+      errorMessage, 
       errorData.code
     );
   }

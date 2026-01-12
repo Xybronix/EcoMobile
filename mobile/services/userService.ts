@@ -67,6 +67,13 @@ class UserService {
         await storeUserData(user);
         return user;
       } catch (error) {
+        // Vérifier si c'est une erreur de compte désactivé
+        const { checkAndHandleAccountDeactivation } = await import('@/utils/accountDeactivationHandler');
+        const isDeactivated = await checkAndHandleAccountDeactivation(error);
+        if (isDeactivated) {
+          throw new Error('not_authenticated');
+        }
+        
         // Si erreur d'autorisation (401, 403), déconnecter l'utilisateur
         if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
           await authService.logout();

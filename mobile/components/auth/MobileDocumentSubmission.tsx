@@ -12,12 +12,12 @@ import { haptics } from '@/utils/haptics';
 import { MobileHeader } from '@/components/layout/MobileHeader';
 import { documentService, type DocumentsStatus } from '@/services/documentService';
 import { useMobileI18n } from '@/lib/mobile-i18n';
+import { getErrorMessageWithFallback } from '@/utils/errorHandler';
 import { 
   FileText, 
   MapPin, 
   Camera, 
   CheckCircle, 
-  XCircle, 
   Clock, 
   AlertCircle,
   Image as ImageIcon
@@ -38,9 +38,10 @@ import { OSMMap } from '@/components/maps/OSMMap';
 
 interface MobileDocumentSubmissionProps {
   onNavigate: (screen: string) => void;
+  onBack?: () => void;
 }
 
-export default function MobileDocumentSubmission({ onNavigate }: MobileDocumentSubmissionProps) {
+export default function MobileDocumentSubmission({ onNavigate, onBack }: MobileDocumentSubmissionProps) {
   const { t } = useMobileI18n();
   const colorScheme = useColorScheme();
   const styles = getGlobalStyles(colorScheme);
@@ -98,7 +99,8 @@ export default function MobileDocumentSubmission({ onNavigate }: MobileDocumentS
       }
       
 
-      toast.error(error.message || t('common.error'));
+      const errorMessage = getErrorMessageWithFallback(error, t);
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
       setRefreshing(false);
@@ -260,7 +262,8 @@ export default function MobileDocumentSubmission({ onNavigate }: MobileDocumentS
       setBackImage(null);
     } catch (error: any) {
       haptics.error();
-      toast.error(error.message || t('document.submissionFailed'));
+      const errorMessage = getErrorMessageWithFallback(error, t);
+      toast.error(errorMessage || t('document.submissionFailed'));
     } finally {
       setIsSubmitting(false);
     }
@@ -296,32 +299,35 @@ export default function MobileDocumentSubmission({ onNavigate }: MobileDocumentS
       setResidenceDocument(null);
     } catch (error: any) {
       haptics.error();
-      toast.error(error.message || t('document.submissionFailed'));
+      const errorMessage = getErrorMessageWithFallback(error, t);
+      toast.error(errorMessage || t('document.submissionFailed'));
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const getStatusBadge = (status: string) => {
+    const badgeBaseStyle = {
+      ...styles.row,
+      ...styles.alignCenter,
+    };
+    
     switch (status) {
       case 'APPROVED':
         return (
-          <Badge variant="default" style={[styles.row, styles.alignCenter, { backgroundColor: '#16a34a' }]}>
-            <CheckCircle size={14} color="white" style={styles.mr4} />
+          <Badge variant="default" style={[badgeBaseStyle, { backgroundColor: '#16a34a' }]}>
             <Text style={[styles.textSm, { color: 'white' }]}>{t('document.approved')}</Text>
           </Badge>
         );
       case 'REJECTED':
         return (
-          <Badge variant="destructive" style={[styles.row, styles.alignCenter]}>
-            <XCircle size={14} color="white" style={styles.mr4} />
+          <Badge variant="destructive" style={badgeBaseStyle}>
             <Text style={[styles.textSm, { color: 'white' }]}>{t('document.rejected')}</Text>
           </Badge>
         );
       default:
         return (
-          <Badge variant="secondary" style={[styles.row, styles.alignCenter]}>
-            <Clock size={14} color={colorScheme === 'light' ? '#374151' : '#d1d5db'} style={styles.mr4} />
+          <Badge variant="secondary" style={badgeBaseStyle}>
             <Text style={[styles.textSm, { color: colorScheme === 'light' ? '#374151' : '#d1d5db' }]}>{t('document.pending')}</Text>
           </Badge>
         );
@@ -339,27 +345,30 @@ export default function MobileDocumentSubmission({ onNavigate }: MobileDocumentS
             {t('common.loading')}
           </Text>
         </View>
-
-        <View style={[styles.flex1, styles.alignCenter, styles.justifyCenter]}>
-          <ActivityIndicator size="large" color="#5D5CDE" />
-          <Text style={[styles.text, styles.mt4, styles.textGray]}>
-            {t('common.loading')}
-          </Text>
-        </View>
       </View>
     );
   }
 
   const allApproved = documentsStatus?.allDocumentsApproved;
   const allSubmitted = documentsStatus?.allDocumentsSubmitted;
+  const identityDocuments = documentsStatus?.identityDocuments || [];
+  const residenceProof = documentsStatus?.residenceProof;
+  
+  // Vérifier si l'identité est en attente ou approuvée
+  const identityHasPendingOrApproved = identityDocuments.some(doc => 
+    doc.status === 'PENDING' || doc.status === 'APPROVED'
+  );
+  
+  // Vérifier si la résidence est en attente ou approuvée
+  const residenceHasPendingOrApproved = residenceProof && 
+    (residenceProof.status === 'PENDING' || residenceProof.status === 'APPROVED');
 
   return (
-
     <View style={[styles.container, { backgroundColor: colorScheme === 'light' ? '#f9fafb' : '#111827' }]}>
       <MobileHeader 
         title={t('document.submission')}
-        showBackButton
-        onBack={() => onNavigate('home')}
+        showBack
+        onBack={(() => onNavigate('home'))}
       />
 
       <ScrollView
@@ -386,7 +395,6 @@ export default function MobileDocumentSubmission({ onNavigate }: MobileDocumentS
             </Text>
           </Card>
         ) : allSubmitted ? (
-
           <Card style={[styles.mb24, styles.p16, { backgroundColor: colorScheme === 'light' ? '#fef3c7' : '#92400e' }]}>
             <View style={[styles.row, styles.alignCenter, styles.mb8]}>
               <Clock size={24} color={colorScheme === 'light' ? '#d97706' : '#fbbf24'} />
@@ -401,7 +409,6 @@ export default function MobileDocumentSubmission({ onNavigate }: MobileDocumentS
         ) : null}
 
         {/* Identity Document Section */}
-
         <Card style={[styles.mb24]}>
           <View style={[styles.row, styles.alignCenter, styles.mb16]}>
             <FileText size={24} color="#5D5CDE" />
@@ -410,8 +417,7 @@ export default function MobileDocumentSubmission({ onNavigate }: MobileDocumentS
             </Text>
           </View>
 
-          {documentsStatus?.identityDocuments.map((doc) => (
-
+          {identityDocuments.map((doc) => (
             <View 
               key={doc.id} 
               style={[
@@ -432,7 +438,6 @@ export default function MobileDocumentSubmission({ onNavigate }: MobileDocumentS
                 {getStatusBadge(doc.status)}
               </View>
               {doc.rejectionReason && (
-
                 <View style={[
                   styles.mt8, 
                   styles.p8, 
@@ -455,167 +460,181 @@ export default function MobileDocumentSubmission({ onNavigate }: MobileDocumentS
             </View>
           ))}
 
-
-          <View style={[styles.mb16]}>
-            <Label>{t('document.documentType')}</Label>
-            <View style={[styles.row, styles.gap8]}>
-              <TouchableOpacity
-                onPress={() => setDocumentType('CNI')}
-                style={[
-                  styles.flex1,
-
-                  styles.p12,
-                  styles.rounded8,
-                  { 
-                    backgroundColor: documentType === 'CNI' ? '#5D5CDE' : (colorScheme === 'light' ? '#f3f4f6' : '#374151'),
-                    borderWidth: 1,
-                    borderColor: documentType === 'CNI' ? '#5D5CDE' : (colorScheme === 'light' ? '#e5e7eb' : '#4b5563'),
-                  }
-                ]}
-              >
-                <Text style={[
-                  styles.text,
-
-                  styles.textSemiBold,
-                  { 
-                    color: documentType === 'CNI' ? 'white' : (colorScheme === 'light' ? '#374151' : '#d1d5db'),
-                    textAlign: 'center'
-                  }
-                ]}>
-                  {t('document.cni')}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => setDocumentType('RECEPISSE')}
-                style={[
-                  styles.flex1,
-
-                  styles.p12,
-                  styles.rounded8,
-                  { 
-                    backgroundColor: documentType === 'RECEPISSE' ? '#5D5CDE' : (colorScheme === 'light' ? '#f3f4f6' : '#374151'),
-                    borderWidth: 1,
-                    borderColor: documentType === 'RECEPISSE' ? '#5D5CDE' : (colorScheme === 'light' ? '#e5e7eb' : '#4b5563'),
-                  }
-                ]}
-              >
-                <Text style={[
-                  styles.text,
-
-                  styles.textSemiBold,
-                  { 
-                    color: documentType === 'RECEPISSE' ? 'white' : (colorScheme === 'light' ? '#374151' : '#d1d5db'),
-                    textAlign: 'center'
-                  }
-                ]}>
-                  {t('document.recepisse')}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-
-          <View style={[styles.mb16]}>
-            <Label>{t('document.frontImage')} *</Label>
-            <TouchableOpacity
-              onPress={() => showImageSourceOptions('front')}
-              style={[
-
-                styles.p12,
-                styles.rounded8,
-                { 
-                  borderWidth: 2,
-                  borderColor: colorScheme === 'light' ? '#d1d5db' : '#4b5563',
-                  borderStyle: frontImage ? 'solid' : 'dashed',
-                  minHeight: 150,
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  backgroundColor: colorScheme === 'light' ? '#f9fafb' : '#1f2937'
-                }
-              ]}
-            >
-              {frontImage ? (
-                <Image 
-                  source={{ uri: frontImage }} 
-                  style={{ 
-                    width: '100%', 
-                    height: 150, 
-                    borderRadius: 8,
-                    backgroundColor: colorScheme === 'light' ? '#f3f4f6' : '#374151'
-                  }} 
-                  resizeMode="cover" 
-                />
-              ) : (
-                <View style={[styles.alignCenter]}>
-                  <Camera size={32} color={colorScheme === 'light' ? '#9ca3af' : '#6b7280'} />
-                  <Text style={[styles.text, { color: colorScheme === 'light' ? '#6b7280' : '#9ca3af' }, styles.mt8]}>
-                    {t('document.takeOrSelectPhoto')}
-                  </Text>
+          {/* Afficher les champs de soumission uniquement si aucun document n'est en attente ou approuvé */}
+          {!identityHasPendingOrApproved ? (
+            <>
+              <View style={[styles.mb16]}>
+                <Label>{t('document.documentType')}</Label>
+                <View style={[styles.row, styles.gap8]}>
+                  <TouchableOpacity
+                    onPress={() => setDocumentType('CNI')}
+                    style={[
+                      styles.flex1,
+                      styles.p12,
+                      styles.rounded8,
+                      { 
+                        backgroundColor: documentType === 'CNI' ? '#5D5CDE' : (colorScheme === 'light' ? '#f3f4f6' : '#374151'),
+                        borderWidth: 1,
+                        borderColor: documentType === 'CNI' ? '#5D5CDE' : (colorScheme === 'light' ? '#e5e7eb' : '#4b5563'),
+                      }
+                    ]}
+                  >
+                    <Text style={[
+                      styles.text,
+                      styles.textSemiBold,
+                      { 
+                        color: documentType === 'CNI' ? 'white' : (colorScheme === 'light' ? '#374151' : '#d1d5db'),
+                        textAlign: 'center'
+                      }
+                    ]}>
+                      {t('document.cni')}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => setDocumentType('RECEPISSE')}
+                    style={[
+                      styles.flex1,
+                      styles.p12,
+                      styles.rounded8,
+                      { 
+                        backgroundColor: documentType === 'RECEPISSE' ? '#5D5CDE' : (colorScheme === 'light' ? '#f3f4f6' : '#374151'),
+                        borderWidth: 1,
+                        borderColor: documentType === 'RECEPISSE' ? '#5D5CDE' : (colorScheme === 'light' ? '#e5e7eb' : '#4b5563'),
+                      }
+                    ]}
+                  >
+                    <Text style={[
+                      styles.text,
+                      styles.textSemiBold,
+                      { 
+                        color: documentType === 'RECEPISSE' ? 'white' : (colorScheme === 'light' ? '#374151' : '#d1d5db'),
+                        textAlign: 'center'
+                      }
+                    ]}>
+                      {t('document.recepisse')}
+                    </Text>
+                  </TouchableOpacity>
                 </View>
-              )}
-            </TouchableOpacity>
-          </View>
+              </View>
 
+              <View style={[styles.mb16]}>
+                <Label>{t('document.frontImage')} *</Label>
+                <TouchableOpacity
+                  onPress={() => showImageSourceOptions('front')}
+                  style={[
+                    styles.p12,
+                    styles.rounded8,
+                    { 
+                      borderWidth: 2,
+                      borderColor: colorScheme === 'light' ? '#d1d5db' : '#4b5563',
+                      borderStyle: frontImage ? 'solid' : 'dashed',
+                      minHeight: 150,
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      backgroundColor: colorScheme === 'light' ? '#f9fafb' : '#1f2937'
+                    }
+                  ]}
+                >
+                  {frontImage ? (
+                    <Image 
+                      source={{ uri: frontImage }} 
+                      style={{ 
+                        width: '100%', 
+                        height: 150, 
+                        borderRadius: 8,
+                        backgroundColor: colorScheme === 'light' ? '#f3f4f6' : '#374151'
+                      }} 
+                      resizeMode="cover" 
+                    />
+                  ) : (
+                    <View style={[styles.alignCenter]}>
+                      <Camera size={32} color={colorScheme === 'light' ? '#9ca3af' : '#6b7280'} />
+                      <Text style={[styles.text, { color: colorScheme === 'light' ? '#6b7280' : '#9ca3af' }, styles.mt8]}>
+                        {t('document.takeOrSelectPhoto')}
+                      </Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              </View>
 
-          <View style={[styles.mb16]}>
-            <Label>{t('document.backImage')} ({t('common.optional')})</Label>
-            <TouchableOpacity
-              onPress={() => showImageSourceOptions('back')}
-              style={[
+              <View style={[styles.mb16]}>
+                <Label>{t('document.backImage')} ({t('common.optional')})</Label>
+                <TouchableOpacity
+                  onPress={() => showImageSourceOptions('back')}
+                  style={[
+                    styles.p12,
+                    styles.rounded8,
+                    { 
+                      borderWidth: 2,
+                      borderColor: colorScheme === 'light' ? '#d1d5db' : '#4b5563',
+                      borderStyle: backImage ? 'solid' : 'dashed',
+                      minHeight: 150,
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      backgroundColor: colorScheme === 'light' ? '#f9fafb' : '#1f2937'
+                    }
+                  ]}
+                >
+                  {backImage ? (
+                    <Image 
+                      source={{ uri: backImage }} 
+                      style={{ 
+                        width: '100%', 
+                        height: 150, 
+                        borderRadius: 8,
+                        backgroundColor: colorScheme === 'light' ? '#f3f4f6' : '#374151'
+                      }} 
+                      resizeMode="cover" 
+                    />
+                  ) : (
+                    <View style={[styles.alignCenter]}>
+                      <Camera size={32} color={colorScheme === 'light' ? '#9ca3af' : '#6b7280'} />
+                      <Text style={[styles.text, { color: colorScheme === 'light' ? '#6b7280' : '#9ca3af' }, styles.mt8]}>
+                        {t('document.takeOrSelectPhoto')}
+                      </Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              </View>
 
-                styles.p12,
-                styles.rounded8,
-                { 
-                  borderWidth: 2,
-                  borderColor: colorScheme === 'light' ? '#d1d5db' : '#4b5563',
-                  borderStyle: backImage ? 'solid' : 'dashed',
-                  minHeight: 150,
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  backgroundColor: colorScheme === 'light' ? '#f9fafb' : '#1f2937'
-                }
-              ]}
-            >
-              {backImage ? (
-                <Image 
-                  source={{ uri: backImage }} 
-                  style={{ 
-                    width: '100%', 
-                    height: 150, 
-                    borderRadius: 8,
-                    backgroundColor: colorScheme === 'light' ? '#f3f4f6' : '#374151'
-                  }} 
-                  resizeMode="cover" 
-                />
-              ) : (
-                <View style={[styles.alignCenter]}>
-                  <Camera size={32} color={colorScheme === 'light' ? '#9ca3af' : '#6b7280'} />
-                  <Text style={[styles.text, { color: colorScheme === 'light' ? '#6b7280' : '#9ca3af' }, styles.mt8]}>
-                    {t('document.takeOrSelectPhoto')}
+              <Button
+                onPress={handleSubmitIdentityDocument}
+                disabled={isSubmitting || !frontImage}
+                fullWidth
+              >
+                {isSubmitting ? (
+                  <ActivityIndicator color="white" />
+                ) : (
+                  <Text style={{ color: 'white', fontWeight: '500' }}>
+                    {t('document.submit')}
                   </Text>
-                </View>
-              )}
-            </TouchableOpacity>
-          </View>
-
-          <Button
-            onPress={handleSubmitIdentityDocument}
-            disabled={isSubmitting || !frontImage}
-            fullWidth
-          >
-            {isSubmitting ? (
-              <ActivityIndicator color="white" />
-            ) : (
-
-              <Text style={{ color: 'white', fontWeight: '500' }}>
-                {t('document.submit')}
+                )}
+              </Button>
+            </>
+          ) : (
+            <View style={[styles.p12, styles.mb16, { 
+              backgroundColor: colorScheme === 'light' ? '#f0f9ff' : '#0c4a6e',
+              borderRadius: 8,
+              borderWidth: 1,
+              borderColor: colorScheme === 'light' ? '#bae6fd' : '#0369a1'
+            }]}>
+              <Text style={[
+                styles.text,
+                styles.textSemiBold,
+                { 
+                  color: colorScheme === 'light' ? '#0369a1' : '#bae6fd',
+                  textAlign: 'center'
+                }
+              ]}>
+                {identityDocuments.some(doc => doc.status === 'APPROVED') 
+                  ? t('document.alreadyApproved')
+                  : t('document.waitingForReview')}
               </Text>
-            )}
-          </Button>
+            </View>
+          )}
         </Card>
 
         {/* Residence Proof Section */}
-
         <Card>
           <View style={[styles.row, styles.alignCenter, styles.mb16]}>
             <MapPin size={24} color="#5D5CDE" />
@@ -624,8 +643,7 @@ export default function MobileDocumentSubmission({ onNavigate }: MobileDocumentS
             </Text>
           </View>
 
-          {documentsStatus?.residenceProof && (
-
+          {residenceProof && (
             <View 
               style={[
                 styles.mb16, 
@@ -640,14 +658,13 @@ export default function MobileDocumentSubmission({ onNavigate }: MobileDocumentS
             >
               <View style={[styles.row, styles.alignCenter, styles.justifyBetween, styles.mb8]}>
                 <Text style={[styles.text, styles.textSemiBold]}>
-                  {documentsStatus.residenceProof.proofType === 'DOCUMENT' 
+                  {residenceProof.proofType === 'DOCUMENT' 
                     ? t('document.document') 
                     : t('document.mapCoordinates')}
                 </Text>
-                {getStatusBadge(documentsStatus.residenceProof.status)}
+                {getStatusBadge(residenceProof.status)}
               </View>
-              {documentsStatus.residenceProof.rejectionReason && (
-
+              {residenceProof.rejectionReason && (
                 <View style={[
                   styles.mt8, 
                   styles.p8, 
@@ -663,183 +680,199 @@ export default function MobileDocumentSubmission({ onNavigate }: MobileDocumentS
                     </Text>
                   </View>
                   <Text style={[styles.textSm, { color: colorScheme === 'light' ? '#991b1b' : '#fca5a5' }]}>
-                    {documentsStatus.residenceProof.rejectionReason}
+                    {residenceProof.rejectionReason}
                   </Text>
                 </View>
               )}
             </View>
           )}
 
-
-          <View style={[styles.mb16]}>
-            <Label>{t('document.proofType')}</Label>
-            <View style={[styles.row, styles.gap8]}>
-              <TouchableOpacity
-                onPress={() => setProofType('DOCUMENT')}
-                style={[
-                  styles.flex1,
-                  styles.p12,
-                  styles.rounded8,
-                  { 
-                    backgroundColor: proofType === 'DOCUMENT' ? '#5D5CDE' : (colorScheme === 'light' ? '#f3f4f6' : '#374151'),
-                    borderWidth: 1,
-                    borderColor: proofType === 'DOCUMENT' ? '#5D5CDE' : (colorScheme === 'light' ? '#e5e7eb' : '#4b5563'),
-                  }
-                ]}
-              >
-                <Text style={[
-                  styles.text,
-                  styles.textSemiBold,
-                  { 
-                    color: proofType === 'DOCUMENT' ? 'white' : (colorScheme === 'light' ? '#374151' : '#d1d5db'),
-                    textAlign: 'center'
-                  }
-                ]}>
-                  {t('document.document')}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => setProofType('MAP_COORDINATES')}
-                style={[
-                  styles.flex1,
-                  styles.p12,
-                  styles.rounded8,
-                  { 
-                    backgroundColor: proofType === 'MAP_COORDINATES' ? '#5D5CDE' : (colorScheme === 'light' ? '#f3f4f6' : '#374151'),
-                    borderWidth: 1,
-                    borderColor: proofType === 'MAP_COORDINATES' ? '#5D5CDE' : (colorScheme === 'light' ? '#e5e7eb' : '#4b5563'),
-                  }
-                ]}
-              >
-                <Text style={[
-                  styles.text,
-                  styles.textSemiBold,
-                  { 
-                    color: proofType === 'MAP_COORDINATES' ? 'white' : (colorScheme === 'light' ? '#374151' : '#d1d5db'),
-                    textAlign: 'center'
-                  }
-                ]}>
-                  {t('document.mapCoordinates')}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {proofType === 'DOCUMENT' ? (
-
-            <View style={[styles.mb16]}>
-
-              <Label>{t('document.residenceDocument')} *</Label>
-              <TouchableOpacity
-                onPress={() => showImageSourceOptions('residence')}
-                style={[
-
-                  styles.p12,
-                  styles.rounded8,
-                  { 
-                    borderWidth: 2,
-                    borderColor: colorScheme === 'light' ? '#d1d5db' : '#4b5563',
-                    borderStyle: residenceDocument ? 'solid' : 'dashed',
-                    minHeight: 150,
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    backgroundColor: colorScheme === 'light' ? '#f9fafb' : '#1f2937'
-                  }
-                ]}
-              >
-                {residenceDocument ? (
-                  <Image 
-                    source={{ uri: residenceDocument }} 
-                    style={{ 
-                      width: '100%', 
-                      height: 150, 
-                      borderRadius: 8,
-                      backgroundColor: colorScheme === 'light' ? '#f3f4f6' : '#374151'
-                    }} 
-                    resizeMode="cover" 
-                  />
-                ) : (
-                  <View style={[styles.alignCenter]}>
-                    <ImageIcon size={32} color={colorScheme === 'light' ? '#9ca3af' : '#6b7280'} />
-                    <Text style={[styles.text, { color: colorScheme === 'light' ? '#6b7280' : '#9ca3af' }, styles.mt8]}>
-                      {t('document.takeOrSelectPhoto')}
-                    </Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-            </View>
-          ) : (
+          {/* Afficher les champs de soumission uniquement si aucune preuve n'est en attente ou approuvée */}
+          {!residenceHasPendingOrApproved ? (
             <>
               <View style={[styles.mb16]}>
-                <Label>{t('document.residenceLocation')} *</Label>
-                <Button
-                  onPress={getCurrentLocation}
-                  variant="outline"
+                <Label>{t('document.proofType')}</Label>
+                <View style={[styles.row, styles.gap8]}>
+                  <TouchableOpacity
+                    onPress={() => setProofType('DOCUMENT')}
+                    style={[
+                      styles.flex1,
+                      styles.p12,
+                      styles.rounded8,
+                      { 
+                        backgroundColor: proofType === 'DOCUMENT' ? '#5D5CDE' : (colorScheme === 'light' ? '#f3f4f6' : '#374151'),
+                        borderWidth: 1,
+                        borderColor: proofType === 'DOCUMENT' ? '#5D5CDE' : (colorScheme === 'light' ? '#e5e7eb' : '#4b5563'),
+                      }
+                    ]}
+                  >
+                    <Text style={[
+                      styles.text,
+                      styles.textSemiBold,
+                      { 
+                        color: proofType === 'DOCUMENT' ? 'white' : (colorScheme === 'light' ? '#374151' : '#d1d5db'),
+                        textAlign: 'center'
+                      }
+                    ]}>
+                      {t('document.document')}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => setProofType('MAP_COORDINATES')}
+                    style={[
+                      styles.flex1,
+                      styles.p12,
+                      styles.rounded8,
+                      { 
+                        backgroundColor: proofType === 'MAP_COORDINATES' ? '#5D5CDE' : (colorScheme === 'light' ? '#f3f4f6' : '#374151'),
+                        borderWidth: 1,
+                        borderColor: proofType === 'MAP_COORDINATES' ? '#5D5CDE' : (colorScheme === 'light' ? '#e5e7eb' : '#4b5563'),
+                      }
+                    ]}
+                  >
+                    <Text style={[
+                      styles.text,
+                      styles.textSemiBold,
+                      { 
+                        color: proofType === 'MAP_COORDINATES' ? 'white' : (colorScheme === 'light' ? '#374151' : '#d1d5db'),
+                        textAlign: 'center'
+                      }
+                    ]}>
+                      {t('document.mapCoordinates')}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
 
-                  style={[styles.mb12]}
-                  fullWidth
-                >
-                  <MapPin size={20} color="#5D5CDE" />
-                  <Text style={[styles.ml8, { color: '#5D5CDE', fontWeight: '500' }]}>
-                    {t('document.getCurrentLocation')}
-                  </Text>
-                </Button>
-                
-                {residenceLocation && (
+              {proofType === 'DOCUMENT' ? (
+                <View style={[styles.mb16]}>
+                  <Label>{t('document.residenceDocument')} *</Label>
+                  <TouchableOpacity
+                    onPress={() => showImageSourceOptions('residence')}
+                    style={[
+                      styles.p12,
+                      styles.rounded8,
+                      { 
+                        borderWidth: 2,
+                        borderColor: colorScheme === 'light' ? '#d1d5db' : '#4b5563',
+                        borderStyle: residenceDocument ? 'solid' : 'dashed',
+                        minHeight: 150,
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        backgroundColor: colorScheme === 'light' ? '#f9fafb' : '#1f2937'
+                      }
+                    ]}
+                  >
+                    {residenceDocument ? (
+                      <Image 
+                        source={{ uri: residenceDocument }} 
+                        style={{ 
+                          width: '100%', 
+                          height: 150, 
+                          borderRadius: 8,
+                          backgroundColor: colorScheme === 'light' ? '#f3f4f6' : '#374151'
+                        }} 
+                        resizeMode="cover" 
+                      />
+                    ) : (
+                      <View style={[styles.alignCenter]}>
+                        <ImageIcon size={32} color={colorScheme === 'light' ? '#9ca3af' : '#6b7280'} />
+                        <Text style={[styles.text, { color: colorScheme === 'light' ? '#6b7280' : '#9ca3af' }, styles.mt8]}>
+                          {t('document.takeOrSelectPhoto')}
+                        </Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <>
+                  <View style={[styles.mb16]}>
+                    <Label>{t('document.residenceLocation')} *</Label>
+                    <Button
+                      onPress={getCurrentLocation}
+                      variant="outline"
+                      style={[styles.mb12]}
+                      fullWidth
+                    >
+                      <MapPin size={20} color="#5D5CDE" />
+                      <Text style={[styles.ml8, { color: '#5D5CDE', fontWeight: '500' }]}>
+                        {t('document.getCurrentLocation')}
+                      </Text>
+                    </Button>
+                    
+                    {residenceLocation && (
+                      <View style={[styles.mt8, { height: 200, borderRadius: 8, overflow: 'hidden' }]}>
+                        <OSMMap
+                          userLocation={residenceLocation}
+                          bikes={[]}
+                          radius={0}
+                          colorScheme={colorScheme}
+                        />
+                      </View>
+                    )}
+                  </View>
 
-                  <View style={[styles.mt8, { height: 200, borderRadius: 8, overflow: 'hidden' }]}>
-                    <OSMMap
-                      userLocation={residenceLocation}
-                      bikes={[]}
-                      radius={0}
-                      colorScheme={colorScheme}
+                  <View style={[styles.mb16]}>
+                    <Label>{t('document.address')}</Label>
+                    <Input
+                      value={residenceAddress}
+                      onChangeText={setResidenceAddress}
+                      placeholder={t('document.addressPlaceholder')}
+                      placeholderTextColor={colorScheme === 'light' ? '#9ca3af' : '#6b7280'}
                     />
                   </View>
+
+                  <View style={[styles.mb16]}>
+                    <Label>{t('document.details')}</Label>
+                    <Input
+                      value={residenceDetails}
+                      onChangeText={setResidenceDetails}
+                      placeholder={t('document.detailsPlaceholder')}
+                      placeholderTextColor={colorScheme === 'light' ? '#9ca3af' : '#6b7280'}
+                      multiline
+                      numberOfLines={4}
+                      style={{ height: 100 }}
+                    />
+                  </View>
+                </>
+              )}
+
+              <Button
+                onPress={handleSubmitResidenceProof}
+                disabled={isSubmitting || (proofType === 'DOCUMENT' && !residenceDocument) || (proofType === 'MAP_COORDINATES' && !residenceLocation)}
+                fullWidth
+              >
+                {isSubmitting ? (
+                  <ActivityIndicator color="white" />
+                ) : (
+                  <Text style={{ color: 'white', fontWeight: '500' }}>
+                    {t('document.submit')}
+                  </Text>
                 )}
-              </View>
-
-
-              <View style={[styles.mb16]}>
-                <Label>{t('document.address')}</Label>
-                <Input
-                  value={residenceAddress}
-                  onChangeText={setResidenceAddress}
-                  placeholder={t('document.addressPlaceholder')}
-
-                  placeholderTextColor={colorScheme === 'light' ? '#9ca3af' : '#6b7280'}
-                />
-              </View>
-
-              <View style={[styles.mb16]}>
-                <Label>{t('document.details')}</Label>
-                <Input
-                  value={residenceDetails}
-                  onChangeText={setResidenceDetails}
-                  placeholder={t('document.detailsPlaceholder')}
-                  placeholderTextColor={colorScheme === 'light' ? '#9ca3af' : '#6b7280'}
-                  multiline
-                  numberOfLines={4}
-                  style={{ height: 100 }}
-                />
-              </View>
+              </Button>
             </>
-          )}
-
-          <Button
-            onPress={handleSubmitResidenceProof}
-            disabled={isSubmitting || (proofType === 'DOCUMENT' && !residenceDocument) || (proofType === 'MAP_COORDINATES' && !residenceLocation)}
-            fullWidth
-          >
-            {isSubmitting ? (
-              <ActivityIndicator color="white" />
-            ) : (
-              <Text style={{ color: 'white', fontWeight: '500' }}>
-                {t('document.submit')}
+          ) : (
+            <View style={[styles.p12, styles.mb16, { 
+              backgroundColor: colorScheme === 'light' ? '#f0f9ff' : '#0c4a6e',
+              borderRadius: 8,
+              borderWidth: 1,
+              borderColor: colorScheme === 'light' ? '#bae6fd' : '#0369a1'
+            }]}>
+              <Text style={[
+                styles.text,
+                styles.textSemiBold,
+                { 
+                  color: colorScheme === 'light' ? '#0369a1' : '#bae6fd',
+                  textAlign: 'center'
+                }
+              ]}>
+                {residenceProof?.status === 'APPROVED' 
+                  ? t('document.alreadyApproved')
+                  : t('document.waitingForReview')}
               </Text>
-            )}
-          </Button>
+            </View>
+          )}
         </Card>
-
       </ScrollView>
     </View>
   );

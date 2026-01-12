@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
@@ -13,12 +14,14 @@ import { View, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { authService } from '@/services/authService';
 import { useMobileAuth } from '@/lib/mobile-auth';
 import { useMobileI18n } from '@/lib/mobile-i18n';
+import { getErrorMessageWithFallback } from '@/utils/errorHandler';
 
 interface MobilePhoneVerificationProps {
   onNavigate: (screen: string) => void;
+  onBack?: () => void;
 }
 
-export default function MobilePhoneVerification({ onNavigate }: MobilePhoneVerificationProps) {
+export default function MobilePhoneVerification({ onNavigate, onBack }: MobilePhoneVerificationProps) {
   const { user, refreshUser } = useMobileAuth();
   const { t } = useMobileI18n();
   const colorScheme = useColorScheme();
@@ -82,7 +85,8 @@ export default function MobilePhoneVerification({ onNavigate }: MobilePhoneVerif
       }
     } catch (error: any) {
       haptics.error();
-      toast.error(error.message || t('common.error'));
+      const errorMessage = getErrorMessageWithFallback(error, t);
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -125,7 +129,8 @@ export default function MobilePhoneVerification({ onNavigate }: MobilePhoneVerif
       startCountdown();
     } catch (error: any) {
       haptics.error();
-      toast.error(error.message || t('common.error'));
+      const errorMessage = getErrorMessageWithFallback(error, t);
+      toast.error(errorMessage);
     } finally {
       setIsResending(false);
     }
@@ -136,8 +141,8 @@ export default function MobilePhoneVerification({ onNavigate }: MobilePhoneVerif
       <View style={[styles.container, { backgroundColor: colorScheme === 'light' ? '#f9fafb' : '#111827' }]}>
         <MobileHeader 
           title={t('auth.phone.verification')}
-          showBackButton
-          onBack={() => onNavigate('home')}
+          showBack
+          onBack={onBack || (() => onNavigate('home'))}
         />
         
         <KeyboardAvoidingContainer>
@@ -196,7 +201,7 @@ export default function MobilePhoneVerification({ onNavigate }: MobilePhoneVerif
     <View style={[styles.container, { backgroundColor: colorScheme === 'light' ? '#f9fafb' : '#111827' }]}>
       <MobileHeader 
         title={t('auth.phone.verification')}
-        showBackButton
+        showBack
         onBack={() => onNavigate('home')}
       />
       

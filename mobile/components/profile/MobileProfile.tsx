@@ -8,7 +8,7 @@ import type { UserStats } from '@/services/userService';
 import { getGlobalStyles } from '@/styles/globalStyles';
 import { haptics } from '@/utils/haptics';
 import { storeLanguage } from '@/utils/storage';
-import { Bell, ChevronRight, FileText, Globe, HelpCircle, LogOut, MessageCircle, Shield, User, Wallet, Mail, Phone, CheckCircle, AlertCircle } from 'lucide-react-native';
+import { Bell, ChevronRight, FileText, Globe, HelpCircle, LogOut, MessageCircle, Shield, User, Wallet, CheckCircle, AlertCircle } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { RefreshControl, ScrollView, Switch, TouchableOpacity, View } from 'react-native';
 import { useMobileAuth } from '@/lib/mobile-auth';
@@ -312,161 +312,270 @@ export default function MobileProfile({ onNavigate }: MobileProfileProps) {
               >
                 {user?.email}
               </Text>
-              <View style={[styles.row, styles.gap8]}>
-                {user?.emailVerified ? (
-                  <View 
-                    style={[
-                      styles.px8,
-                      styles.py4,
-                      styles.rounded4,
-                      { backgroundColor: '#dcfce7' }
-                    ]}
-                  >
-                    <Text size="xs" color="#166534">
-                      ✓ {t('profile.emailVerified')}
-                    </Text>
-                  </View>
-                ) : (
-                  <View 
-                    style={[
-                      styles.px8,
-                      styles.py4,
-                      styles.rounded4,
-                      { backgroundColor: '#fef3c7' }
-                    ]}
-                  >
-                    <Text size="xs" color="#92400e">
-                      ⚠ {t('profile.emailNotVerified')}
-                    </Text>
-                  </View>
-                )}
-                {user?.phoneVerified ? (
-                  <View 
-                    style={[
-                      styles.px8,
-                      styles.py4,
-                      styles.rounded4,
-                      { backgroundColor: '#dbeafe' }
-                    ]}
-                  >
-                    <Text size="xs" color="#1e40af">
-                      ✓ {t('profile.phoneVerified')}
-                    </Text>
-                  </View>
-                ) : (
-                  <View 
-                    style={[
-                      styles.px8,
-                      styles.py4,
-                      styles.rounded4,
-                      { backgroundColor: '#fef3c7' }
-                    ]}
-                  >
-                    <Text size="xs" color="#92400e">
-                      ⚠ {t('profile.phoneNotVerified')}
-                    </Text>
-                  </View>
-                )}
-              </View>
             </View>
+          </View>
+          <View style={[styles.row, styles.gap8, styles.mt8]}>
+            {user?.emailVerified ? (
+              <View 
+                style={[
+                  styles.px8,
+                  styles.py4,
+                  styles.rounded4,
+                  { backgroundColor: '#dcfce7' }
+                ]}
+              >
+                <Text size="xs" color="#166534">
+                  ✓ {t('profile.emailVerified')}
+                </Text>
+              </View>
+            ) : (
+              <View 
+                style={[
+                  styles.px8,
+                  styles.py4,
+                  styles.rounded4,
+                  { backgroundColor: '#fef3c7' }
+                ]}
+              >
+                <Text size="xs" color="#92400e">
+                  ⚠ {t('profile.emailNotVerified')}
+                </Text>
+              </View>
+            )}
+            {user?.phoneVerified ? (
+              <View 
+                style={[
+                  styles.px8,
+                  styles.py4,
+                  styles.rounded4,
+                  { backgroundColor: '#dbeafe' }
+                ]}
+              >
+                <Text size="xs" color="#1e40af">
+                  ✓ {t('profile.phoneVerified')}
+                </Text>
+              </View>
+            ) : (
+              <View 
+                style={[
+                  styles.px8,
+                  styles.py4,
+                  styles.rounded4,
+                  { backgroundColor: '#fef3c7' }
+                ]}
+              >
+                <Text size="xs" color="#92400e">
+                  ⚠ {t('profile.phoneNotVerified')}
+                </Text>
+              </View>
+            )}
           </View>
         </View>
 
         {/* Verification Status Card */}
-        <Card style={[styles.p4, styles.mb4]}>
-          <Text style={[styles.textXl, styles.textBold, styles.mb4]}>
-            {t('profile.verificationStatus')}
-          </Text>
-          
+        <Card style={[styles.p24, styles.mb24]}>
+          <View style={[styles.row, styles.alignCenter, styles.mb16]}>
+            <Shield size={24} color="#16a34a" />
+            <Text 
+              variant="title" 
+              color={colorScheme === 'light' ? '#111827' : '#f9fafb'}
+              style={styles.ml12}
+            >
+              {t('profile.verificationStatus')}
+            </Text>
+          </View>
+
           {/* Email Verification */}
-          <View style={[styles.mb4, styles.p4, { backgroundColor: '#f3f4f6', borderRadius: 8 }]}>
-            <View style={[styles.row, styles.alignCenter, styles.justifyBetween, styles.mb4]}>
-              <View style={[styles.row, styles.alignCenter]}>
-                <Mail size={20} color={user?.emailVerified ? '#16a34a' : '#d97706'} />
-                <Text style={[styles.text, styles.textSemiBold, styles.ml4]}>
+          <TouchableOpacity
+            onPress={!user?.emailVerified ? async () => {
+              try {
+                haptics.light();
+                await authService.resendEmailVerification();
+                toast.success(t('auth.email.verificationSent'));
+              } catch (error: any) {
+                haptics.error();
+                toast.error(error.message || t('common.error'));
+              }
+            } : undefined}
+            style={[
+              styles.row,
+              styles.alignCenter,
+              styles.justifyBetween,
+              styles.p12,
+              styles.mb12,
+              styles.rounded8,
+              {
+                backgroundColor: colorScheme === 'light' ? '#f8fafc' : '#1e293b',
+                borderWidth: 1,
+                borderColor: colorScheme === 'light' ? '#e2e8f0' : '#334155',
+              }
+            ]}
+          >
+            <View style={[styles.row, styles.alignCenter, styles.flex1]}>
+              <View style={[
+                styles.w12,
+                styles.h12,
+                styles.roundedFull,
+                styles.alignCenter,
+                styles.justifyCenter,
+                styles.mr12
+              ]}>
+                {user?.emailVerified ? (
+                  <CheckCircle size={20} color="#16a34a" />
+                ) : (
+                  <AlertCircle size={20} color="#d97706" />
+                )}
+              </View>
+              <View>
+                <Text 
+                  variant="body" 
+                  color={colorScheme === 'light' ? '#111827' : '#f9fafb'}
+                  weight="medium"
+                >
                   {t('profile.emailVerification')}
                 </Text>
+                <Text 
+                  size="sm" 
+                  color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}
+                  style={styles.mt4}
+                >
+                  {user?.email}
+                </Text>
               </View>
+            </View>
+            
+            <View style={[styles.row, styles.alignCenter, styles.gap8]}>
               {user?.emailVerified ? (
-                <Badge variant="success"><CheckCircle size={14} /> {t('common.verified')}</Badge>
+                <Badge variant="default">
+                  {t('common.verified')}
+                </Badge>
               ) : (
-                <Badge variant="warning"><AlertCircle size={14} /> {t('common.notVerified')}</Badge>
+                <>
+                  <Badge variant="secondary">
+                    {t('common.notVerified')}
+                  </Badge>
+                </>
               )}
             </View>
-            {!user?.emailVerified && (
-              <TouchableOpacity
-                onPress={async () => {
-                  try {
-                    haptics.light();
-                    await authService.resendEmailVerification();
-                    toast.success(t('auth.email.verificationSent'));
-                  } catch (error: any) {
-                    haptics.error();
-                    toast.error(error.message || t('common.error'));
-                  }
-                }}
-                style={[styles.mt4]}
-              >
-                <Text style={[styles.text, styles.textPrimary, styles.textSemiBold]}>
-                  {t('auth.email.resendVerification')}
-                </Text>
-              </TouchableOpacity>
-            )}
-          </View>
+          </TouchableOpacity>
 
           {/* Phone Verification */}
-          <View style={[styles.mb4, styles.p4, { backgroundColor: '#f3f4f6', borderRadius: 8 }]}>
-            <View style={[styles.row, styles.alignCenter, styles.justifyBetween, styles.mb4]}>
-              <View style={[styles.row, styles.alignCenter]}>
-                <Phone size={20} color={user?.phoneVerified ? '#16a34a' : '#d97706'} />
-                <Text style={[styles.text, styles.textSemiBold, styles.ml4]}>
+          <TouchableOpacity
+            onPress={!user?.phoneVerified ? () => {
+              haptics.light();
+              onNavigate('verify-phone');
+            } : undefined}
+            style={[
+              styles.row,
+              styles.alignCenter,
+              styles.justifyBetween,
+              styles.p16,
+              styles.mb12,
+              styles.rounded8,
+              {
+                backgroundColor: colorScheme === 'light' ? '#f8fafc' : '#1e293b',
+                borderWidth: 1,
+                borderColor: colorScheme === 'light' ? '#e2e8f0' : '#334155',
+              }
+            ]}
+          >
+            <View style={[styles.row, styles.alignCenter, styles.flex1]}>
+              <View style={[
+                styles.w12,
+                styles.h12,
+                styles.roundedFull,
+                styles.alignCenter,
+                styles.justifyCenter,
+                styles.mr12
+              ]}>
+                {user?.phoneVerified ? (
+                  <CheckCircle size={20} color="#16a34a" />
+                ) : (
+                  <AlertCircle size={20} color="#d97706" />
+                )}
+              </View>
+              <View>
+                <Text 
+                  variant="body" 
+                  color={colorScheme === 'light' ? '#111827' : '#f9fafb'}
+                  weight="medium"
+                >
                   {t('profile.phoneVerification')}
                 </Text>
+                <Text 
+                  size="sm" 
+                  color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}
+                  style={styles.mt4}
+                >
+                  {user?.phone || t('profile.noPhoneNumber')}
+                </Text>
               </View>
+            </View>
+            
+            <View style={[styles.row, styles.alignCenter, styles.gap8]}>
               {user?.phoneVerified ? (
-                <Badge variant="success"><CheckCircle size={14} /> {t('common.verified')}</Badge>
+                <Badge variant="default">
+                  {t('common.verified')}
+                </Badge>
               ) : (
-                <Badge variant="warning"><AlertCircle size={14} /> {t('common.notVerified')}</Badge>
+                <>
+                  <Badge variant="secondary">
+                    {t('common.notVerified')}
+                  </Badge>
+                </>
               )}
             </View>
-            {!user?.phoneVerified && (
-              <TouchableOpacity
-                onPress={() => {
-                  haptics.light();
-                  onNavigate('verify-phone');
-                }}
-                style={[styles.mt4]}
-              >
-                <Text style={[styles.text, styles.textPrimary, styles.textSemiBold]}>
-                  {t('auth.phone.verifyNow')}
-                </Text>
-              </TouchableOpacity>
-            )}
-          </View>
+          </TouchableOpacity>
 
-          {/* Account Status */}
+          {/* Account Status Warning */}
           {user?.status === 'pending_verification' && (
-            <View style={[styles.p4, { backgroundColor: '#fef3c7', borderRadius: 8 }]}>
-              <View style={[styles.row, styles.alignCenter, styles.mb4]}>
-                <AlertCircle size={20} color="#d97706" />
-                <Text style={[styles.text, styles.textSemiBold, styles.ml4, { color: '#92400e' }]}>
+            <View style={[
+              styles.row,
+              styles.alignCenter,
+              styles.p12,
+              styles.mb12,
+              styles.rounded8,
+              {
+                backgroundColor: colorScheme === 'light' ? '#fffbeb' : '#451a03',
+                borderWidth: 1,
+                borderColor: colorScheme === 'light' ? '#fef3c7' : '#92400e',
+              }
+            ]}>
+              <AlertCircle size={20} color="#d97706" style={styles.mr12} />
+              <View style={styles.flex1}>
+                <Text 
+                  variant="body" 
+                  weight="medium"
+                  style={{ color: colorScheme === 'light' ? '#92400e' : '#fef3c7' }}
+                >
                   {t('profile.accountPendingVerification')}
                 </Text>
-              </View>
-              <Text style={[styles.textSm, { color: '#78350f' }, styles.mb4]}>
-                {t('profile.submitDocumentsToActivate')}
-              </Text>
-              <TouchableOpacity
-                onPress={() => {
-                  haptics.light();
-                  onNavigate('submit-documents');
-                }}
-                style={[styles.mt4]}
-              >
-                <Text style={[styles.text, styles.textPrimary, styles.textSemiBold]}>
-                  {t('profile.submitDocuments')} →
+                <Text 
+                  size="sm" 
+                  style={[
+                    styles.mt4,
+                    { color: colorScheme === 'light' ? '#b45309' : '#fcd34d' }
+                  ]}
+                >
+                  {t('profile.submitDocumentsToActivate')}
                 </Text>
-              </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => {
+                    haptics.light();
+                    onNavigate('submit-documents');
+                  }}
+                  style={[styles.mt8, styles.row, styles.alignCenter]}
+                >
+                  <Text 
+                    size="sm" 
+                    weight="medium"
+                    style={{ color: '#16a34a' }}
+                  >
+                    {t('profile.submitDocuments')}
+                  </Text>
+                  <ChevronRight size={16} color="#16a34a" style={styles.ml4} />
+                </TouchableOpacity>
+              </View>
             </View>
           )}
         </Card>

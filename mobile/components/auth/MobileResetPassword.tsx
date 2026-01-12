@@ -12,6 +12,7 @@ import React, { useState, useEffect } from 'react';
 import { TouchableOpacity, View } from 'react-native';
 import { useMobileAuth } from '@/lib/mobile-auth';
 import { useMobileI18n } from '@/lib/mobile-i18n';
+import { getErrorMessageWithFallback } from '@/utils/errorHandler';
 
 interface MobileResetPasswordProps {
   onNavigate: (screen: string) => void;
@@ -67,21 +68,7 @@ export function MobileResetPassword({ onNavigate, resetToken }: MobileResetPassw
       setIsSubmitted(true);
     } catch (error: any) {
       haptics.error();
-      
-      let errorMessage = t('error.resetPasswordError');
-      
-      switch (error.message) {
-        case 'invalid_token':
-          errorMessage = t('error.invalidToken');
-          break;
-        case 'network_error':
-          errorMessage = t('error.networkError');
-          break;
-        case 'server_error':
-          errorMessage = t('error.serverError');
-          break;
-      }
-      
+      const errorMessage = getErrorMessageWithFallback(error, t);
       setError(errorMessage);
     } finally {
       setIsLoading(false);

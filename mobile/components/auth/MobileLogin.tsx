@@ -11,9 +11,11 @@ import { haptics } from '@/utils/haptics';
 import { ArrowLeft, Eye, EyeOff } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { Alert, TouchableOpacity, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useMobileAuth } from '@/lib/mobile-auth';
 import { useMobileI18n } from '@/lib/mobile-i18n';
 import { authService } from '@/services/authService';
+import { getErrorMessageWithFallback } from '@/utils/errorHandler';
 
 interface MobileLoginProps {
   onNavigate: (screen: string) => void;
@@ -22,6 +24,7 @@ interface MobileLoginProps {
 export default function MobileLogin({ onNavigate }: MobileLoginProps) {
   const { login } = useMobileAuth();
   const { t } = useMobileI18n();
+  const router = useRouter();
   const colorScheme = useColorScheme();
   const styles = getGlobalStyles(colorScheme);
   
@@ -45,37 +48,37 @@ export default function MobileLogin({ onNavigate }: MobileLoginProps) {
       await login({ email, password });
       haptics.success();
       toast.success(t('success.loginSuccessful'));
+      
+      // Redirection explicite après connexion réussie
+      // Attendre un court délai pour que le state soit mis à jour dans le contexte
+      setTimeout(() => {
+        // Récupérer l'utilisateur depuis le stockage pour connaître son statut
+        authService.getUser().then((currentUser) => {
+          if (currentUser) {
+            if (currentUser.status === 'pending_verification') {
+              router.replace('/(auth)/submit-documents');
+            } else {
+              router.replace('/(tabs)/home');
+            }
+          } else {
+            // Si pas d'utilisateur, rediriger vers home par défaut
+            router.replace('/(tabs)/home');
+          }
+        }).catch(() => {
+          // En cas d'erreur, rediriger vers home par défaut
+          router.replace('/(tabs)/home');
+        });
+      }, 300);
     } catch (error: any) {
       haptics.error();
       
-      let errorMessage = t('common.error');
-      switch (error.message) {
-        case 'invalid_credentials':
-          errorMessage = t('error.invalidCredentials');
-          break;
-        case 'email_not_verified':
-          showEmailNotVerifiedAlert(email);
-          return;
-        case 'network_error':
-          errorMessage = t('error.networkError');
-          break;
-        case 'validation_error':
-          errorMessage = t('error.validationError');
-          break;
-        case 'user_already_exists':
-          errorMessage = t('error.userAlreadyExists');
-          break;
-        case 'server_error':
-          errorMessage = t('error.serverError');
-          break;
-        case 'service_unavailable':
-          errorMessage = t('error.serviceUnavailable');
-          break;
-        default:
-          errorMessage = t('error.invalidCredentials');
-          break;
+      // Cas spéciaux qui nécessitent une action spécifique
+      if (error.message === 'email_not_verified') {
+        showEmailNotVerifiedAlert(email);
+        return;
       }
       
+      const errorMessage = getErrorMessageWithFallback(error, t);
       toast.error(errorMessage);
     } finally {
       setIsLoading(false);

@@ -932,6 +932,8 @@ const translations: Translations = {
   'document.chooseFromGallery': { fr: 'Choisir depuis la galerie', en: 'Choose from gallery' },
   'document.locationPermissionDenied': { fr: 'Permission de localisation refusée', en: 'Location permission denied' },
   'document.locationError': { fr: 'Erreur lors de l\'obtention de la localisation', en: 'Error getting location' },
+  'document.alreadyApproved': { fr: 'Déjà approuvé', en: 'Already approved' },
+  'document.waitingForReview': { fr: 'En attente d\'examen', en: 'Waiting for review' },
 
   // Common additions
   'common.skipForNow': { fr: 'Passer pour l\'instant', en: 'Skip for now' },

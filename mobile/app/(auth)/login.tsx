@@ -25,6 +25,8 @@ export default function LoginScreen() {
       router.navigate('/(auth)/register');
     } else if (screen === 'forgot-password') {
       router.navigate('/(auth)/forgot-password');
+    } else if (screen === 'submit-documents') {
+      router.replace('/(auth)/submit-documents');
     }
   };
 

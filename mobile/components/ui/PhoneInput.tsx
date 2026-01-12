@@ -1,5 +1,5 @@
 /* eslint-disable react/no-unescaped-entities */
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { 
   View, 
   TextInput, 
@@ -42,6 +42,7 @@ interface PhoneInputProps {
   value: string;
   onChangeText: (phoneNumber: string) => void;
   onValidationChange?: (isValid: boolean) => void;
+  onFullPhoneChange?: (fullPhoneNumber: string) => void;
   placeholder?: string;
   error?: boolean;
   disabled?: boolean;
@@ -140,6 +141,7 @@ export function PhoneInput({
   value,
   onChangeText,
   onValidationChange,
+  onFullPhoneChange,
   placeholder = "Numéro de téléphone",
   error = false,
   disabled = false,
@@ -164,6 +166,16 @@ export function PhoneInput({
   const [isFocused, setIsFocused] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [localValue, setLocalValue] = useState('');
+  
+  // Utiliser useRef pour éviter les boucles infinies avec les callbacks
+  const onValidationChangeRef = useRef(onValidationChange);
+  const onFullPhoneChangeRef = useRef(onFullPhoneChange);
+  
+  // Mettre à jour les refs quand les callbacks changent
+  useEffect(() => {
+    onValidationChangeRef.current = onValidationChange;
+    onFullPhoneChangeRef.current = onFullPhoneChange;
+  }, [onValidationChange, onFullPhoneChange]);
 
   // Initialiser la valeur locale et détecter le pays
   useEffect(() => {
@@ -207,33 +219,34 @@ export function PhoneInput({
       const fullNumber = `${selectedCountry.dialCode}${localValue.replace(/\D/g, '')}`;
       try {
         const isValid = isValidPhoneNumber(fullNumber, selectedCountry.code);
-        onValidationChange?.(isValid);
+        onValidationChangeRef.current?.(isValid);
+        // Mettre à jour aussi le numéro complet
+        onFullPhoneChangeRef.current?.(fullNumber);
       } catch {
-        onValidationChange?.(false);
+        onValidationChangeRef.current?.(false);
       }
     } else {
-      onValidationChange?.(false);
+      onValidationChangeRef.current?.(false);
     }
-  }, [localValue, selectedCountry, onValidationChange]);
+  }, [localValue, selectedCountry]);
 
   const handlePhoneChange = useCallback((text: string) => {
     const cleanedText = text.replace(/\D/g, '');
     setLocalValue(cleanedText);
     
-    const fullNumber = `${selectedCountry.dialCode}${cleanedText}`;
-    onChangeText(fullNumber);
-  }, [selectedCountry, onChangeText]);
+    // Stocker seulement le numéro local dans onChangeText
+    onChangeText(cleanedText);
+    
+    // Le numéro complet sera mis à jour par le useEffect
+  }, [onChangeText]);
 
   const handleCountrySelect = useCallback((country: Country) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setSelectedCountry(country);
     setShowCountryPicker(false);
     
-    // Mettre à jour le numéro avec le nouveau code pays
-    const cleanedValue = localValue.replace(/\D/g, '');
-    const fullNumber = `${country.dialCode}${cleanedValue}`;
-    onChangeText(fullNumber);
-  }, [localValue, onChangeText]);
+    // Le numéro complet sera mis à jour par le useEffect quand selectedCountry change
+  }, []);
 
   // Filtrer les pays selon la recherche
   const filteredCountries = useMemo(() => {
@@ -289,8 +302,8 @@ export function PhoneInput({
       paddingLeft: Platform.OS === 'web' ? 110 : 100,
       height: 48,
     },
-    isFocused && (styles.inputFocused as TextStyle),
-    error && (styles.inputError as TextStyle),
+    isFocused && !error && (styles.inputFocused as TextStyle),
+    error && { borderColor: '#ef4444', borderWidth: 1 },
     disabled && { opacity: 0.6 },
     style as TextStyle,
   ].filter(Boolean) as TextStyle[];

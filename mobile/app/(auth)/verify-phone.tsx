@@ -25,13 +25,22 @@ export default function VerifyPhoneScreen() {
     }
   };
 
+  const handleBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      // Si on ne peut pas revenir en arrière, rediriger vers la page de connexion
+      router.replace('/(auth)/login');
+    }
+  };
+
   return (
     <>
       <PageTitle 
         titleFr="Vérification téléphone"
         titleEn="Phone Verification"
       />
-      <MobilePhoneVerification onNavigate={handleNavigate} />
+      <MobilePhoneVerification onNavigate={handleNavigate} onBack={handleBack} />
     </>
   );
 }

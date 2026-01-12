@@ -32,14 +32,17 @@ export function MobileAuthProvider({ children }: AuthProviderProps) {
 
   useEffect(() => {
     loadStoredUser();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     const inAuthGroup = segments[0] === '(auth)';
     const inIndexGroup = !segments[0];
-    const isAuthRoute = inAuthGroup && segments[1] && ['login', 'register', 'forgot-password', 'reset-password', 'welcome', 'verify-phone', 'submit-documents'].includes(segments[1]);
-    const isDocumentRoute = inAuthGroup && segments[1] === 'submit-documents';
-    const isPhoneVerificationRoute = inAuthGroup && segments[1] === 'verify-phone';
+    const currentRoute = inAuthGroup ? segments[1] : null;
+    const isDocumentRoute = currentRoute === 'submit-documents';
+    const isPhoneVerificationRoute = currentRoute === 'verify-phone';
+    const isLoginOrRegisterRoute = currentRoute === 'login' || currentRoute === 'register';
+    const isOtherAuthRoute = inAuthGroup && currentRoute && ['forgot-password', 'reset-password', 'welcome'].includes(currentRoute);
 
     if (!isLoading) {
       if (user && (inAuthGroup || inIndexGroup)) {
@@ -47,10 +50,11 @@ export function MobileAuthProvider({ children }: AuthProviderProps) {
         if (user.status === 'pending_verification' && !isDocumentRoute && !isPhoneVerificationRoute) {
           router.replace('/(auth)/submit-documents');
           return;
-        } else if (user.status === 'pending_verification' && isDocumentRoute) {
-          // Already on document submission page, stay there
+        } else if (user.status === 'pending_verification' && (isDocumentRoute || isPhoneVerificationRoute)) {
+          // Already on document submission or phone verification page, stay there
           return;
-        } else if (!isAuthRoute && user.status !== 'pending_verification') {
+        } else if (user.status !== 'pending_verification' && (isLoginOrRegisterRoute || isOtherAuthRoute || inIndexGroup)) {
+          // User is authenticated and verified, redirect to home
           router.replace('/(tabs)/home');
         }
       } 
@@ -69,6 +73,15 @@ export function MobileAuthProvider({ children }: AuthProviderProps) {
       if (authenticated) {
         try {
           const freshUserData = await authService.getCurrentUser();
+          
+          // Vérifier si le compte est désactivé
+          const { checkAndHandleAccountDeactivation } = await import('@/utils/accountDeactivationHandler');
+          const isDeactivated = await checkAndHandleAccountDeactivation(null, freshUserData);
+          if (isDeactivated) {
+            setUser(null);
+            return;
+          }
+          
           setUser(freshUserData);
           
           // Vérifier le statut après récupération des données
@@ -91,6 +104,14 @@ export function MobileAuthProvider({ children }: AuthProviderProps) {
           console.warn('API unavailable, using stored user data:', apiError);
           const storedUser = await getUserData<User>();
           if (storedUser) {
+            // Vérifier si le compte stocké est désactivé
+            const { checkAndHandleAccountDeactivation } = await import('@/utils/accountDeactivationHandler');
+            const isDeactivated = await checkAndHandleAccountDeactivation(null, storedUser);
+            if (isDeactivated) {
+              setUser(null);
+              return;
+            }
+            
             setUser(storedUser);
             
             // Vérifier le statut même avec les données stockées
@@ -117,28 +138,6 @@ export function MobileAuthProvider({ children }: AuthProviderProps) {
     }
   };
 
-  const checkAuthState = async () => {
-    try {
-      setIsLoading(true);
-      const authenticated = await authService.isAuthenticated();
-      
-      if (authenticated) {
-        try {
-          const userData = await authService.getCurrentUser();
-          setUser(userData);
-        } catch (apiError) {
-          const storedUser = await getUserData<User>();
-          setUser(storedUser);
-        }
-      } else {
-        setUser(null);
-      }
-    } catch (error) {
-      setUser(null);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const login = async (credentials: LoginCredentials) => {
     try {
@@ -204,8 +203,16 @@ export function MobileAuthProvider({ children }: AuthProviderProps) {
   const refreshUser = async () => {
     try {
       const userData = await authService.getCurrentUser();
-      setUser(userData);
       
+      // Vérifier si le compte est désactivé
+      const { checkAndHandleAccountDeactivation } = await import('@/utils/accountDeactivationHandler');
+      const isDeactivated = await checkAndHandleAccountDeactivation(null, userData);
+      if (isDeactivated) {
+        setUser(null);
+        return;
+      }
+      
+      setUser(userData);
       await storeUserData(userData);
       
       // Vérifier le statut après rafraîchissement
@@ -225,6 +232,14 @@ export function MobileAuthProvider({ children }: AuthProviderProps) {
       // Sinon, utiliser les données stockées
       const storedUser = await getUserData<User>();
       if (storedUser) {
+        // Vérifier si le compte stocké est désactivé
+        const { checkAndHandleAccountDeactivation } = await import('@/utils/accountDeactivationHandler');
+        const isDeactivated = await checkAndHandleAccountDeactivation(null, storedUser);
+        if (isDeactivated) {
+          setUser(null);
+          return;
+        }
+        
         setUser(storedUser);
         
         // Vérifier le statut même avec les données stockées

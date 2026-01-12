@@ -16,6 +16,7 @@ import { useMobileAuth } from '@/lib/mobile-auth';
 import { useMobileI18n } from '@/lib/mobile-i18n';
 import { storeUserData } from '@/utils/storage';
 import { authService } from '@/services/authService';
+import { getErrorMessageWithFallback } from '@/utils/errorHandler';
 
 interface MobileRegisterProps {
   onNavigate: (screen: string) => void;
@@ -32,6 +33,7 @@ export function MobileRegister({ onNavigate }: MobileRegisterProps) {
     lastName: '',
     email: '',
     phone: '',
+    phoneFull: '',
     password: '',
     confirmPassword: '',
   });
@@ -124,7 +126,7 @@ export function MobileRegister({ onNavigate }: MobileRegisterProps) {
         firstName: formData.firstName,
         lastName: formData.lastName,
         email: formData.email,
-        phone: formData.phone,
+        phone: formData.phoneFull || formData.phone, // Utiliser le numéro complet si disponible
         password: formData.password,
         language,
       });
@@ -153,26 +155,7 @@ export function MobileRegister({ onNavigate }: MobileRegisterProps) {
       toast.success(t('success.accountCreated'));
     } catch (error: any) {
       haptics.error();
-      
-      let errorMessage = t('common.error');
-      switch (error.message) {
-        case 'user_already_exists':
-          errorMessage = t('error.userAlreadyExists');
-          break;
-        case 'invalid_data':
-          errorMessage = t('error.invalidData');
-          break;
-        case 'validation_error':
-          errorMessage = t('error.validationError');
-          break;
-        case 'network_error':
-          errorMessage = t('error.networkError');
-          break;
-        case 'server_error':
-          errorMessage = t('error.serverError');
-          break;
-      }
-      
+      const errorMessage = getErrorMessageWithFallback(error, t);
       toast.error(errorMessage);
     } finally {
       setIsLoading(false);
@@ -283,6 +266,7 @@ export function MobileRegister({ onNavigate }: MobileRegisterProps) {
             <PhoneInput
               value={formData.phone}
               onChangeText={(text) => setFormData({ ...formData, phone: text })}
+              onFullPhoneChange={(fullPhone) => setFormData({ ...formData, phoneFull: fullPhone })}
               onValidationChange={setIsPhoneValid}
               placeholder={t('placeholder.phone')}
               error={formData.phone.length > 0 && !isPhoneValid}

@@ -10,7 +10,7 @@ interface BadgeProps {
   children: React.ReactNode;
   variant?: 'default' | 'secondary' | 'destructive' | 'outline';
   size?: 'sm' | 'md' | 'lg';
-  style?: ViewStyle;
+  style?: ViewStyle | ViewStyle[];
 }
 
 export function Badge({ 

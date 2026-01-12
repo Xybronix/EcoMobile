@@ -60,6 +60,13 @@ class DocumentService {
         const result = await handleApiResponse(response);
         return result.data;
       } catch (error) {
+        // Vérifier si c'est une erreur de compte désactivé
+        const { checkAndHandleAccountDeactivation } = await import('@/utils/accountDeactivationHandler');
+        const isDeactivated = await checkAndHandleAccountDeactivation(error);
+        if (isDeactivated) {
+          throw new Error('unauthorized');
+        }
+        
         if (error instanceof ApiError) {
           // Si erreur d'autorisation (401, 403), déconnecter
           if (error.status === 401 || error.status === 403) {
@@ -92,6 +99,13 @@ class DocumentService {
         const result = await handleApiResponse(response);
         return result.data;
       } catch (error) {
+        // Vérifier si c'est une erreur de compte désactivé
+        const { checkAndHandleAccountDeactivation } = await import('@/utils/accountDeactivationHandler');
+        const isDeactivated = await checkAndHandleAccountDeactivation(error);
+        if (isDeactivated) {
+          throw new Error('unauthorized');
+        }
+        
         if (error instanceof ApiError) {
           // Si erreur d'autorisation (401, 403), déconnecter
           if (error.status === 401 || error.status === 403) {

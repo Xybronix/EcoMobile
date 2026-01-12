@@ -12,6 +12,7 @@ import React, { useState } from 'react';
 import { TouchableOpacity, View } from 'react-native';
 import { useMobileAuth } from '@/lib/mobile-auth';
 import { useMobileI18n } from '@/lib/mobile-i18n';
+import { getErrorMessageWithFallback } from '@/utils/errorHandler';
 
 interface MobileForgotPasswordProps {
   onNavigate: (screen: string) => void;
@@ -65,23 +66,7 @@ export function MobileForgotPassword({ onNavigate }: MobileForgotPasswordProps) 
       setIsSubmitted(true);
     } catch (error: any) {
       haptics.error();
-      
-      let errorMessage = t('common.error');
-      switch (error.message) {
-        case 'user_not_found':
-          errorMessage = t('error.userNotFound');
-          break;
-        case 'network_error':
-          errorMessage = t('error.networkError');
-          break;
-        case 'server_error':
-          errorMessage = t('error.serverError');
-          break;
-        default:
-          errorMessage = t('error.occurred');
-          break;
-      }
-      
+      const errorMessage = getErrorMessageWithFallback(error, t);
       toast.error(errorMessage);
     } finally {
       setIsLoading(false);
