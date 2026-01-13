@@ -1,3 +1,4 @@
+import React from 'react';
 import { Header } from './landing/Header';
 import { Hero } from './landing/Hero';
 import { Features } from './landing/Features';
