@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../../ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../../ui/dialog';
 import { Button } from '../../ui/button';
 import { Input } from '../../ui/input';
 import { Textarea } from '../../ui/textarea';
@@ -34,7 +34,7 @@ export function AdminChargeModal({
 
   const [formData, setFormData] = useState({
     userId: preselectedUserId || '',
-    bikeId: preselectedBikeId || '',
+    bikeId: preselectedBikeId || 'none',
     amount: '',
     reason: '',
     description: ''
@@ -54,6 +54,8 @@ export function AdminChargeModal({
     }
     if (preselectedBikeId) {
       setFormData(prev => ({ ...prev, bikeId: preselectedBikeId }));
+    } else {
+      setFormData(prev => ({ ...prev, bikeId: 'none' }));
     }
   }, [preselectedUserId, preselectedBikeId]);
 
@@ -99,7 +101,7 @@ export function AdminChargeModal({
       // Appeler l'API pour créer la charge via le service
       await incidentService.createAdminCharge({
         userId: formData.userId,
-        bikeId: formData.bikeId || undefined,
+        bikeId: formData.bikeId && formData.bikeId !== 'none' ? formData.bikeId : undefined,
         amount,
         reason: formData.reason,
         description: formData.description
@@ -110,7 +112,7 @@ export function AdminChargeModal({
       // Reset form
       setFormData({
         userId: preselectedUserId || '',
-        bikeId: preselectedBikeId || '',
+        bikeId: preselectedBikeId || 'none',
         amount: '',
         reason: '',
         description: ''
@@ -144,6 +146,9 @@ export function AdminChargeModal({
             <AlertTriangle className="w-5 h-5 text-orange-500" />
             Affecter une charge à un utilisateur
           </DialogTitle>
+          <DialogDescription>
+            Créez une charge administrative qui sera déduite de la caution de l'utilisateur
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
@@ -198,7 +203,7 @@ export function AdminChargeModal({
                     <SelectValue placeholder="Sélectionner un vélo" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Aucun vélo spécifique</SelectItem>
+                    <SelectItem value="none">Aucun vélo spécifique</SelectItem>
                     {bikes.map(bike => (
                       <SelectItem key={bike.id} value={bike.id}>
                         {bike.code} - {bike.model}

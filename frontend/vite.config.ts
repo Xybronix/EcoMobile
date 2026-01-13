@@ -2,9 +2,39 @@
   import { defineConfig } from 'vite';
   import react from '@vitejs/plugin-react-swc';
   import path from 'path';
+  import { Plugin } from 'vite';
+
+  // Plugin pour fournir un export par défaut pour react-dom (compatibilité React 19)
+  const reactDOMCompatPlugin = (): Plugin => {
+    return {
+      name: 'react-dom-compat',
+      enforce: 'pre',
+      resolveId(source, importer) {
+        // Intercepter les imports de react-dom depuis node_modules (packages tiers)
+        if (source === 'react-dom' && importer?.includes('node_modules')) {
+          // Retourner un ID virtuel pour notre wrapper
+          return '\0react-dom-compat';
+        }
+        return null;
+      },
+      load(id) {
+        // Charger notre wrapper pour react-dom
+        if (id === '\0react-dom-compat') {
+          return `
+            import * as ReactDOM from 'react-dom';
+            // Fournir un export par défaut pour compatibilité avec les anciens imports
+            const ReactDOMDefault = ReactDOM;
+            export default ReactDOMDefault;
+            export * from 'react-dom';
+          `;
+        }
+        return null;
+      },
+    };
+  };
 
   export default defineConfig({
-    plugins: [react()],
+    plugins: [react(), reactDOMCompatPlugin()],
     base: '',
     resolve: {
       extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
@@ -49,13 +79,34 @@
         '@radix-ui/react-accordion@1.2.3': '@radix-ui/react-accordion',
         '@': path.resolve(__dirname, './src'),
       },
+      dedupe: ['react', 'react-dom'],
     },
     build: {
       target: 'esnext',
       outDir: 'build',
+      commonjsOptions: {
+        transformMixedEsModules: true,
+      },
     },
     server: {
       port: 3000,
       open: true,
+    },
+    optimizeDeps: {
+      include: [
+        'react',
+        'react-dom',
+        '@radix-ui/react-dialog',
+        '@radix-ui/react-popover',
+        '@radix-ui/react-dropdown-menu',
+        '@radix-ui/react-select',
+      ],
+      esbuildOptions: {
+        target: 'esnext',
+        jsx: 'automatic',
+      },
+    },
+    ssr: {
+      noExternal: ['@radix-ui/react-dialog', '@radix-ui/react-popover', '@radix-ui/react-dropdown-menu'],
     },
   });
