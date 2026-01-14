@@ -108,6 +108,10 @@ function ImageGallery({ images, title }: { images: string[], title: string }) {
               className="rounded-lg shadow-lg max-h-[500px] object-contain transition-transform duration-200"
               style={{ transform: `scale(${zoom})` }}
               onClick={() => window.open(selectedImage, '_blank')}
+              onError={(e) => {
+                console.error('Erreur de chargement d\'image:', selectedImage);
+                toast.error('Impossible de charger l\'image');
+              }}
             />
           </div>
           <div className="p-2 bg-gray-100 text-center text-sm text-gray-600">
@@ -130,6 +134,10 @@ function ImageGallery({ images, title }: { images: string[], title: string }) {
               src={image}
               alt={`Photo ${index + 1}`}
               className="w-full h-24 object-cover"
+              onError={(e) => {
+                console.error('Erreur de chargement d\'image:', image);
+                (e.target as HTMLImageElement).style.display = 'none';
+              }}
             />
             <div className="absolute bottom-0 right-0 bg-black bg-opacity-50 text-white text-xs p-1">
               {index + 1}
@@ -246,13 +254,21 @@ export function BikeActionManagement() {
       images.push(...request.metadata.inspection.photos);
     }
     
+    // Obtenir l'URL de base sans /api/v1 pour les images statiques
+    const getBaseUrl = () => {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
+      // Enlever /api/v1 si présent
+      return apiUrl.replace(/\/api\/v1\/?$/, '');
+    };
+
+    const baseUrl = getBaseUrl();
+    
     return images
     .filter(img => img && img.trim() !== '')
     .map(img => {
       if (img.startsWith('http://') || img.startsWith('https://') || img.startsWith('data:')) {
         return img;
       }
-      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
       return `${baseUrl}${img.startsWith('/') ? img : '/' + img}`;
     });
   };
@@ -424,6 +440,10 @@ export function BikeActionManagement() {
                                   src={img}
                                   alt={`Photo ${index + 1}`}
                                   className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    console.error('Erreur de chargement d\'image:', img);
+                                    (e.target as HTMLImageElement).style.display = 'none';
+                                  }}
                                 />
                               </div>
                             ))}
@@ -636,10 +656,16 @@ export function BikeActionManagement() {
 
               {/* Galerie d'images */}
               <Card className="p-4">
-                <ImageGallery 
-                  images={getRequestImages(inspectionModal.request)}
-                  title={`${inspectionModal.type}-${inspectionModal.request.bike?.code || 'unknown'}`}
-                />
+                {(() => {
+                  const images = getRequestImages(inspectionModal.request);
+                  console.log('Images pour la galerie:', images);
+                  return (
+                    <ImageGallery 
+                      images={images}
+                      title={`${inspectionModal.type}-${inspectionModal.request.bike?.code || 'unknown'}`}
+                    />
+                  );
+                })()}
               </Card>
 
               {/* Rapport d'inspection */}

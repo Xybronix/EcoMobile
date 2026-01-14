@@ -609,6 +609,7 @@ export function MobileRideInProgress({
 
             {/* Boutons d'Action */}
             <View style={styles.gap12}>
+              {/**
               <TouchableOpacity
                 onPress={handlePauseResume}
                 style={[
@@ -641,7 +642,8 @@ export function MobileRideInProgress({
                   </>
                 )}
               </TouchableOpacity>
-
+              */}
+              
               <TouchableOpacity
                 onPress={handleRequestLock}
                 style={[
