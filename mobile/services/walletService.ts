@@ -230,6 +230,8 @@ class WalletService {
     requiredDeposit: number;
     canUseService: boolean;
     negativeBalance: number;
+    hasDepositExemption?: boolean;
+    depositExemptionUntil?: string | null;
   }> {
     const headers = await this.getAuthHeaders();
     

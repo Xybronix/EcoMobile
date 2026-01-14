@@ -9,8 +9,9 @@ import { getGlobalStyles } from '@/styles/globalStyles';
 import { haptics } from '@/utils/haptics';
 import { storeLanguage } from '@/utils/storage';
 import { Bell, ChevronRight, FileText, Globe, HelpCircle, LogOut, MessageCircle, Shield, User, Wallet, CheckCircle, AlertCircle } from 'lucide-react-native';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { RefreshControl, ScrollView, Switch, TouchableOpacity, View } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { useMobileAuth } from '@/lib/mobile-auth';
 import { useMobileI18n } from '@/lib/mobile-i18n';
 import { MobileHeader } from '@/components/layout/MobileHeader';
@@ -18,13 +19,14 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { authService } from '@/services/authService';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { documentService, type DocumentsStatus } from '@/services/documentService';
 
 interface MobileProfileProps {
   onNavigate: (screen: string) => void;
 }
 
 export default function MobileProfile({ onNavigate }: MobileProfileProps) {
-  const { user, logout } = useMobileAuth();
+  const { user, logout, refreshUser } = useMobileAuth();
   const { t, language, setLanguage } = useMobileI18n();
   const colorScheme = useColorScheme();
   const styles = getGlobalStyles(colorScheme);
@@ -33,24 +35,36 @@ export default function MobileProfile({ onNavigate }: MobileProfileProps) {
   const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [documentsStatus, setDocumentsStatus] = useState<DocumentsStatus | null>(null);
 
   useEffect(() => {
     loadProfileData();
   }, []);
 
+  // Recharger les données quand on revient sur la page
+  useFocusEffect(
+    useCallback(() => {
+      loadProfileData();
+      // Forcer le rechargement des données utilisateur depuis l'API
+      refreshUser().catch(console.error);
+    }, [refreshUser])
+  );
+
   const loadProfileData = async () => {
     try {
       setIsLoading(true);
       
-      const [stats, unreadCount, notificationsEnabled] = await Promise.all([
+      const [stats, unreadCount, notificationsEnabled, docsStatus] = await Promise.all([
         userService.getStats(),
         userService.getUnreadNotificationsCount(),
-        notificationService.areNotificationsEnabled()
+        notificationService.areNotificationsEnabled(),
+        documentService.getDocumentsStatus().catch(() => null) // Ne pas bloquer si erreur
       ]);
 
       setUserStats(stats);
       setUnreadNotifications(unreadCount);
       setNotifications(notificationsEnabled);
+      setDocumentsStatus(docsStatus);
       
     } catch (error) {
       console.error('Error loading profile data:', error);
@@ -526,6 +540,58 @@ export default function MobileProfile({ onNavigate }: MobileProfileProps) {
               )}
             </View>
           </TouchableOpacity>
+
+          {/* Documents Validation Status */}
+          {documentsStatus && !documentsStatus.allDocumentsApproved && (
+            <View style={[
+              styles.row,
+              styles.alignCenter,
+              styles.p12,
+              styles.mb12,
+              styles.rounded8,
+              {
+                backgroundColor: colorScheme === 'light' ? '#fffbeb' : '#451a03',
+                borderWidth: 1,
+                borderColor: colorScheme === 'light' ? '#fef3c7' : '#92400e',
+              }
+            ]}>
+              <FileText size={20} color="#d97706" style={styles.mr12} />
+              <View style={styles.flex1}>
+                <Text 
+                  variant="body" 
+                  weight="medium"
+                  style={{ color: colorScheme === 'light' ? '#92400e' : '#fef3c7' }}
+                >
+                  {t('profile.documentsPendingValidation')}
+                </Text>
+                <Text 
+                  size="sm" 
+                  style={[
+                    styles.mt4,
+                    { color: colorScheme === 'light' ? '#b45309' : '#fcd34d' }
+                  ]}
+                >
+                  {t('profile.documentsValidationMessage')}
+                </Text>
+                <TouchableOpacity
+                  onPress={() => {
+                    haptics.light();
+                    onNavigate('submit-documents');
+                  }}
+                  style={[styles.mt8, styles.row, styles.alignCenter]}
+                >
+                  <Text 
+                    size="sm" 
+                    weight="medium"
+                    style={{ color: '#16a34a' }}
+                  >
+                    {t('profile.viewDocuments')}
+                  </Text>
+                  <ChevronRight size={16} color="#16a34a" style={styles.ml4} />
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
 
           {/* Account Status Warning */}
           {user?.status === 'pending_verification' && (

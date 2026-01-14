@@ -208,17 +208,17 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
 
     if (reservation.status === 'CANCELLED') return 'Annulée';
     if (endDate < now) return 'Terminée';
-    if (startDate <= now && endDate >= now) return 'En cours';
-    if (startDate > now) return 'À venir';
-    return 'Inconnue';
+    if (startDate <= now && endDate >= now) return t('account.inProgress');
+    if (startDate > now) return t('account.upcoming');
+    return t('account.unknown');
   };
 
   const handleDeleteRequest = async (request: any, type: 'unlock' | 'lock') => {
     if (request.status !== 'PENDING') {
       showInfoModal(
-        'Suppression impossible',
+        t('account.cannotDelete'),
         <Text color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
-          Seules les demandes en attente peuvent être supprimées.
+          {t('account.cannotDeleteMessage')}
         </Text>
       );
       return;
@@ -243,9 +243,9 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
   const handleDeleteReservation = async (reservationId: string, reservation: any) => {
     if (reservation.status !== 'ACTIVE') {
       showInfoModal(
-        'Annulation impossible',
+        t('account.cannotCancel'),
         <Text color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
-          Seules les réservations actives peuvent être annulées.
+          {t('account.cannotCancelMessage')}
         </Text>
       );
       return;
@@ -300,12 +300,12 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
         {/* Inspection data si disponible */}
         {request.metadata?.inspection && (
           <View style={styles.gap8}>
-            <Text size="sm" color="#6b7280">Rapport d'inspection:</Text>
+            <Text size="sm" color="#6b7280">{t('account.inspectionReport')}</Text>
             <View style={[styles.p12, styles.rounded8, { backgroundColor: colorScheme === 'light' ? '#f9fafb' : '#374151' }]}>
-              <Text size="sm">État: {request.metadata.inspection.condition}</Text>
+              <Text size="sm">{t('account.condition')}: {request.metadata.inspection.condition}</Text>
               {request.metadata.inspection.issues?.length > 0 && (
                 <View style={styles.mt8}>
-                  <Text size="xs" color="#dc2626">Problèmes signalés:</Text>
+                  <Text size="xs" color="#dc2626">{t('account.reportedIssues')}:</Text>
                   {request.metadata.inspection.issues.map((issue: string, index: number) => (
                     <Text key={index} size="xs" color="#dc2626">• {issue}</Text>
                   ))}
@@ -313,7 +313,7 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
               )}
               {request.metadata.inspection.notes && (
                 <View style={styles.mt8}>
-                  <Text size="xs" color="#6b7280">Notes: {request.metadata.inspection.notes}</Text>
+                  <Text size="xs" color="#6b7280">{t('account.notes')}: {request.metadata.inspection.notes}</Text>
                 </View>
               )}
             </View>
@@ -323,7 +323,7 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
         {/* Notes admin */}
         {request.adminNote && (
           <View style={styles.gap8}>
-            <Text size="sm" color="#6b7280">Note administrative:</Text>
+            <Text size="sm" color="#6b7280">{t('account.adminNote')}</Text>
             <Text size="sm" color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
               {request.adminNote}
             </Text>
@@ -333,7 +333,7 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
         {/* Raison du rejet */}
         {request.rejectionReason && (
           <View style={styles.gap8}>
-            <Text size="sm" color="#dc2626">Raison du rejet:</Text>
+            <Text size="sm" color="#dc2626">{t('account.rejectionReason')}:</Text>
             <Text size="sm" color="#dc2626">
               {request.rejectionReason}
             </Text>
@@ -383,7 +383,7 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
       statusText = 'Terminée';
       statusColor = '#6b7280';
     } else if (isOngoing) {
-      statusText = 'En cours';
+      statusText = t('account.inProgress');
       statusColor = '#16a34a';
     } else if (isUpcoming) {
       statusText = 'À venir';
@@ -1029,7 +1029,7 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
             }).length}
           </Text>
           <Text size="xs" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={styles.textCenter}>
-            En cours
+            {t('account.inProgress')}
           </Text>
         </Card>
         <Card style={[styles.flex1, styles.p12, styles.alignCenter]}>

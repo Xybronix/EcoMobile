@@ -38,11 +38,7 @@ export function MobileQRScanner({ onBikeFound, onBack }: MobileQRScannerProps) {
     // TODO: Integrate with camera QR scanner
     setTimeout(() => {
       setIsScanning(false);
-      toast.info(
-        language === 'fr' 
-          ? 'Scanner QR non implémenté. Utilisez la saisie manuelle.' 
-          : 'QR scanner not implemented. Use manual input.'
-      );
+      toast.info(t('qr.scannerNotImplemented'));
     }, 2000);
   };
 

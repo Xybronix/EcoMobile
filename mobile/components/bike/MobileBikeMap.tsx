@@ -66,12 +66,27 @@ export function MobileBikeMap({ onNavigate }: MobileBikeMapProps) {
   const [maxDistance, setMaxDistance] = useState<number>(2);
   const [minBattery, setMinBattery] = useState<number>(0);
   const [searchLocation, setSearchLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [filtersApplied, setFiltersApplied] = useState(false); // Indique si les filtres ont été appliqués par l'utilisateur
 
   useEffect(() => {
     getUserLocation();
     loadAreas();
-    loadActiveBikes();
   }, []);
+
+  useEffect(() => {
+    // Charger les vélos une fois que la localisation est disponible
+    // Au chargement initial, charger tous les vélos sans filtre de rayon
+    if (userLocation || searchLocation) {
+      loadActiveBikes();
+    }
+  }, [userLocation, searchLocation]);
+
+  // Recharger les vélos quand les filtres changent (seulement si les filtres ont été appliqués)
+  useEffect(() => {
+    if (filtersApplied && (userLocation || searchLocation)) {
+      loadActiveBikes();
+    }
+  }, [maxDistance, minBattery, searchMode, selectedArea, filtersApplied]);
 
   useEffect(() => {
     if (mapLoaded && bikes.length > 0) {
@@ -119,21 +134,25 @@ export function MobileBikeMap({ onNavigate }: MobileBikeMapProps) {
     }
   };
 
-  const loadActiveBikes = async () => {
+  const loadActiveBikes = async (applyRadiusFilter: boolean = false) => {
     try {
       setIsLoading(true);
       const referenceLocation = searchMode === 'area' && searchLocation 
         ? searchLocation 
-        : userLocation;
+        : userLocation || { lat: 4.0511, lng: 9.7679 }; // Fallback si userLocation est null
 
       const filters: any = {
         minBatteryLevel: minBattery,
       };
 
-      if (referenceLocation) {
-        filters.latitude = referenceLocation.lat;
-        filters.longitude = referenceLocation.lng;
-        filters.radius = maxDistance;
+      // Ne pas appliquer le filtre de rayon au chargement initial
+      // Seulement si l'utilisateur a activé les filtres ou si applyRadiusFilter est true
+      if (applyRadiusFilter || filtersApplied) {
+        if (referenceLocation) {
+          filters.latitude = referenceLocation.lat;
+          filters.longitude = referenceLocation.lng;
+          filters.radius = maxDistance;
+        }
       }
 
       const result = await bikeService.getAvailableBikes(filters, 1, 50);
@@ -238,8 +257,9 @@ export function MobileBikeMap({ onNavigate }: MobileBikeMapProps) {
     setSearchMode('area');
     setShowAreaDropdown(false);
     setAreaSearchQuery('');
+    setFiltersApplied(true); // Marquer que les filtres ont été appliqués
     haptics.selection();
-    loadActiveBikes();
+    loadActiveBikes(true); // Appliquer le filtre de rayon
   };
 
   const resetToProximity = () => {
@@ -248,17 +268,20 @@ export function MobileBikeMap({ onNavigate }: MobileBikeMapProps) {
     setSelectedArea('');
     setShowAreaDropdown(false);
     setAreaSearchQuery('');
+    setFiltersApplied(false); // Réinitialiser l'état des filtres
     haptics.light();
-    loadActiveBikes();
+    loadActiveBikes(false); // Ne pas appliquer le filtre de rayon
   };
 
-  const hasActiveFilters = maxDistance !== 2 || minBattery !== 0 || searchMode === 'area';
+  const hasActiveFilters = maxDistance !== 2 || minBattery !== 0 || searchMode === 'area' || filtersApplied;
 
   const resetAllFilters = () => {
     resetToProximity();
     setMaxDistance(2);
     setMinBattery(0);
+    setFiltersApplied(false); // Réinitialiser l'état des filtres
     haptics.light();
+    loadActiveBikes(false); // Charger tous les vélos sans filtre
   };
 
   return (
@@ -309,6 +332,7 @@ export function MobileBikeMap({ onNavigate }: MobileBikeMapProps) {
                     variant={searchMode === 'area' ? 'primary' : 'secondary'}
                     onPress={() => {
                       setSearchMode('area');
+                      setFiltersApplied(true); // Marquer que les filtres ont été appliqués
                       haptics.light();
                     }}
                     style={{ flex: 1 }}
@@ -439,6 +463,7 @@ export function MobileBikeMap({ onNavigate }: MobileBikeMapProps) {
                       key={preset.value}
                       onPress={() => {
                         setMaxDistance(preset.value);
+                        setFiltersApplied(true); // Marquer que les filtres ont été appliqués
                         haptics.light();
                       }}
                       style={[
@@ -485,6 +510,7 @@ export function MobileBikeMap({ onNavigate }: MobileBikeMapProps) {
                       key={level.value}
                       onPress={() => {
                         setMinBattery(level.value);
+                        setFiltersApplied(true); // Marquer que les filtres ont été appliqués
                         haptics.light();
                       }}
                       style={[
@@ -527,8 +553,9 @@ export function MobileBikeMap({ onNavigate }: MobileBikeMapProps) {
                 <Button 
                   variant="primary"
                   onPress={() => {
+                    setFiltersApplied(true); // Marquer que les filtres ont été appliqués
                     setShowFilters(false);
-                    loadActiveBikes();
+                    loadActiveBikes(true); // Appliquer le filtre de rayon
                     haptics.success();
                   }}
                   style={{ flex: 1 }}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bike, Battery, MapPin, Signal, DollarSign, AlertCircle, Search, Filter, Plus, Edit, Trash2, X, Check } from 'lucide-react';
+import { Bike, Battery, MapPin, Signal, DollarSign, AlertCircle, Search, Filter, Plus, Edit, Trash2, X, Check, User } from 'lucide-react';
 import { Card } from '../../ui/card';
 import { Input } from '../../ui/input';
 import { Badge } from '../../ui/badge';
@@ -170,6 +170,7 @@ export function BikeManagement() {
             lat: bike.latitude,
             lng: bike.longitude
           } : undefined,
+          currentUser: bike.currentUser || null,
         };
       });
 
@@ -354,6 +355,8 @@ export function BikeManagement() {
         latitude: formData.location?.coordinates.lat,
         longitude: formData.location?.coordinates.lng,
         locationName: formData.location?.displayName,
+        gpsDeviceId: formData.gpsDeviceId,
+        equipment: formData.equipment,
         maintenanceReason: formData.maintenanceReason,
         maintenanceDetails: formData.maintenanceDetails,
         pricingPlanId: formData.pricingPlanId === 'none' ? undefined : formData.pricingPlanId
@@ -580,6 +583,17 @@ export function BikeManagement() {
                   {bike.pricingPlan?.name || 'Aucun plan'}
                 </span>
               </div>
+
+              {bike.currentUser && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-start gap-2">
+                  <User className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                  <div className="text-xs text-blue-700">
+                    <p className="font-semibold">Utilisé par:</p>
+                    <p>{bike.currentUser.firstName} {bike.currentUser.lastName}</p>
+                    <p className="text-blue-600">{bike.currentUser.email}</p>
+                  </div>
+                </div>
+              )}
 
               {!bike.pricingPlan && (
                 <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">

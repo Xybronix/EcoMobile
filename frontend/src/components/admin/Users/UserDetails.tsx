@@ -17,7 +17,7 @@ import { userService, type User as UserType } from '../../../services/api/user.s
 import { type Ride } from '../../../services/api/ride.service';
 import { type Transaction } from '../../../services/api/wallet.service';
 import { type Incident } from '../../../services/api/incident.service';
-import { documentService, type DocumentsStatus, type IdentityDocument, type ResidenceProof } from '../../../services/api/document.service';
+import { documentService, type DocumentsStatus, type IdentityDocument, type ResidenceProof, type ActivityLocationProof } from '../../../services/api/document.service';
 
 export function UserDetails() {
   const { id } = useParams<{ id: string }>();
@@ -40,11 +40,13 @@ export function UserDetails() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [requests, setRequests] = useState<any[]>([]);
   const [chargeModalOpen, setChargeModalOpen] = useState(false);
+  const [depositExemptionModalOpen, setDepositExemptionModalOpen] = useState(false);
+  const [depositExemptionDays, setDepositExemptionDays] = useState<number>(0);
   const [documentsStatus, setDocumentsStatus] = useState<DocumentsStatus | null>(null);
   const [documentActionLoading, setDocumentActionLoading] = useState<string | null>(null);
   const [rejectDialog, setRejectDialog] = useState<{
     open: boolean;
-    type: 'identity' | 'residence' | null;
+    type: 'identity' | 'residence' | 'activity' | null;
     documentId: string | null;
     reason: string;
   }>({
@@ -166,6 +168,22 @@ export function UserDetails() {
       console.error('Erreur lors de l\'action:', error);
       toast.error(error instanceof Error ? error.message : 'Erreur lors de l\'opération');
       setConfirmDialog(prev => ({ ...prev, loading: false }));
+    }
+  };
+
+  const handleVerifyPhone = async () => {
+    if (!user || !canUpdateUser) return;
+
+    try {
+      setActionLoading(true);
+      await userService.verifyPhoneManually(user.id);
+      toast.success('Téléphone validé avec succès');
+      await loadUserData(); // Recharger les données pour mettre à jour le statut
+    } catch (error) {
+      console.error('Erreur lors de la validation du téléphone:', error);
+      toast.error(error instanceof Error ? error.message : 'Erreur lors de la validation du téléphone');
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -326,6 +344,14 @@ export function UserDetails() {
               <AlertTriangle className="w-4 h-4 mr-2" />
               Affecter une charge
             </Button>
+            <Button
+              variant="outline"
+              onClick={() => setDepositExemptionModalOpen(true)}
+              className="border-blue-500 text-blue-600 hover:bg-blue-50"
+            >
+              <Unlock className="w-4 h-4 mr-2" />
+              Déblocage sans caution
+            </Button>
           </ProtectedAccess>
         </div>
       </div>
@@ -364,6 +390,11 @@ export function UserDetails() {
                     {user.stats.wallet.canUseService 
                       ? 'Caution suffisante' 
                       : 'Caution insuffisante'}
+                  </Badge>
+                )}
+                {user.depositExemptionUntil && new Date(user.depositExemptionUntil) > new Date() && (
+                  <Badge className="mt-1 bg-blue-100 text-blue-800">
+                    Déblocage actif jusqu'au {formatDate(user.depositExemptionUntil)}
                   </Badge>
                 )}
               </div>
@@ -897,9 +928,20 @@ export function UserDetails() {
                     <Phone className="w-5 h-5" color={user?.phoneVerified ? '#16a34a' : '#d97706'} />
                     <span className="font-semibold">Téléphone</span>
                   </div>
-                  <Badge variant={user?.phoneVerified ? 'default' : 'secondary'}>
+                  <Badge variant={user?.phoneVerified ? 'default' : 'secondary'} className="mb-2">
                     {user?.phoneVerified ? 'Vérifié' : 'Non vérifié'}
                   </Badge>
+                  {!user?.phoneVerified && canUpdateUser && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleVerifyPhone}
+                      disabled={actionLoading}
+                      className="mt-2 w-full"
+                    >
+                      {actionLoading ? 'Validation...' : 'Valider manuellement'}
+                    </Button>
+                  )}
                 </Card>
                 <Card className="p-4">
                   <div className="flex items-center gap-2 mb-2">
@@ -969,6 +1011,19 @@ export function UserDetails() {
                             >
                               <Download className="w-4 h-4 mr-2" />
                               Verso
+                            </Button>
+                          )}
+                          {doc.selfieImage && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                const baseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1').replace('/api/v1', '');
+                                window.open(`${baseUrl}${doc.selfieImage}`, '_blank');
+                              }}
+                            >
+                              <Download className="w-4 h-4 mr-2" />
+                              Selfie
                             </Button>
                           )}
                         </div>
@@ -1132,6 +1187,118 @@ export function UserDetails() {
                   </Card>
                 )}
               </div>
+
+              {/* Activity Location Proof */}
+              <div className="space-y-4 mt-6">
+                <h4 className="text-md font-semibold flex items-center gap-2">
+                  <MapPinIcon className="w-4 h-4" />
+                  Preuve de localisation d'activité
+                </h4>
+                {documentsStatus?.activityLocationProof ? (
+                  <Card className="p-4">
+                    <div className="flex items-start justify-between mb-4">
+                      <div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="font-semibold">
+                            {documentsStatus.activityLocationProof.proofType === 'DOCUMENT' 
+                              ? 'Document' 
+                              : 'Coordonnées GPS'}
+                          </span>
+                          <Badge variant={
+                            documentsStatus.activityLocationProof.status === 'APPROVED' ? 'default' :
+                            documentsStatus.activityLocationProof.status === 'REJECTED' ? 'destructive' : 'secondary'
+                          }>
+                            {documentsStatus.activityLocationProof.status === 'APPROVED' ? 'Approuvé' :
+                             documentsStatus.activityLocationProof.status === 'REJECTED' ? 'Rejeté' : 'En attente'}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-gray-500 mb-2">
+                          Soumis le {new Date(documentsStatus.activityLocationProof.submittedAt).toLocaleDateString('fr-FR')}
+                        </p>
+                        {documentsStatus.activityLocationProof.address && (
+                          <p className="text-sm text-gray-600">
+                            <strong>Adresse:</strong> {documentsStatus.activityLocationProof.address}
+                          </p>
+                        )}
+                        {documentsStatus.activityLocationProof.latitude && documentsStatus.activityLocationProof.longitude && (
+                          <p className="text-sm text-gray-600">
+                            <strong>Coordonnées:</strong> {documentsStatus.activityLocationProof.latitude.toFixed(6)}, {documentsStatus.activityLocationProof.longitude.toFixed(6)}
+                          </p>
+                        )}
+                        {documentsStatus.activityLocationProof.details && (
+                          <p className="text-sm text-gray-600 mt-2">
+                            <strong>Détails:</strong> {documentsStatus.activityLocationProof.details}
+                          </p>
+                        )}
+                        {documentsStatus.activityLocationProof.rejectionReason && (
+                          <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded">
+                            <p className="text-sm text-red-800">
+                              <strong>Raison du rejet:</strong> {documentsStatus.activityLocationProof.rejectionReason}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                      {documentsStatus.activityLocationProof.documentFile && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const baseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1').replace('/api/v1', '');
+                            window.open(`${baseUrl}${documentsStatus.activityLocationProof?.documentFile}`, '_blank');
+                          }}
+                        >
+                          <Download className="w-4 h-4 mr-2" />
+                          Télécharger
+                        </Button>
+                      )}
+                    </div>
+                    {documentsStatus.activityLocationProof.status === 'PENDING' && (
+                      <div className="flex items-center gap-2 mt-4 pt-4 border-t">
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={async () => {
+                            if (!documentsStatus.activityLocationProof) return;
+                            try {
+                              setDocumentActionLoading(`approve-act-${documentsStatus.activityLocationProof.id}`);
+                              await documentService.approveActivityLocationProof(documentsStatus.activityLocationProof.id);
+                              toast.success('Preuve de localisation d\'activité approuvée');
+                              await loadUserData();
+                            } catch (error: any) {
+                              toast.error(error.message || 'Erreur');
+                            } finally {
+                              setDocumentActionLoading(null);
+                            }
+                          }}
+                          disabled={documentActionLoading === `approve-act-${documentsStatus.activityLocationProof.id}`}
+                        >
+                          <Check className="w-4 h-4 mr-2" />
+                          Approuver
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => setRejectDialog({
+                            open: true,
+                            type: 'activity',
+                            documentId: documentsStatus.activityLocationProof!.id,
+                            reason: ''
+                          })}
+                          disabled={documentActionLoading === `reject-act-${documentsStatus.activityLocationProof.id}`}
+                        >
+                          <X className="w-4 h-4 mr-2" />
+                          Rejeter
+                        </Button>
+                      </div>
+                    )}
+                  </Card>
+                ) : (
+                  <Card className="p-6 text-center">
+                    <MapPinIcon className="w-12 h-12 mx-auto mb-3 opacity-50 text-gray-400" />
+                    <p className="text-gray-500">Aucune preuve de localisation d'activité soumise</p>
+                  </Card>
+                )}
+              </div>
             </div>
           </Card>
         </TabsContent>
@@ -1176,8 +1343,10 @@ export function UserDetails() {
                   setDocumentActionLoading(`reject-${rejectDialog.documentId}`);
                   if (rejectDialog.type === 'identity') {
                     await documentService.rejectIdentityDocument(rejectDialog.documentId, rejectDialog.reason);
-                  } else {
+                  } else if (rejectDialog.type === 'residence') {
                     await documentService.rejectResidenceProof(rejectDialog.documentId, rejectDialog.reason);
+                  } else if (rejectDialog.type === 'activity') {
+                    await documentService.rejectActivityLocationProof(rejectDialog.documentId, rejectDialog.reason);
                   }
                   toast.success('Document rejeté');
                   setRejectDialog({ open: false, type: null, documentId: null, reason: '' });
@@ -1242,6 +1411,109 @@ export function UserDetails() {
         onSuccess={loadUserData}
         preselectedUserId={userId || undefined}
       />
+
+      {/* Deposit Exemption Dialog */}
+      <Dialog open={depositExemptionModalOpen} onOpenChange={setDepositExemptionModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Gérer l'exemption de caution</DialogTitle>
+            <DialogDescription>
+              Permet de débloquer le compte utilisateur sans caution pour une période donnée.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {user?.depositExemptionUntil && new Date(user.depositExemptionUntil) > new Date() ? (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
+                <p>
+                  Exemption active jusqu'au: {new Date(user.depositExemptionUntil).toLocaleDateString('fr-FR')}
+                </p>
+              </div>
+            ) : (
+              <div>
+                <label className="text-sm font-medium">Nombre de jours *</label>
+                <input
+                  type="number"
+                  id="exemption-days"
+                  min="1"
+                  max="365"
+                  className="w-full mt-1 p-2 border rounded-md"
+                  placeholder="Ex: 30"
+                  onChange={(e) => {
+                    const days = parseInt(e.target.value);
+                    if (days >= 1 && days <= 365) {
+                      setDepositExemptionDays(days);
+                    }
+                  }}
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Entre 1 et 365 jours
+                </p>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDepositExemptionModalOpen(false)}>
+              Annuler
+            </Button>
+            {user?.depositExemptionUntil && new Date(user.depositExemptionUntil) > new Date() ? (
+              <Button
+                variant="destructive"
+                onClick={async () => {
+                  if (!userId) return;
+                  try {
+                    setActionLoading(true);
+                    await userService.revokeDepositExemption(userId);
+                    toast.success('Exemption de caution retirée avec succès');
+                    await loadUserData();
+                    setDepositExemptionModalOpen(false);
+                  } catch (error: any) {
+                    toast.error(error.message || 'Erreur lors du retrait de l\'exemption');
+                  } finally {
+                    setActionLoading(false);
+                  }
+                }}
+                disabled={actionLoading}
+              >
+                {actionLoading ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                ) : (
+                  <X className="w-4 h-4 mr-2" />
+                )}
+                Retirer l'exemption
+              </Button>
+            ) : (
+              <Button
+                onClick={async () => {
+                  if (!userId || !depositExemptionDays) {
+                    toast.error('Veuillez entrer un nombre de jours');
+                    return;
+                  }
+                  try {
+                    setActionLoading(true);
+                    await userService.grantDepositExemption(userId, depositExemptionDays);
+                    toast.success(`Exemption de caution accordée pour ${depositExemptionDays} jour(s)`);
+                    await loadUserData();
+                    setDepositExemptionModalOpen(false);
+                    setDepositExemptionDays(0);
+                  } catch (error: any) {
+                    toast.error(error.message || 'Erreur lors de l\'octroi de l\'exemption');
+                  } finally {
+                    setActionLoading(false);
+                  }
+                }}
+                disabled={actionLoading || !depositExemptionDays}
+              >
+                {actionLoading ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                ) : (
+                  <Check className="w-4 h-4 mr-2" />
+                )}
+                Accorder l'exemption
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

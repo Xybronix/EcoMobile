@@ -190,6 +190,16 @@ export class UserService {
     }
   }
 
+  async verifyPhoneManually(id: string): Promise<User> {
+    const response = await apiClient.post(`/users/${id}/verify-phone`);
+    
+    if (!response.success || !response.data) {
+      throw new Error(response.error || 'Erreur lors de la validation du téléphone');
+    }
+
+    return response.data.data;
+  }
+
   async deleteUser(id: string): Promise<void> {
     const response = await apiClient.delete(`/users/${id}`);
     
@@ -203,6 +213,26 @@ export class UserService {
     
     if (!response.success || !response.data) {
       throw new Error(response.error || 'Erreur lors de la recherche');
+    }
+
+    return response.data;
+  }
+
+  async grantDepositExemption(userId: string, days: number): Promise<User> {
+    const response = await apiClient.post(`/users/${userId}/deposit-exemption`, { days });
+    
+    if (!response.success || !response.data) {
+      throw new Error(response.error || 'Erreur lors de l\'octroi du déblocage');
+    }
+
+    return response.data;
+  }
+
+  async revokeDepositExemption(userId: string): Promise<User> {
+    const response = await apiClient.delete(`/users/${userId}/deposit-exemption`);
+    
+    if (!response.success || !response.data) {
+      throw new Error(response.error || 'Erreur lors de la révocation du déblocage');
     }
 
     return response.data;

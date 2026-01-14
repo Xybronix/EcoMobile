@@ -3,7 +3,7 @@ import Constants from 'expo-constants';
 const getApiBaseUrl = () => {
   //return 'https://ecomobile-8bx0.onrender.com/api/v1';
   if (__DEV__) {
-    return 'http://10.61.180.189:5000/api/v1';
+    return 'http://10.15.164.189:5000/api/v1';
   }
   
   return Constants.expoConfig?.extra?.apiUrl || 'https://ecomobile-8bx0.onrender.com/api/v1';

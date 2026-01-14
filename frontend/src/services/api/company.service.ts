@@ -286,10 +286,25 @@ export class CompanyService {
     return { data: response.data };
   }
 
-  async createPlanOverride(planId: string, overTimeType: string, overTimeValue: number): Promise<void> {
+  async createPlanOverride(
+    planId: string, 
+    overTimeType: string, 
+    overTimeValue: number,
+    timeSlots?: {
+      hourlyStartHour?: number | null;
+      hourlyEndHour?: number | null;
+      dailyStartHour?: number | null;
+      dailyEndHour?: number | null;
+      weeklyStartHour?: number | null;
+      weeklyEndHour?: number | null;
+      monthlyStartHour?: number | null;
+      monthlyEndHour?: number | null;
+    }
+  ): Promise<void> {
     const response = await apiClient.post(`/admin/plans/${planId}/override`, {
       overTimeType,
-      overTimeValue
+      overTimeValue,
+      ...(timeSlots || {})
     });
     
     if (!response.success) {

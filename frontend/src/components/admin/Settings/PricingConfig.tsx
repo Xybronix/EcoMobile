@@ -50,7 +50,16 @@ export function PricingConfig() {
     conditions: [] as string[],
     hasOverride: false,
     overTimeType: 'PERCENTAGE_REDUCTION' as 'FIXED_PRICE' | 'PERCENTAGE_REDUCTION',
-    overTimeValue: 0
+    overTimeValue: 0,
+    // Plages horaires pour chaque type de forfait
+    hourlyStartHour: null as number | null,
+    hourlyEndHour: null as number | null,
+    dailyStartHour: null as number | null,
+    dailyEndHour: null as number | null,
+    weeklyStartHour: null as number | null,
+    weeklyEndHour: null as number | null,
+    monthlyStartHour: null as number | null,
+    monthlyEndHour: null as number | null
   });
 
   const [editedRule, setEditedRule] = useState({
@@ -129,21 +138,8 @@ export function PricingConfig() {
       errors.name = 'Le nom est requis';
     }
     
-    if (editedPlan.hourlyRate <= 0) {
-      errors.hourlyRate = 'Le tarif horaire doit être supérieur à 0';
-    }
-    
-    if (editedPlan.dailyRate <= 0) {
-      errors.dailyRate = 'Le tarif journalier doit être supérieur à 0';
-    }
-    
-    if (editedPlan.weeklyRate <= 0) {
-      errors.weeklyRate = 'Le tarif hebdomadaire doit être supérieur à 0';
-    }
-    
-    if (editedPlan.monthlyRate <= 0) {
-      errors.monthlyRate = 'Le tarif mensuel doit être supérieur à 0';
-    }
+    // Accepter les montants 0 et les inputs vides (seront traités comme 0)
+    // Pas de validation stricte sur les tarifs car ils peuvent être 0 ou vides
 
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
@@ -263,7 +259,17 @@ export function PricingConfig() {
             await companyService.createPlanOverride(
               planId, 
               editedPlan.overTimeType, 
-              editedPlan.overTimeValue
+              editedPlan.overTimeValue,
+              {
+                hourlyStartHour: editedPlan.hourlyStartHour,
+                hourlyEndHour: editedPlan.hourlyEndHour,
+                dailyStartHour: editedPlan.dailyStartHour,
+                dailyEndHour: editedPlan.dailyEndHour,
+                weeklyStartHour: editedPlan.weeklyStartHour,
+                weeklyEndHour: editedPlan.weeklyEndHour,
+                monthlyStartHour: editedPlan.monthlyStartHour,
+                monthlyEndHour: editedPlan.monthlyEndHour
+              }
             );
           } catch (error: any) {
             toast.error('Erreur lors de la création de la tarification spéciale');
@@ -483,9 +489,17 @@ export function PricingConfig() {
       discount: plan.discount,
       isActive: plan.isActive,
       conditions: plan.conditions || [],
-      hasOverride: false,
+      hasOverride: hasOverride,
       overTimeType: override?.overTimeType || 'PERCENTAGE_REDUCTION',
-      overTimeValue: override?.overTimeValue || 0
+      overTimeValue: override?.overTimeValue || 0,
+      hourlyStartHour: override?.hourlyStartHour ?? null,
+      hourlyEndHour: override?.hourlyEndHour ?? null,
+      dailyStartHour: override?.dailyStartHour ?? null,
+      dailyEndHour: override?.dailyEndHour ?? null,
+      weeklyStartHour: override?.weeklyStartHour ?? null,
+      weeklyEndHour: override?.weeklyEndHour ?? null,
+      monthlyStartHour: override?.monthlyStartHour ?? null,
+      monthlyEndHour: override?.monthlyEndHour ?? null
     });
     setFormErrors({});
     setIsEditingPlan(true);
@@ -519,7 +533,15 @@ export function PricingConfig() {
       conditions: [],
       hasOverride: false,
       overTimeType: 'PERCENTAGE_REDUCTION' as 'FIXED_PRICE' | 'PERCENTAGE_REDUCTION',
-      overTimeValue: 0
+      overTimeValue: 0,
+      hourlyStartHour: null,
+      hourlyEndHour: null,
+      dailyStartHour: null,
+      dailyEndHour: null,
+      weeklyStartHour: null,
+      weeklyEndHour: null,
+      monthlyStartHour: null,
+      monthlyEndHour: null
     });
     setFormErrors({});
     setIsAddingNewPlan(true);
@@ -1180,6 +1202,155 @@ export function PricingConfig() {
                         </span>
                       )}
                     </p>
+                    
+                    {/* Plages horaires pour chaque type de forfait */}
+                    <div className="mt-4 space-y-3">
+                      <h5 className="text-sm font-medium text-yellow-800 mb-2">Plages horaires des forfaits (0-23h)</h5>
+                      
+                      {/* Forfait horaire */}
+                      <div className="grid grid-cols-3 gap-2 items-end">
+                        <Label className="text-xs">Forfait horaire</Label>
+                        <div>
+                          <Label className="text-xs">Début</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            max="23"
+                            value={editedPlan.hourlyStartHour ?? ''}
+                            onChange={(e) => setEditedPlan({ 
+                              ...editedPlan, 
+                              hourlyStartHour: e.target.value ? parseInt(e.target.value) : null 
+                            })}
+                            placeholder="Ex: 8"
+                            className="h-8"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Fin</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            max="23"
+                            value={editedPlan.hourlyEndHour ?? ''}
+                            onChange={(e) => setEditedPlan({ 
+                              ...editedPlan, 
+                              hourlyEndHour: e.target.value ? parseInt(e.target.value) : null 
+                            })}
+                            placeholder="Ex: 19"
+                            className="h-8"
+                          />
+                        </div>
+                      </div>
+                      
+                      {/* Forfait journalier */}
+                      <div className="grid grid-cols-3 gap-2 items-end">
+                        <Label className="text-xs">Forfait journalier</Label>
+                        <div>
+                          <Label className="text-xs">Début</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            max="23"
+                            value={editedPlan.dailyStartHour ?? ''}
+                            onChange={(e) => setEditedPlan({ 
+                              ...editedPlan, 
+                              dailyStartHour: e.target.value ? parseInt(e.target.value) : null 
+                            })}
+                            placeholder="Ex: 8"
+                            className="h-8"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Fin</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            max="23"
+                            value={editedPlan.dailyEndHour ?? ''}
+                            onChange={(e) => setEditedPlan({ 
+                              ...editedPlan, 
+                              dailyEndHour: e.target.value ? parseInt(e.target.value) : null 
+                            })}
+                            placeholder="Ex: 19"
+                            className="h-8"
+                          />
+                        </div>
+                      </div>
+                      
+                      {/* Forfait hebdomadaire */}
+                      <div className="grid grid-cols-3 gap-2 items-end">
+                        <Label className="text-xs">Forfait hebdomadaire</Label>
+                        <div>
+                          <Label className="text-xs">Début</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            max="23"
+                            value={editedPlan.weeklyStartHour ?? ''}
+                            onChange={(e) => setEditedPlan({ 
+                              ...editedPlan, 
+                              weeklyStartHour: e.target.value ? parseInt(e.target.value) : null 
+                            })}
+                            placeholder="Ex: 8"
+                            className="h-8"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Fin</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            max="23"
+                            value={editedPlan.weeklyEndHour ?? ''}
+                            onChange={(e) => setEditedPlan({ 
+                              ...editedPlan, 
+                              weeklyEndHour: e.target.value ? parseInt(e.target.value) : null 
+                            })}
+                            placeholder="Ex: 19"
+                            className="h-8"
+                          />
+                        </div>
+                      </div>
+                      
+                      {/* Forfait mensuel */}
+                      <div className="grid grid-cols-3 gap-2 items-end">
+                        <Label className="text-xs">Forfait mensuel</Label>
+                        <div>
+                          <Label className="text-xs">Début</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            max="23"
+                            value={editedPlan.monthlyStartHour ?? ''}
+                            onChange={(e) => setEditedPlan({ 
+                              ...editedPlan, 
+                              monthlyStartHour: e.target.value ? parseInt(e.target.value) : null 
+                            })}
+                            placeholder="Ex: 8"
+                            className="h-8"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Fin</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            max="23"
+                            value={editedPlan.monthlyEndHour ?? ''}
+                            onChange={(e) => setEditedPlan({ 
+                              ...editedPlan, 
+                              monthlyEndHour: e.target.value ? parseInt(e.target.value) : null 
+                            })}
+                            placeholder="Ex: 19"
+                            className="h-8"
+                          />
+                        </div>
+                      </div>
+                      
+                      <p className="text-xs text-yellow-600 mt-2">
+                        Définissez les heures de validité pour chaque type de forfait. En dehors de ces heures, les prix hors forfait s'appliquent.
+                      </p>
+                    </div>
                   </Card>
                 )}
               </div>

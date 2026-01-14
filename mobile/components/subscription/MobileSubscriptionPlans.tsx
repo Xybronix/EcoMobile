@@ -55,9 +55,20 @@ export function MobileSubscriptionPlans({ onBack, onNavigate }: MobileSubscripti
     try {
       setIsLoading(true);
       const availablePlans = await subscriptionService.getAvailablePlans();
-      setPlans(availablePlans);
-      if (availablePlans.length > 0) {
-        setSelectedPlan(availablePlans[0].id);
+      
+      // Filtrer les plans pour n'afficher que ceux avec au moins un format rempli
+      const filteredPlans = availablePlans.filter(plan => {
+        const hasFilledFormat = 
+          (plan.hourlyRate && plan.hourlyRate > 0) ||
+          (plan.dailyRate && plan.dailyRate > 0) ||
+          (plan.weeklyRate && plan.weeklyRate > 0) ||
+          (plan.monthlyRate && plan.monthlyRate > 0);
+        return hasFilledFormat;
+      });
+      
+      setPlans(filteredPlans);
+      if (filteredPlans.length > 0) {
+        setSelectedPlan(filteredPlans[0].id);
       }
     } catch (error) {
       console.error('Error loading plans:', error);
@@ -76,32 +87,61 @@ export function MobileSubscriptionPlans({ onBack, onNavigate }: MobileSubscripti
     }
   };
 
-  const packageOptions = [
-    {
-      key: 'daily',
-      label: t('subscription.package.daily'),
-      description: t('subscription.package.dailyDesc'),
-      icon: Clock,
-      getRateKey: (plan: Plan) => plan.dailyRate
-    },
-    {
-      key: 'weekly',
-      label: t('subscription.package.weekly'), 
-      description: t('subscription.package.weeklyDesc'),
-      icon: Star,
-      getRateKey: (plan: Plan) => plan.weeklyRate
-    },
-    {
-      key: 'monthly',
-      label: t('subscription.package.monthly'),
-      description: t('subscription.package.monthlyDesc'),
-      icon: Zap,
-      getRateKey: (plan: Plan) => plan.monthlyRate
-    }
-  ];
+  // Options de package avec filtre pour n'afficher que celles avec prix > 0
+  const getPackageOptions = (plan: Plan | undefined) => {
+    if (!plan) return [];
+    
+    const allOptions = [
+      {
+        key: 'hourly' as const,
+        label: t('subscription.package.hourly'),
+        description: t('subscription.package.hourlyDesc'),
+        icon: Clock,
+        getRateKey: (p: Plan) => p.hourlyRate,
+        rate: plan.hourlyRate
+      },
+      {
+        key: 'daily' as const,
+        label: t('subscription.package.daily'),
+        description: t('subscription.package.dailyDesc'),
+        icon: Clock,
+        getRateKey: (p: Plan) => p.dailyRate,
+        rate: plan.dailyRate
+      },
+      {
+        key: 'weekly' as const,
+        label: t('subscription.package.weekly'), 
+        description: t('subscription.package.weeklyDesc'),
+        icon: Star,
+        getRateKey: (p: Plan) => p.weeklyRate,
+        rate: plan.weeklyRate
+      },
+      {
+        key: 'monthly' as const,
+        label: t('subscription.package.monthly'),
+        description: t('subscription.package.monthlyDesc'),
+        icon: Zap,
+        getRateKey: (p: Plan) => p.monthlyRate,
+        rate: plan.monthlyRate
+      }
+    ];
+    
+    // Filtrer pour n'afficher que les formats avec prix > 0
+    return allOptions.filter(option => option.rate && option.rate > 0);
+  };
 
   const selectedPlanData = plans.find(p => p.id === selectedPlan);
-  const selectedPackageData = packageOptions.find(p => p.key === selectedPackage);
+  const availablePackageOptions = getPackageOptions(selectedPlanData);
+  const selectedPackageData = availablePackageOptions.find(p => p.key === selectedPackage);
+  
+  // Réinitialiser le package sélectionné si l'option n'est plus disponible
+  React.useEffect(() => {
+    if (selectedPlanData && availablePackageOptions.length > 0) {
+      if (!availablePackageOptions.find(p => p.key === selectedPackage)) {
+        setSelectedPackage(availablePackageOptions[0].key as any);
+      }
+    }
+  }, [selectedPlan, selectedPlanData]);
 
   const getPrice = () => {
     if (!selectedPlanData || !selectedPackageData) return 0;
@@ -237,13 +277,33 @@ export function MobileSubscriptionPlans({ onBack, onNavigate }: MobileSubscripti
                 )}
               </View>
               
-              <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={styles.mb8}>
-                {`${t('subscription.plans.hourlyRate')} ${ plan.hourlyRate }`}
-              </Text>
+              {/* Afficher uniquement les formats avec prix > 0 */}
+              <View style={[styles.row, { flexWrap: 'wrap' }, styles.gap8, styles.mb8]}>
+                {plan.hourlyRate > 0 && (
+                  <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
+                    {t('subscription.plans.hourlyRate')}: {plan.hourlyRate.toLocaleString('fr-FR')} {t('subscription.plans.currency')}
+                  </Text>
+                )}
+                {plan.dailyRate > 0 && (
+                  <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
+                    {t('subscription.plans.dailyRate')}: {plan.dailyRate.toLocaleString('fr-FR')} {t('subscription.plans.currency')}
+                  </Text>
+                )}
+                {plan.weeklyRate > 0 && (
+                  <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
+                    {t('subscription.plans.weeklyRate')}: {plan.weeklyRate.toLocaleString('fr-FR')} {t('subscription.plans.currency')}
+                  </Text>
+                )}
+                {plan.monthlyRate > 0 && (
+                  <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
+                    {t('subscription.plans.monthlyRate')}: {plan.monthlyRate.toLocaleString('fr-FR')} {t('subscription.plans.currency')}
+                  </Text>
+                )}
+              </View>
               
               {plan.discount > 0 && (
                 <Text size="sm" color="#16a34a" style={styles.mb8}>
-                  {`${t('subscription.plans.discount')} ${ plan.discount }`}
+                  {t('subscription.plans.discount')}: {plan.discount}%
                 </Text>
               )}
               
@@ -267,7 +327,7 @@ export function MobileSubscriptionPlans({ onBack, onNavigate }: MobileSubscripti
             {t('subscription.plans.selectDuration')}
           </Text>
           
-          {packageOptions.map((option) => {
+          {availablePackageOptions.map((option) => {
             const Icon = option.icon;
             const price = selectedPlanData ? option.getRateKey(selectedPlanData) : 0;
             
@@ -309,7 +369,7 @@ export function MobileSubscriptionPlans({ onBack, onNavigate }: MobileSubscripti
                   
                   <View style={styles.alignEnd}>
                     <Text variant="body" color="#16a34a" weight="bold">
-                      {price} XOF
+                      {price.toLocaleString('fr-FR')} {t('subscription.plans.currency')}
                     </Text>
                   </View>
                 </View>
@@ -337,13 +397,13 @@ export function MobileSubscriptionPlans({ onBack, onNavigate }: MobileSubscripti
             
             <View style={[styles.row, styles.spaceBetween, styles.mb4]}>
               <Text size="sm" color="#6b7280">{t('subscription.summary.currentBalance')}</Text>
-              <Text size="sm" color="#111827">{walletData?.balance || 0} XOF</Text>
+              <Text size="sm" color="#111827">{(walletData?.balance || 0).toLocaleString('fr-FR')} {t('subscription.plans.currency')}</Text>
             </View>
             
             <View style={[styles.row, styles.spaceBetween, { paddingTop: 8, borderTopWidth: 1, borderTopColor: '#d1fae5' }]}>
               <Text variant="body" color="#111827">{t('subscription.summary.totalPrice')}</Text>
               <Text variant="body" color="#16a34a" weight="bold">
-                {getPrice()} XOF
+                {getPrice().toLocaleString('fr-FR')} {t('subscription.plans.currency')}
               </Text>
             </View>
           </Card>
@@ -359,13 +419,15 @@ export function MobileSubscriptionPlans({ onBack, onNavigate }: MobileSubscripti
             opacity: (isSubmitting || !selectedPlanData || !selectedPackageData) ? 0.6 : 1
           }}
         >
-          <CreditCard size={16} color="white" />
-          <Text style={styles.ml8} color="white">
-            {isSubmitting 
-              ? t('subscription.subscribing') 
-              : `${t('subscription.subscribe')} ${ getPrice() }`
-            }
-          </Text>
+          <View style={[styles.row, styles.alignCenter, styles.gap4]}>
+            <CreditCard size={16} color="white" />
+            <Text style={styles.ml8} color="white">
+              {isSubmitting 
+                ? t('subscription.subscribing') 
+                : t('subscription.subscribe', { price: getPrice() })
+              }
+            </Text>
+          </View>
         </Button>
 
         <Text size="xs" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={styles.textCenter}>

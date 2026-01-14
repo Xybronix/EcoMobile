@@ -123,7 +123,7 @@ export function MobileBikeDetails({ bike: initialBike, onBack, onNavigate }: Mob
     }
 
     // Vérifications de sécurité
-    if (!depositInfo?.canUseService) {
+    if (!depositInfo?.canUseService && !depositInfo?.hasDepositExemption) {
       haptics.error();
       toast.error(`${t('wallet.insufficientDeposit')} ${ depositInfo?.requiredDeposit || 20000 }`);
       onNavigate?.('recharge-deposit');

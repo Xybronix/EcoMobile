@@ -21,6 +21,12 @@ export interface BikePosition {
   };
   zone: string;
   location?: string;
+  currentUser?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  } | null;
   speed?: number;
   isOnline?: boolean;
   lastUpdate: string;

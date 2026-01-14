@@ -6,6 +6,7 @@ export interface IdentityDocument {
   documentType: 'CNI' | 'RECEPISSE';
   frontImage: string;
   backImage?: string;
+  selfieImage?: string;
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
   rejectionReason?: string;
   reviewedBy?: string;
@@ -33,9 +34,28 @@ export interface ResidenceProof {
   updatedAt: string;
 }
 
+export interface ActivityLocationProof {
+  id: string;
+  userId: string;
+  proofType: 'DOCUMENT' | 'MAP_COORDINATES';
+  documentFile?: string;
+  latitude?: number;
+  longitude?: number;
+  address?: string;
+  details?: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  rejectionReason?: string;
+  reviewedBy?: string;
+  reviewedAt?: string;
+  submittedAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface DocumentsStatus {
   identityDocuments: IdentityDocument[];
   residenceProof: ResidenceProof | null;
+  activityLocationProof: ActivityLocationProof | null;
   allDocumentsSubmitted: boolean;
   allDocumentsApproved: boolean;
 }
@@ -77,6 +97,16 @@ class DocumentService {
 
   async verifyUserAccount(userId: string) {
     const response = await apiClient.post(`${this.baseUrl}/verify-account/${userId}`);
+    return response.data;
+  }
+
+  async approveActivityLocationProof(proofId: string) {
+    const response = await apiClient.post(`${this.baseUrl}/activity-location/${proofId}/approve`);
+    return response.data;
+  }
+
+  async rejectActivityLocationProof(proofId: string, reason: string) {
+    const response = await apiClient.post(`${this.baseUrl}/activity-location/${proofId}/reject`, { reason });
     return response.data;
   }
 }

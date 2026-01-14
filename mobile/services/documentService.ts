@@ -8,6 +8,7 @@ export interface IdentityDocument {
   documentType: 'CNI' | 'RECEPISSE';
   frontImage: string;
   backImage?: string;
+  selfieImage?: string;
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
   rejectionReason?: string;
   submittedAt: string;
@@ -26,9 +27,23 @@ export interface ResidenceProof {
   submittedAt: string;
 }
 
+export interface ActivityLocationProof {
+  id: string;
+  proofType: 'DOCUMENT' | 'MAP_COORDINATES';
+  documentFile?: string;
+  latitude?: number;
+  longitude?: number;
+  address?: string;
+  details?: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  rejectionReason?: string;
+  submittedAt: string;
+}
+
 export interface DocumentsStatus {
   identityDocuments: IdentityDocument[];
   residenceProof: ResidenceProof | null;
+  activityLocationProof: ActivityLocationProof | null;
   allDocumentsSubmitted: boolean;
   allDocumentsApproved: boolean;
 }
@@ -48,6 +63,7 @@ class DocumentService {
     documentType: 'CNI' | 'RECEPISSE';
     frontImage: string; // Base64
     backImage?: string; // Base64
+    selfieImage?: string; // Base64 photo/vidéo selfie
   }): Promise<IdentityDocument> {
     return withNetworkCheck(async () => {
       try {
@@ -108,6 +124,43 @@ class DocumentService {
         
         if (error instanceof ApiError) {
           // Si erreur d'autorisation (401, 403), déconnecter
+          if (error.status === 401 || error.status === 403) {
+            await authService.logout();
+            throw new Error('unauthorized');
+          }
+          throw new Error(error.message || 'document.submissionFailed');
+        }
+        throw new Error('network_error');
+      }
+    }, 'auth.internetRequired');
+  }
+
+  async submitActivityLocationProof(data: {
+    proofType: 'DOCUMENT' | 'MAP_COORDINATES';
+    documentFile?: string; // Base64
+    latitude?: number;
+    longitude?: number;
+    address?: string;
+    details?: string;
+  }): Promise<ActivityLocationProof> {
+    return withNetworkCheck(async () => {
+      try {
+        const response = await fetch(`${this.baseUrl}/activity-location`, {
+          method: 'POST',
+          headers: await this.getAuthHeaders(),
+          body: JSON.stringify(data),
+        });
+
+        const result = await handleApiResponse(response);
+        return result.data;
+      } catch (error) {
+        const { checkAndHandleAccountDeactivation } = await import('@/utils/accountDeactivationHandler');
+        const isDeactivated = await checkAndHandleAccountDeactivation(error);
+        if (isDeactivated) {
+          throw new Error('unauthorized');
+        }
+        
+        if (error instanceof ApiError) {
           if (error.status === 401 || error.status === 403) {
             await authService.logout();
             throw new Error('unauthorized');
