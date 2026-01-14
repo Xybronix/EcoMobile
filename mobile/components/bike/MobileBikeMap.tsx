@@ -991,6 +991,7 @@ export function MobileBikeMap({ onNavigate }: MobileBikeMapProps) {
                             {bike.model}
                           </Text>
                         </View>
+                        {/**
                         <Badge variant={bike.batteryLevel > 50 ? 'default' : 'secondary'}>
                           <View style={[styles.row, styles.gap8, styles.alignCenter]}>
                             <Battery size={12} color={bike.batteryLevel > 50 ? 'white' : '#111827'} />
@@ -999,6 +1000,7 @@ export function MobileBikeMap({ onNavigate }: MobileBikeMapProps) {
                             </Text>
                           </View>
                         </Badge>
+                         */}
                       </View>
 
                       <View style={[styles.row, { gap: 16 }, styles.mb8]}>

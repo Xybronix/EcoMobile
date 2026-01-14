@@ -9,7 +9,7 @@ import { getGlobalStyles } from '@/styles/globalStyles';
 import { haptics } from '@/utils/haptics';
 import { storeLanguage } from '@/utils/storage';
 import { Bell, ChevronRight, FileText, Globe, HelpCircle, LogOut, MessageCircle, Shield, User, Wallet, CheckCircle, AlertCircle } from 'lucide-react-native';
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { RefreshControl, ScrollView, Switch, TouchableOpacity, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useMobileAuth } from '@/lib/mobile-auth';
@@ -36,22 +36,42 @@ export default function MobileProfile({ onNavigate }: MobileProfileProps) {
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [documentsStatus, setDocumentsStatus] = useState<DocumentsStatus | null>(null);
+  const isInitialMount = useRef(true);
+  const lastLoadTime = useRef<number>(0);
+  const isLoadingRef = useRef(false);
 
+  // Charger les données uniquement au montage initial
   useEffect(() => {
-    loadProfileData();
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      loadProfileData();
+    }
   }, []);
 
-  // Recharger les données quand on revient sur la page
+  // Recharger les données quand on revient sur la page (avec throttling)
   useFocusEffect(
     useCallback(() => {
-      loadProfileData();
-      // Forcer le rechargement des données utilisateur depuis l'API
-      refreshUser().catch(console.error);
-    }, [refreshUser])
+      const now = Date.now();
+      const timeSinceLastLoad = now - lastLoadTime.current;
+      const MIN_RELOAD_INTERVAL = 2000; // Minimum 2 secondes entre les rechargements
+
+      if (!isInitialMount.current && timeSinceLastLoad >= MIN_RELOAD_INTERVAL && !isLoadingRef.current) {
+        lastLoadTime.current = now;
+        loadProfileData();
+        // Recharger les données utilisateur depuis l'API
+        refreshUser().catch(console.error);
+      }
+    }, [])
   );
 
   const loadProfileData = async () => {
+    // Éviter les appels multiples simultanés
+    if (isLoadingRef.current) {
+      return;
+    }
+
     try {
+      isLoadingRef.current = true;
       setIsLoading(true);
       
       const [stats, unreadCount, notificationsEnabled, docsStatus] = await Promise.all([
@@ -70,6 +90,7 @@ export default function MobileProfile({ onNavigate }: MobileProfileProps) {
       console.error('Error loading profile data:', error);
     } finally {
       setIsLoading(false);
+      isLoadingRef.current = false;
     }
   };
 
@@ -527,16 +548,18 @@ export default function MobileProfile({ onNavigate }: MobileProfileProps) {
             </View>
             
             <View style={[styles.row, styles.alignCenter, styles.gap8]}>
-              {user?.phoneVerified ? (
-                <Badge variant="default">
-                  {t('common.verified')}
+              {user?.phoneVerified === true ? (
+                <Badge variant="default" style={{ minWidth: 80 }}>
+                  <Text size="sm" weight="medium" color="white">
+                    {t('common.verified')}
+                  </Text>
                 </Badge>
               ) : (
-                <>
-                  <Badge variant="secondary">
+                <Badge variant="secondary" style={{ minWidth: 80 }}>
+                  <Text size="sm" weight="medium" color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
                     {t('common.notVerified')}
-                  </Badge>
-                </>
+                  </Text>
+                </Badge>
               )}
             </View>
           </TouchableOpacity>
