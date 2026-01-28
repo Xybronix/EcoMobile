@@ -17,12 +17,16 @@ jobs:
 
       - name: Configure Git identity
         run: |
-          git config user.name "EcoMobile Bot"
+          git config user.name "Xybronix"
           git config user.email "xybronix@gmail.com"
 
       - name: Split backend subtree
         run: |
           git subtree split --prefix=backend -b backend-split
+
+      - name: Verify Git remote
+        run: |
+          git remote -v
 
       - name: Push to EcoMobile-backend
         run: |

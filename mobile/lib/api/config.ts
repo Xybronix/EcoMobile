@@ -3,10 +3,10 @@ import Constants from 'expo-constants';
 const getApiBaseUrl = () => {
   //return 'https://ecomobile-8bx0.onrender.com/api/v1';
   if (__DEV__) {
-    return 'http://10.15.164.189:5000/api/v1';
+    return 'https://env-freebike-xybronix.hidora.com/api/v1';
   }
   
-  return Constants.expoConfig?.extra?.apiUrl || 'https://ecomobile-8bx0.onrender.com/api/v1';
+  return Constants.expoConfig?.extra?.apiUrl || 'https://env-freebike-xybronix.hidora.com/api/v1';
 };
 
 const API_BASE_URL = getApiBaseUrl();

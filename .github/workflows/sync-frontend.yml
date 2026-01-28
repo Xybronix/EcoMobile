@@ -17,13 +17,17 @@ jobs:
 
       - name: Configure Git identity
         run: |
-          git config user.name "EcoMobile Bot"
+          git config user.name Xybronix"
           git config user.email "xybronix@gmail.com"
 
       - name: Split frontend subtree
         run: |
           git subtree split --prefix=frontend -b frontend-split
 
+      - name: Verify Git remote
+        run: |
+          git remote -v
+        
       - name: Push to EcoMobile-frontend
         run: |
           git push https://x-access-token:${{ secrets.ECOMOBILE_SYNC_TOKEN }}@github.com/Xybronix/EcoMobile-frontend.git frontend-split:main --force
