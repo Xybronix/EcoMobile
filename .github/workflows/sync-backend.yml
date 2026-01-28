@@ -39,4 +39,4 @@ jobs:
 
       - name: Push to EcoMobile-backend
         run: |
-          git push https://x-access-token:${{ secrets.ECOMOBILE_SYNC_TOKEN }}@github.com/Xybronix/EcoMobile-backend.git backend-split:main --force
+          git push https://x-access-token:${{ secrets.ECOMOBILE_SYNC_TOKEN }}@github.com/Xybronix/EcoMobile-backend.git backend-split:main
