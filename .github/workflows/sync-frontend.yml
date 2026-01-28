@@ -24,6 +24,15 @@ jobs:
         run: |
           git subtree split --prefix=frontend -b frontend-split
 
+      - name: Debug token presence
+        run: |
+          if [ -z "${{ secrets.ECOMOBILE_SYNC_TOKEN }}" ]; then
+            echo "TOKEN IS EMPTY"
+            exit 1
+          else
+            echo "TOKEN IS PRESENT"
+          fi        
+
       - name: Verify Git remote
         run: |
           git remote -v
