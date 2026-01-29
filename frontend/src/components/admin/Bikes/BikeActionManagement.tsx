@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Textarea } from '../../ui/textarea';
 import { bikeActionService, type UnlockRequest, type LockRequest } from '../../../services/api/bikeAction.service';
 import { toast } from 'sonner';
+import { useTranslation } from '../../../lib/i18n';
 
 declare global {
   interface ImportMeta {
@@ -69,7 +70,7 @@ function ImageGallery({ images, title }: { images: string[], title: string }) {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h4 className="font-medium">Photos d'inspection ({images.length})</h4>
+        <h4 className="font-medium">{t('bikeActions.inspectionPhotos', { count: images.length }) || `Photos d'inspection (${images.length})`}</h4>
         {selectedImage && (
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={handleZoomOut}>
@@ -163,6 +164,7 @@ function ImageGallery({ images, title }: { images: string[], title: string }) {
 }
 
 export function BikeActionManagement() {
+  const { t } = useTranslation();
   const [requests, setRequests] = useState<{
     unlock: BikeRequest[];
     lock: BikeRequest[];
@@ -245,9 +247,9 @@ export function BikeActionManagement() {
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
-      'PENDING': { label: 'En attente', variant: 'outline' },
-      'APPROVED': { label: 'Approuvée', variant: 'default' },
-      'REJECTED': { label: 'Rejetée', variant: 'destructive' }
+      'PENDING': { label: t('bikeActions.status.pending') || 'En attente', variant: 'outline' },
+      'APPROVED': { label: t('bikeActions.status.approved') || 'Approuvée', variant: 'default' },
+      'REJECTED': { label: t('bikeActions.status.rejected') || 'Rejetée', variant: 'destructive' }
     };
     const config = variants[status] || { label: status, variant: 'outline' };
     return <Badge variant={config.variant}>{config.label}</Badge>;
@@ -313,7 +315,7 @@ export function BikeActionManagement() {
   return (
     <div className="p-4 md:p-8 space-y-6">
       <div>
-        <h1 className="text-green-600">Gestion des Actions Vélos</h1>
+        <h1 className="text-green-600">{t('bikeActions.management') || 'Gestion des Actions Vélos'}</h1>
         <p className="text-gray-600">Validation des demandes de déverrouillage et verrouillage</p>
       </div>
 
@@ -322,7 +324,7 @@ export function BikeActionManagement() {
         <Card className="p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Déverrouillages en attente</p>
+              <p className="text-sm text-gray-600">{t('bikeActions.pendingUnlocks') || 'Déverrouillages en attente'}</p>
               <p className="text-gray-900">{stats.pendingUnlock}</p>
             </div>
             <div className="bg-orange-100 text-orange-600 p-3 rounded-lg">
@@ -333,7 +335,7 @@ export function BikeActionManagement() {
         <Card className="p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Verrouillages en attente</p>
+              <p className="text-sm text-gray-600">{t('bikeActions.pendingLocks') || 'Verrouillages en attente'}</p>
               <p className="text-gray-900">{stats.pendingLock}</p>
             </div>
             <div className="bg-blue-100 text-blue-600 p-3 rounded-lg">
@@ -344,7 +346,7 @@ export function BikeActionManagement() {
         <Card className="p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Actions aujourd'hui</p>
+              <p className="text-sm text-gray-600">{t('bikeActions.todayActions') || 'Actions aujourd\'hui'}</p>
               <p className="text-gray-900">
                 {activeTab === 'unlock' ? stats.todayUnlock : stats.todayLock}
               </p>
@@ -367,7 +369,7 @@ export function BikeActionManagement() {
           }`}
         >
           <Unlock className="w-4 h-4" />
-          Déverrouillages ({stats.pendingUnlock})
+          {t('bikeActions.unlocks', { count: stats.pendingUnlock }) || `Déverrouillages (${stats.pendingUnlock})`}
         </button>
         <button
           onClick={() => setActiveTab('lock')}
@@ -378,7 +380,7 @@ export function BikeActionManagement() {
           }`}
         >
           <Lock className="w-4 h-4" />
-          Verrouillages ({stats.pendingLock})
+          {t('bikeActions.locks', { count: stats.pendingLock }) || `Verrouillages (${stats.pendingLock})`}
         </button>
       </div>
 
@@ -594,14 +596,14 @@ export function BikeActionManagement() {
                 setValidationAction(null);
                 setAdminNote('');
               }}>
-                Annuler
+                {t('common.cancel') || 'Annuler'}
               </Button>
               <Button
                 variant={validationAction === 'approve' ? 'default' : 'destructive'}
                 onClick={handleValidateRequest}
                 disabled={validationAction === 'reject' && !adminNote.trim()}
               >
-                {validationAction === 'approve' ? 'Approuver' : 'Rejeter'}
+                {validationAction === 'approve' ? (t('bikeActions.approve') || 'Approuver') : (t('bikeActions.reject') || 'Rejeter')}
               </Button>
             </DialogFooter>
           </DialogContent>
