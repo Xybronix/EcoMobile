@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Unlock, Lock, Eye, Check, X, Clock, Download, ZoomIn, ZoomOut, X as XIcon } from 'lucide-react';
 import { Card } from '../../ui/card';
 import { Badge } from '../../ui/badge';
@@ -176,6 +176,9 @@ export function BikeActionManagement() {
   const [validationAction, setValidationAction] = useState<'approve' | 'reject' | null>(null);
   const [adminNote, setAdminNote] = useState('');
   const [inspectionModal, setInspectionModal] = useState<{open: boolean; request: BikeRequest | null; type: 'unlock' | 'lock' | null;}>({open: false, request: null, type: null});
+  
+  // Référence pour éviter les appels multiples simultanés
+  const isLoadingRef = useRef(false);
 
   const openInspectionModal = (request: BikeRequest, type: 'unlock' | 'lock') => {
     setInspectionModal({
@@ -185,12 +188,12 @@ export function BikeActionManagement() {
     });
   };
 
-  useEffect(() => {
-    loadRequests();
-  }, [activeTab]);
-
   const loadRequests = async () => {
+    // Éviter les appels multiples simultanés
+    if (isLoadingRef.current) return;
+    
     try {
+      isLoadingRef.current = true;
       setIsLoading(true);
       if (activeTab === 'unlock') {
         const data = await bikeActionService.getUnlockRequests();
@@ -204,8 +207,15 @@ export function BikeActionManagement() {
       console.error(error);
     } finally {
       setIsLoading(false);
+      isLoadingRef.current = false;
     }
   };
+
+  // Charger les données uniquement au montage et lors du changement d'onglet
+  useEffect(() => {
+    loadRequests();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]); // activeTab est la seule dépendance nécessaire
 
   const handleValidateRequest = async () => {
     if (!selectedRequest || !validationAction) return;

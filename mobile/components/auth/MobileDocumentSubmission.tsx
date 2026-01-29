@@ -13,6 +13,7 @@ import { MobileHeader } from '@/components/layout/MobileHeader';
 import { documentService, type DocumentsStatus } from '@/services/documentService';
 import { useMobileI18n } from '@/lib/mobile-i18n';
 import { getErrorMessageWithFallback } from '@/utils/errorHandler';
+import { useMobileAuth } from '@/lib/mobile-auth';
 import { 
   FileText, 
   MapPin, 
@@ -31,7 +32,9 @@ import {
   ActivityIndicator, 
   Image,
   Alert,
-  RefreshControl
+  RefreshControl,
+  Platform,
+  Modal
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
@@ -43,8 +46,9 @@ interface MobileDocumentSubmissionProps {
   onBack?: () => void;
 }
 
-export default function MobileDocumentSubmission({ onNavigate, onBack }: MobileDocumentSubmissionProps) {
+export default function MobileDocumentSubmission({ onNavigate }: MobileDocumentSubmissionProps) {
   const { t } = useMobileI18n();
+  const { user } = useMobileAuth();
   const colorScheme = useColorScheme();
   const styles = getGlobalStyles(colorScheme);
 
@@ -52,6 +56,15 @@ export default function MobileDocumentSubmission({ onNavigate, onBack }: MobileD
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  
+  // Modal state for image source selection (web)
+  const [imageSourceModal, setImageSourceModal] = useState<{
+    visible: boolean;
+    side: 'front' | 'back' | 'residence' | 'selfie' | 'activity' | null;
+  }>({
+    visible: false,
+    side: null
+  });
 
   // Identity document state
   const [documentType, setDocumentType] = useState<'CNI' | 'RECEPISSE'>('CNI');
@@ -128,7 +141,65 @@ export default function MobileDocumentSubmission({ onNavigate, onBack }: MobileD
 
 
   const pickImage = async (_side: 'front' | 'back' | 'residence' | 'selfie' | 'activity', allowVideo: boolean = false): Promise<string | null> => {
+    const isWeb = Platform.OS === 'web';
+    
+    // Gestion web avec input file HTML
+    if (isWeb && typeof (globalThis as any).window !== 'undefined' && typeof (globalThis as any).window.document !== 'undefined') {
+      return new Promise((resolve) => {
+        const window = (globalThis as any).window;
+        const input = window.document.createElement('input') as any;
+        input.type = 'file';
+        input.accept = allowVideo ? 'image/*,video/*' : 'image/*';
+        input.multiple = false;
+        
+        input.onchange = async (event: Event) => {
+          const target = event.target as any;
+          const files = target.files;
+          if (files && files[0]) {
+            const file = files[0] as File;
+            
+            // Validation du type de fichier
+            const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+            const validVideoTypes = ['video/mp4', 'video/quicktime', 'video/mov', 'video/webm'];
+            
+            if (!validImageTypes.includes(file.type) && !(allowVideo && validVideoTypes.includes(file.type))) {
+              toast.error(t('document.invalidImageFormat') || 'Format de fichier invalide');
+              resolve(null);
+              return;
+            }
+            
+            // Validation de la taille (max 10MB)
+            const maxSize = 10 * 1024 * 1024;
+            if (file.size > maxSize) {
+              toast.error(t('document.imageTooLarge') || 'Fichier trop volumineux (max 10MB)');
+              resolve(null);
+              return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              const base64 = e.target?.result as string;
+              resolve(base64);
+            };
+            reader.onerror = () => {
+              toast.error(t('document.imageError') || 'Erreur lors de la lecture du fichier');
+              resolve(null);
+            };
+            reader.readAsDataURL(file);
+          } else {
+            resolve(null);
+          }
+        };
+        
+        input.oncancel = () => {
+          resolve(null);
+        };
+        
+        input.click();
+      });
+    }
 
+    // Gestion mobile avec ImagePicker
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
@@ -142,18 +213,16 @@ export default function MobileDocumentSubmission({ onNavigate, onBack }: MobileD
         aspect: [3, 4],
         quality: 0.8,
         base64: true,
-        videoMaxDuration: allowVideo ? 30 : undefined, // Max 30 seconds for video
+        videoMaxDuration: allowVideo ? 30 : undefined,
       });
 
       if (!result.canceled && result.assets && result.assets[0]) {
         const asset = result.assets[0];
         if (asset.type === 'video' && asset.uri) {
-          // Convert video to base64
           try {
             const base64 = await FileSystem.readAsStringAsync(asset.uri, {
               encoding: 'base64' as any,
             });
-            // Determine MIME type from URI or default to mp4
             const mimeType = asset.uri.includes('.mov') ? 'video/quicktime' : 'video/mp4';
             return `data:${mimeType};base64,${base64}`;
           } catch (error) {
@@ -176,7 +245,66 @@ export default function MobileDocumentSubmission({ onNavigate, onBack }: MobileD
 
 
   const takePhoto = async (_side: 'front' | 'back' | 'residence' | 'selfie' | 'activity', allowVideo: boolean = false): Promise<string | null> => {
+    const isWeb = Platform.OS === 'web';
+    
+    // Gestion web avec input file HTML (capture="camera")
+    if (isWeb && typeof (globalThis as any).window !== 'undefined' && typeof (globalThis as any).window.document !== 'undefined') {
+      return new Promise((resolve) => {
+        const window = (globalThis as any).window;
+        const input = window.document.createElement('input') as any;
+        input.type = 'file';
+        input.accept = allowVideo ? 'image/*,video/*' : 'image/*';
+        input.capture = 'environment'; // Utilise la caméra arrière si disponible
+        input.multiple = false;
+        
+        input.onchange = async (event: Event) => {
+          const target = event.target as any;
+          const files = target.files;
+          if (files && files[0]) {
+            const file = files[0] as File;
+            
+            // Validation du type de fichier
+            const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+            const validVideoTypes = ['video/mp4', 'video/quicktime', 'video/mov', 'video/webm'];
+            
+            if (!validImageTypes.includes(file.type) && !(allowVideo && validVideoTypes.includes(file.type))) {
+              toast.error(t('document.invalidImageFormat') || 'Format de fichier invalide');
+              resolve(null);
+              return;
+            }
+            
+            // Validation de la taille (max 10MB)
+            const maxSize = 10 * 1024 * 1024;
+            if (file.size > maxSize) {
+              toast.error(t('document.imageTooLarge') || 'Fichier trop volumineux (max 10MB)');
+              resolve(null);
+              return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              const base64 = e.target?.result as string;
+              resolve(base64);
+            };
+            reader.onerror = () => {
+              toast.error(t('document.imageError') || 'Erreur lors de la lecture du fichier');
+              resolve(null);
+            };
+            reader.readAsDataURL(file);
+          } else {
+            resolve(null);
+          }
+        };
+        
+        input.oncancel = () => {
+          resolve(null);
+        };
+        
+        input.click();
+      });
+    }
 
+    // Gestion mobile avec ImagePicker
     try {
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
       if (status !== 'granted') {
@@ -190,18 +318,16 @@ export default function MobileDocumentSubmission({ onNavigate, onBack }: MobileD
         aspect: [3, 4],
         quality: 0.8,
         base64: true,
-        videoMaxDuration: allowVideo ? 30 : undefined, // Max 30 seconds for video
+        videoMaxDuration: allowVideo ? 30 : undefined,
       });
 
       if (!result.canceled && result.assets && result.assets[0]) {
         const asset = result.assets[0];
         if (asset.type === 'video' && asset.uri) {
-          // Convert video to base64
           try {
             const base64 = await FileSystem.readAsStringAsync(asset.uri, {
               encoding: 'base64' as any,
             });
-            // Determine MIME type from URI or default to mp4
             const mimeType = asset.uri.includes('.mov') ? 'video/quicktime' : 'video/mp4';
             return `data:${mimeType};base64,${base64}`;
           } catch (error) {
@@ -264,7 +390,16 @@ export default function MobileDocumentSubmission({ onNavigate, onBack }: MobileD
   };
 
   const showImageSourceOptions = (side: 'front' | 'back' | 'residence' | 'selfie' | 'activity') => {
+    const isWeb = Platform.OS === 'web';
     const isSelfie = side === 'selfie';
+    
+    // Sur web, afficher un modal personnalisé
+    if (isWeb) {
+      setImageSourceModal({ visible: true, side });
+      return;
+    }
+    
+    // Sur mobile, utiliser Alert
     const options: any[] = [
       { text: t('common.cancel'), style: 'cancel' },
       { 
@@ -313,6 +448,36 @@ export default function MobileDocumentSubmission({ onNavigate, onBack }: MobileD
       '',
       options
     );
+  };
+
+  const handleImageSourceSelection = async (source: 'camera' | 'gallery' | 'video') => {
+    if (!imageSourceModal.side) return;
+    
+    const side = imageSourceModal.side;
+    const isSelfie = side === 'selfie';
+    let result: string | null = null;
+    
+    setImageSourceModal({ visible: false, side: null });
+    
+    try {
+      if (source === 'camera') {
+        result = await takePhoto(side, isSelfie);
+      } else if (source === 'gallery') {
+        result = await pickImage(side, isSelfie);
+      } else if (source === 'video' && isSelfie) {
+        result = await recordVideo();
+      }
+      
+      if (result) {
+        if (side === 'front') setFrontImage(result);
+        else if (side === 'back') setBackImage(result);
+        else if (side === 'selfie') setSelfieImage(result);
+        else if (side === 'activity') setActivityDocument(result);
+        else setResidenceDocument(result);
+      }
+    } catch (error) {
+      console.error('Error handling image source selection:', error);
+    }
   };
 
   const getCurrentLocation = async (type: 'residence' | 'activity') => {
@@ -502,7 +667,7 @@ export default function MobileDocumentSubmission({ onNavigate, onBack }: MobileD
       <View style={[styles.container, { backgroundColor: colorScheme === 'light' ? '#f9fafb' : '#111827' }]}>
         <MobileHeader title={t('document.submission')} />
         <View style={[styles.flex1, styles.justifyCenter, styles.alignCenter]}>
-          <ActivityIndicator size="large" color="#5D5CDE" />
+          <ActivityIndicator size="large" color="#16a34a" />
           <Text style={[styles.mt16, { color: colorScheme === 'light' ? '#6b7280' : '#9ca3af' }]}>
             {t('common.loading')}
           </Text>
@@ -531,11 +696,9 @@ export default function MobileDocumentSubmission({ onNavigate, onBack }: MobileD
         title={t('document.submission')}
         showBack
         onBack={() => {
-          // Vérifier si tous les documents sont approuvés
-          if (documentsStatus?.allDocumentsApproved) {
+          if (documentsStatus?.allDocumentsApproved && user?.status === 'active') {
             onNavigate('home');
           } else {
-            // Si un document manque, rediriger vers login pour forcer la reconnexion
             onNavigate('login');
           }
         }}
@@ -548,7 +711,7 @@ export default function MobileDocumentSubmission({ onNavigate, onBack }: MobileD
           <RefreshControl
             refreshing={refreshing}
             onRefresh={loadDocumentsStatus}
-            tintColor="#5D5CDE"
+            tintColor="#16a34a"
           />
         }
       >
@@ -581,7 +744,7 @@ export default function MobileDocumentSubmission({ onNavigate, onBack }: MobileD
         {/* Identity Document Section */}
         <Card style={[styles.mb24]}>
           <View style={[styles.row, styles.alignCenter, styles.mb16]}>
-            <FileText size={24} color="#5D5CDE" />
+            <FileText size={24} color="#16a34a" />
             <Text style={[styles.textXl, styles.textBold, styles.ml8]}>
               {t('document.identityDocument')}
             </Text>
@@ -643,9 +806,9 @@ export default function MobileDocumentSubmission({ onNavigate, onBack }: MobileD
                       styles.p12,
                       styles.rounded8,
                       { 
-                        backgroundColor: documentType === 'CNI' ? '#5D5CDE' : (colorScheme === 'light' ? '#f3f4f6' : '#374151'),
+                        backgroundColor: documentType === 'CNI' ? '#16a34a' : (colorScheme === 'light' ? '#f3f4f6' : '#374151'),
                         borderWidth: 1,
-                        borderColor: documentType === 'CNI' ? '#5D5CDE' : (colorScheme === 'light' ? '#e5e7eb' : '#4b5563'),
+                        borderColor: documentType === 'CNI' ? '#16a34a' : (colorScheme === 'light' ? '#e5e7eb' : '#4b5563'),
                       }
                     ]}
                   >
@@ -667,9 +830,9 @@ export default function MobileDocumentSubmission({ onNavigate, onBack }: MobileD
                       styles.p12,
                       styles.rounded8,
                       { 
-                        backgroundColor: documentType === 'RECEPISSE' ? '#5D5CDE' : (colorScheme === 'light' ? '#f3f4f6' : '#374151'),
+                        backgroundColor: documentType === 'RECEPISSE' ? '#16a34a' : (colorScheme === 'light' ? '#f3f4f6' : '#374151'),
                         borderWidth: 1,
-                        borderColor: documentType === 'RECEPISSE' ? '#5D5CDE' : (colorScheme === 'light' ? '#e5e7eb' : '#4b5563'),
+                        borderColor: documentType === 'RECEPISSE' ? '#16a34a' : (colorScheme === 'light' ? '#e5e7eb' : '#4b5563'),
                       }
                     ]}
                   >
@@ -798,8 +961,8 @@ export default function MobileDocumentSubmission({ onNavigate, onBack }: MobileD
                             backgroundColor: colorScheme === 'light' ? '#f3f4f6' : '#374151'
                           }
                         ]}>
-                          <Video size={48} color={colorScheme === 'light' ? '#5D5CDE' : '#818cf8'} />
-                          <Text style={[styles.text, styles.textSemiBold, styles.mt8, { color: colorScheme === 'light' ? '#5D5CDE' : '#818cf8' }]}>
+                          <Video size={48} color={colorScheme === 'light' ? '#16a34a' : '#818cf8'} />
+                          <Text style={[styles.text, styles.textSemiBold, styles.mt8, { color: colorScheme === 'light' ? '#16a34a' : '#818cf8' }]}>
                             {t('document.videoSelected')}
                           </Text>
                         </View>
@@ -867,7 +1030,7 @@ export default function MobileDocumentSubmission({ onNavigate, onBack }: MobileD
         {/* Residence Proof Section */}
         <Card style={[styles.mb24]}>
           <View style={[styles.row, styles.alignCenter, styles.mb16]}>
-            <MapPin size={24} color="#5D5CDE" />
+            <MapPin size={24} color="#16a34a" />
             <Text style={[styles.textXl, styles.textBold, styles.ml8]}>
               {t('document.residenceProof')}
             </Text>
@@ -930,9 +1093,9 @@ export default function MobileDocumentSubmission({ onNavigate, onBack }: MobileD
                       styles.p12,
                       styles.rounded8,
                       { 
-                        backgroundColor: proofType === 'DOCUMENT' ? '#5D5CDE' : (colorScheme === 'light' ? '#f3f4f6' : '#374151'),
+                        backgroundColor: proofType === 'DOCUMENT' ? '#16a34a' : (colorScheme === 'light' ? '#f3f4f6' : '#374151'),
                         borderWidth: 1,
-                        borderColor: proofType === 'DOCUMENT' ? '#5D5CDE' : (colorScheme === 'light' ? '#e5e7eb' : '#4b5563'),
+                        borderColor: proofType === 'DOCUMENT' ? '#16a34a' : (colorScheme === 'light' ? '#e5e7eb' : '#4b5563'),
                       }
                     ]}
                   >
@@ -954,9 +1117,9 @@ export default function MobileDocumentSubmission({ onNavigate, onBack }: MobileD
                       styles.p12,
                       styles.rounded8,
                       { 
-                        backgroundColor: proofType === 'MAP_COORDINATES' ? '#5D5CDE' : (colorScheme === 'light' ? '#f3f4f6' : '#374151'),
+                        backgroundColor: proofType === 'MAP_COORDINATES' ? '#16a34a' : (colorScheme === 'light' ? '#f3f4f6' : '#374151'),
                         borderWidth: 1,
-                        borderColor: proofType === 'MAP_COORDINATES' ? '#5D5CDE' : (colorScheme === 'light' ? '#e5e7eb' : '#4b5563'),
+                        borderColor: proofType === 'MAP_COORDINATES' ? '#16a34a' : (colorScheme === 'light' ? '#e5e7eb' : '#4b5563'),
                       }
                     ]}
                   >
@@ -1024,10 +1187,12 @@ export default function MobileDocumentSubmission({ onNavigate, onBack }: MobileD
                       style={[styles.mb12]}
                       fullWidth
                     >
-                      <MapPin size={20} color="#5D5CDE" />
-                      <Text style={[styles.ml8, { color: '#5D5CDE', fontWeight: '500' }]}>
-                        {t('document.getCurrentLocation')}
-                      </Text>
+                      <View style={[styles.row, styles.alignCenter, styles.justifyCenter]}>
+                        <MapPin size={20} color="#16a34a" />
+                        <Text style={[styles.ml8, { color: '#16a34a', fontWeight: '500' }]}>
+                          {t('document.getCurrentLocation')}
+                        </Text>
+                      </View>
                     </Button>
                     
                     {residenceLocation && (
@@ -1107,7 +1272,7 @@ export default function MobileDocumentSubmission({ onNavigate, onBack }: MobileD
         {/* Activity Location Proof Section */}
         <Card>
           <View style={[styles.row, styles.alignCenter, styles.mb16]}>
-            <MapPin size={24} color="#5D5CDE" />
+            <MapPin size={24} color="#16a34a" />
             <View style={styles.flex1}>
               <Text style={[styles.textXl, styles.textBold, styles.ml8]}>
                 {t('document.activityLocationProof')}
@@ -1176,9 +1341,9 @@ export default function MobileDocumentSubmission({ onNavigate, onBack }: MobileD
                       styles.p12,
                       styles.rounded8,
                       { 
-                        backgroundColor: activityProofType === 'DOCUMENT' ? '#5D5CDE' : (colorScheme === 'light' ? '#f3f4f6' : '#374151'),
+                        backgroundColor: activityProofType === 'DOCUMENT' ? '#16a34a' : (colorScheme === 'light' ? '#f3f4f6' : '#374151'),
                         borderWidth: 1,
-                        borderColor: activityProofType === 'DOCUMENT' ? '#5D5CDE' : (colorScheme === 'light' ? '#e5e7eb' : '#4b5563'),
+                        borderColor: activityProofType === 'DOCUMENT' ? '#16a34a' : (colorScheme === 'light' ? '#e5e7eb' : '#4b5563'),
                       }
                     ]}
                   >
@@ -1200,9 +1365,9 @@ export default function MobileDocumentSubmission({ onNavigate, onBack }: MobileD
                       styles.p12,
                       styles.rounded8,
                       { 
-                        backgroundColor: activityProofType === 'MAP_COORDINATES' ? '#5D5CDE' : (colorScheme === 'light' ? '#f3f4f6' : '#374151'),
+                        backgroundColor: activityProofType === 'MAP_COORDINATES' ? '#16a34a' : (colorScheme === 'light' ? '#f3f4f6' : '#374151'),
                         borderWidth: 1,
-                        borderColor: activityProofType === 'MAP_COORDINATES' ? '#5D5CDE' : (colorScheme === 'light' ? '#e5e7eb' : '#4b5563'),
+                        borderColor: activityProofType === 'MAP_COORDINATES' ? '#16a34a' : (colorScheme === 'light' ? '#e5e7eb' : '#4b5563'),
                       }
                     ]}
                   >
@@ -1270,10 +1435,12 @@ export default function MobileDocumentSubmission({ onNavigate, onBack }: MobileD
                       style={[styles.mb12]}
                       fullWidth
                     >
-                      <MapPin size={20} color="#5D5CDE" />
-                      <Text style={[styles.ml8, { color: '#5D5CDE', fontWeight: '500' }]}>
-                        {t('document.getCurrentLocation')}
-                      </Text>
+                      <View style={[styles.row, styles.alignCenter, styles.justifyCenter]}>
+                        <MapPin size={20} color="#16a34a" />
+                        <Text style={[styles.ml8, { color: '#16a34a', fontWeight: '500' }]}>
+                          {t('document.getCurrentLocation')}
+                        </Text>
+                      </View>
                     </Button>
                     
                     {activityLocation && (
@@ -1350,6 +1517,162 @@ export default function MobileDocumentSubmission({ onNavigate, onBack }: MobileD
           )}
         </Card>
       </ScrollView>
+
+      {/* Modal pour la sélection de source d'image (Web) */}
+      <Modal
+        visible={imageSourceModal.visible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setImageSourceModal({ visible: false, side: null })}
+      >
+        <TouchableOpacity
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            justifyContent: 'center',
+            alignItems: 'center',
+            padding: 20
+          }}
+          activeOpacity={1}
+          onPress={() => setImageSourceModal({ visible: false, side: null })}
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={(e) => e.stopPropagation()}
+            style={{
+              backgroundColor: colorScheme === 'light' ? 'white' : '#1f2937',
+              borderRadius: 16,
+              padding: 24,
+              width: '100%',
+              maxWidth: 400,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.3,
+              shadowRadius: 8,
+              elevation: 8
+            }}
+          >
+            <Text style={[
+              styles.textXl,
+              styles.textBold,
+              styles.mb16,
+              { color: colorScheme === 'light' ? '#111827' : '#f9fafb', textAlign: 'center' }
+            ]}>
+              {imageSourceModal.side === 'selfie' 
+                ? t('document.selectMediaSource') 
+                : t('document.selectImageSource')}
+            </Text>
+
+            <View style={styles.gap12}>
+              {/* Option Caméra */}
+              <TouchableOpacity
+                onPress={() => handleImageSourceSelection('camera')}
+                style={[
+                  styles.row,
+                  styles.alignCenter,
+                  styles.p16,
+                  styles.rounded8,
+                  {
+                    backgroundColor: colorScheme === 'light' ? '#f3f4f6' : '#374151',
+                    borderWidth: 1,
+                    borderColor: colorScheme === 'light' ? '#e5e7eb' : '#4b5563'
+                  }
+                ]}
+              >
+                <Camera size={24} color="#16a34a" />
+                <Text style={[
+                  styles.text,
+                  styles.textSemiBold,
+                  styles.ml12,
+                  { color: colorScheme === 'light' ? '#111827' : '#f9fafb' }
+                ]}>
+                  {t('document.takePhoto')}
+                </Text>
+              </TouchableOpacity>
+
+              {/* Option Galerie */}
+              <TouchableOpacity
+                onPress={() => handleImageSourceSelection('gallery')}
+                style={[
+                  styles.row,
+                  styles.alignCenter,
+                  styles.p16,
+                  styles.rounded8,
+                  {
+                    backgroundColor: colorScheme === 'light' ? '#f3f4f6' : '#374151',
+                    borderWidth: 1,
+                    borderColor: colorScheme === 'light' ? '#e5e7eb' : '#4b5563'
+                  }
+                ]}
+              >
+                <ImageIcon size={24} color="#16a34a" />
+                <Text style={[
+                  styles.text,
+                  styles.textSemiBold,
+                  styles.ml12,
+                  { color: colorScheme === 'light' ? '#111827' : '#f9fafb' }
+                ]}>
+                  {t('document.chooseFromGallery')}
+                </Text>
+              </TouchableOpacity>
+
+              {/* Option Vidéo (uniquement pour selfie) */}
+              {imageSourceModal.side === 'selfie' && (
+                <TouchableOpacity
+                  onPress={() => handleImageSourceSelection('video')}
+                  style={[
+                    styles.row,
+                    styles.alignCenter,
+                    styles.p16,
+                    styles.rounded8,
+                    {
+                      backgroundColor: colorScheme === 'light' ? '#f3f4f6' : '#374151',
+                      borderWidth: 1,
+                      borderColor: colorScheme === 'light' ? '#e5e7eb' : '#4b5563'
+                    }
+                  ]}
+                >
+                  <Video size={24} color="#16a34a" />
+                  <Text style={[
+                    styles.text,
+                    styles.textSemiBold,
+                    styles.ml12,
+                    { color: colorScheme === 'light' ? '#111827' : '#f9fafb' }
+                  ]}>
+                    {t('document.recordVideo')}
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              {/* Bouton Annuler */}
+              <TouchableOpacity
+                onPress={() => setImageSourceModal({ visible: false, side: null })}
+                style={[
+                  styles.p16,
+                  styles.rounded8,
+                  styles.mt8,
+                  {
+                    backgroundColor: colorScheme === 'light' ? '#e5e7eb' : '#4b5563',
+                    borderWidth: 1,
+                    borderColor: colorScheme === 'light' ? '#d1d5db' : '#6b7280'
+                  }
+                ]}
+              >
+                <Text style={[
+                  styles.text,
+                  styles.textSemiBold,
+                  { 
+                    color: colorScheme === 'light' ? '#111827' : '#f9fafb',
+                    textAlign: 'center'
+                  }
+                ]}>
+                  {t('common.cancel')}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }

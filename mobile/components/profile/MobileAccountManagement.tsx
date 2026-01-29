@@ -4,6 +4,7 @@
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Label } from '@/components/ui/Label';
+import { Badge } from '@/components/ui/Badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
 import { Text } from '@/components/ui/Text';
 import { toast } from '@/components/ui/Toast';
@@ -18,7 +19,7 @@ import { reservationService } from '@/services/reservationService';
 import { Calendar, Wallet, CreditCard, Clock, Shield, AlertTriangle, ArrowLeft, Lock, Unlock, FileText, MapPin, Trash2, Lightbulb } from 'lucide-react-native';
 import React, { useEffect, useState, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { View, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
+import { View, ScrollView, RefreshControl, TouchableOpacity, Image } from 'react-native';
 import { useMobileI18n } from '@/lib/mobile-i18n';
 
 interface MobileAccountManagementProps {
@@ -174,6 +175,11 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
   };
 
   const getIncidentTypeText = (type: string) => {
+    // Si c'est une charge admin, retourner un texte spécial
+    if (type === 'admin_charge') {
+      return t('incident.adminCharge') || 'Charge administrative';
+    }
+    
     const typeMap: { [key: string]: string } = {
       'brakes': t('incident.brakes'),
       'battery': t('incident.battery'),
@@ -187,6 +193,37 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
       'other': t('incident.other')
     };
     return typeMap[type] || type;
+  };
+
+  const getReasonText = (reason: string) => {
+    const reasonMap: { [key: string]: string } = {
+      'damage': t('incident.reason.damage') || 'Dommage au vélo',
+      'theft': t('incident.reason.theft') || 'Vol ou perte',
+      'late_return': t('incident.reason.lateReturn') || 'Retour tardif',
+      'cleaning': t('incident.reason.cleaning') || 'Nettoyage requis',
+      'repair': t('incident.reason.repair') || 'Réparation nécessaire',
+      'accessory_loss': t('incident.reason.accessoryLoss') || 'Perte d\'accessoire',
+      'other': t('incident.reason.other') || 'Autre'
+    };
+    return reasonMap[reason] || reason;
+  };
+
+  const formatAdminChargeDescription = (description: string) => {
+    // La description contient "reason: description" pour les charges admin
+    // On extrait la raison et la description
+    const parts = description.split(': ');
+    if (parts.length > 1) {
+      const reason = parts[0];
+      const desc = parts.slice(1).join(': ');
+      return {
+        reason: getReasonText(reason),
+        description: desc
+      };
+    }
+    return {
+      reason: getReasonText(description),
+      description: ''
+    };
   };
 
   const getReservationStatusColor = (reservation: any) => {
@@ -519,9 +556,171 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
     );
 
     showInfoModal(
-      'Détails de la réservation',
+      t('accountManagement.reservationDetails') || 'Détails de la réservation',
       reservationContent
     );
+  };
+
+  const showIncidentDetails = async (incident: any) => {
+    try {
+      const fullIncident = await incidentService.getIncident(incident.id);
+      const isAdminCharge = fullIncident.type === 'admin_charge';
+      const chargeInfo = isAdminCharge ? formatAdminChargeDescription(fullIncident.description) : null;
+      
+      const getStatusColor = (status: string) => {
+        switch (status) {
+          case 'RESOLVED': case 'CLOSED': return '#16a34a';
+          case 'OPEN': return '#f59e0b';
+          case 'IN_PROGRESS': return '#3b82f6';
+          default: return '#6b7280';
+        }
+      };
+
+      const getStatusText = (status: string) => {
+        const statusMap: { [key: string]: string } = {
+          'OPEN': t('incident.status.open'),
+          'IN_PROGRESS': t('incident.status.in_progress'),
+          'RESOLVED': t('incident.status.resolved'),
+          'CLOSED': t('incident.status.closed')
+        };
+        return statusMap[status] || status;
+      };
+
+      const incidentContent = (
+        <View style={styles.gap16}>
+          <View style={[styles.row, styles.spaceBetween, styles.alignCenter]}>
+            <Badge variant="secondary" style={{ backgroundColor: getStatusColor(fullIncident.status) + '20' }}>
+              <Text size="sm" color={getStatusColor(fullIncident.status)}>
+                {getStatusText(fullIncident.status)}
+              </Text>
+            </Badge>
+            {fullIncident.priority && (
+              <Badge variant="outline">
+                <Text size="xs">{fullIncident.priority}</Text>
+              </Badge>
+            )}
+          </View>
+
+          <View>
+            <Text size="xs" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={styles.mb4}>
+              {t('incident.type')}
+            </Text>
+            <Text variant="body" color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
+              {getIncidentTypeText(fullIncident.type)}
+            </Text>
+          </View>
+
+          {fullIncident.bike && (
+            <View>
+              <Text size="xs" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={styles.mb4}>
+                {t('incident.details.relatedBike')}
+              </Text>
+              <Text variant="body" color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
+                {fullIncident.bike.code} - {fullIncident.bike.model}
+              </Text>
+            </View>
+          )}
+
+          <View>
+            <Text size="xs" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={styles.mb4}>
+              {t('incident.description')}
+            </Text>
+            {isAdminCharge && chargeInfo ? (
+              <>
+                {chargeInfo.reason && (
+                  <Text variant="body" color={colorScheme === 'light' ? '#111827' : '#f9fafb'} style={styles.mb4} weight="medium">
+                    {chargeInfo.reason}
+                  </Text>
+                )}
+                {chargeInfo.description && (
+                  <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
+                    {chargeInfo.description}
+                  </Text>
+                )}
+              </>
+            ) : (
+              <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
+                {fullIncident.description}
+              </Text>
+            )}
+          </View>
+
+          {fullIncident.refundAmount && fullIncident.refundAmount > 0 && (
+            <View>
+              <Text size="xs" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={styles.mb4}>
+                {isAdminCharge ? t('accountManagement.chargeAmount', { amount: fullIncident.refundAmount.toLocaleString() }) : t('incident.details.refundAmount', { amount: fullIncident.refundAmount })}
+              </Text>
+              <Text variant="body" color={isAdminCharge ? '#dc2626' : '#16a34a'} weight="bold">
+                {fullIncident.refundAmount.toLocaleString()} FCFA
+              </Text>
+            </View>
+          )}
+
+          {fullIncident.adminNote && (
+            <View style={[styles.p12, styles.rounded8, { backgroundColor: colorScheme === 'light' ? '#f9fafb' : '#374151' }]}>
+              <Text size="xs" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={styles.mb4} weight="medium">
+                {t('incident.details.adminNote')}
+              </Text>
+              <Text size="sm" color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
+                {fullIncident.adminNote}
+              </Text>
+            </View>
+          )}
+
+          {isAdminCharge && fullIncident.resolvedByUser && (
+            <View>
+              <Text size="xs" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={styles.mb4}>
+                {t('accountManagement.assignedBy')}
+              </Text>
+              <Text size="sm" color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
+                {fullIncident.resolvedByUser.firstName} {fullIncident.resolvedByUser.lastName}
+              </Text>
+            </View>
+          )}
+
+          <View style={[styles.row, styles.spaceBetween]}>
+            <View>
+              <Text size="xs" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={styles.mb4}>
+                {t('incident.details.creationDate')}
+              </Text>
+              <Text size="sm" color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
+                {new Date(fullIncident.createdAt).toLocaleString()}
+              </Text>
+            </View>
+            {fullIncident.resolvedAt && (
+              <View>
+                <Text size="xs" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={styles.mb4}>
+                  {t('incident.details.resolvedDate')}
+                </Text>
+                <Text size="sm" color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
+                  {new Date(fullIncident.resolvedAt).toLocaleString()}
+                </Text>
+              </View>
+            )}
+          </View>
+
+          {((fullIncident as any).images || (fullIncident as any).photos || []).length > 0 && (
+            <View>
+              <Text size="xs" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={styles.mb4}>
+                {t('incident.details.photosCount', { count: ((fullIncident as any).images || (fullIncident as any).photos || []).length })}
+              </Text>
+              <View style={[styles.row, styles.gap8, { flexWrap: 'wrap' }]}>
+                {((fullIncident as any).images || (fullIncident as any).photos || []).map((image: string, index: number) => (
+                  <View key={index} style={[styles.rounded8, { overflow: 'hidden', width: 80, height: 80 }]}>
+                    <Image source={{ uri: image }} style={{ width: 80, height: 80 }} resizeMode="cover" />
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+        </View>
+      );
+
+      showInfoModal(t('incident.details.title') || 'Détails du signalement', incidentContent);
+    } catch (error) {
+      console.error('Error loading incident details:', error);
+      toast.error(t('error.loadingIncident') || 'Erreur lors du chargement des détails');
+    }
   };
 
   const filteredTransactions = transactions.filter(transaction => {
@@ -1184,56 +1383,84 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
         </Button>
       </View>
       
-      {incidents.map((incident) => (
-        <Card key={incident.id} style={styles.p16}>
-          <View style={[styles.row, styles.spaceBetween, styles.alignCenter, styles.mb8]}>
-            <View style={styles.flex1}>
-              <Text variant="body" color={colorScheme === 'light' ? '#111827' : '#f9fafb'} numberOfLines={1}>
-                {getIncidentTypeText(incident.type)}
-              </Text>
-              <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} numberOfLines={1}>
-                {incident.bike?.code || t('common.bike')} - {new Date(incident.createdAt).toLocaleDateString()}
-              </Text>
-            </View>
-            <Text 
-              size="xs" 
-              color={getStatusColor(incident.status)}
-              weight="bold"
-            >
-              {getStatusText(incident.status)}
-            </Text>
-          </View>
-          
-          <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={styles.mb8} numberOfLines={3}>
-            {incident.description}
-          </Text>
-          
-          {incident.refundAmount > 0 && (
-            <View style={[styles.row, styles.alignCenter, styles.gap4, styles.mb8]}>
-              <Text size="sm" color="#16a34a" weight="bold">
-                {t('accountManagement.refundAmount', { amount: incident.refundAmount })}
+      {incidents.map((incident) => {
+        const isAdminCharge = incident.type === 'admin_charge';
+        const chargeInfo = isAdminCharge ? formatAdminChargeDescription(incident.description) : null;
+        
+        return (
+          <Card key={incident.id} style={styles.p16}>
+            <View style={[styles.row, styles.spaceBetween, styles.alignCenter, styles.mb8]}>
+              <View style={styles.flex1}>
+                <Text variant="body" color={colorScheme === 'light' ? '#111827' : '#f9fafb'} numberOfLines={1}>
+                  {getIncidentTypeText(incident.type)}
+                </Text>
+                <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} numberOfLines={1}>
+                  {incident.bike?.code || t('common.bike')} - {new Date(incident.createdAt).toLocaleDateString()}
+                </Text>
+              </View>
+              <Text 
+                size="xs" 
+                color={getStatusColor(incident.status)}
+                weight="bold"
+              >
+                {getStatusText(incident.status)}
               </Text>
             </View>
-          )}
+            
+            {isAdminCharge && chargeInfo ? (
+              <>
+                {chargeInfo.reason && (
+                  <Text size="sm" color={colorScheme === 'light' ? '#111827' : '#f9fafb'} style={styles.mb4} weight="medium">
+                    {chargeInfo.reason}
+                  </Text>
+                )}
+                {chargeInfo.description && (
+                  <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={styles.mb8} numberOfLines={3}>
+                    {chargeInfo.description}
+                  </Text>
+                )}
+                {incident.refundAmount && incident.refundAmount > 0 && (
+                  <View style={[styles.row, styles.alignCenter, styles.gap4, styles.mb8]}>
+                    <Text size="sm" color="#dc2626" weight="bold">
+                      {t('accountManagement.chargeAmount', { amount: incident.refundAmount.toLocaleString() })}
+                    </Text>
+                  </View>
+                )}
+              </>
+            ) : (
+              <>
+                <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={styles.mb8} numberOfLines={3}>
+                  {incident.description}
+                </Text>
+                
+                {incident.refundAmount && incident.refundAmount > 0 && (
+                  <View style={[styles.row, styles.alignCenter, styles.gap4, styles.mb8]}>
+                    <Text size="sm" color="#16a34a" weight="bold">
+                      {t('accountManagement.refundAmount', { amount: incident.refundAmount })}
+                    </Text>
+                  </View>
+                )}
+              </>
+            )}
           
-          {incident.adminNote && (
-            <View style={[styles.p12, styles.rounded8, { backgroundColor: colorScheme === 'light' ? '#f9fafb' : '#374151' }]}>
-              <Text size="xs" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} numberOfLines={2}>
-                {t('accountManagement.adminNote', { note: incident.adminNote })}
-              </Text>
-            </View>
-          )}
+            {incident.adminNote && (
+              <View style={[styles.p12, styles.rounded8, { backgroundColor: colorScheme === 'light' ? '#f9fafb' : '#374151' }]}>
+                <Text size="xs" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} numberOfLines={2}>
+                  {t('accountManagement.adminNote', { note: incident.adminNote }) || `Note admin: ${incident.adminNote}`}
+                </Text>
+              </View>
+            )}
 
           <View style={[styles.row, styles.gap8, styles.mt12]}>
             <Button
               variant="outline"
               size="sm"
-              onPress={() => onNavigate('incident-details', { incidentId: incident.id })}
+              onPress={() => showIncidentDetails(incident)}
               style={styles.flex1}
             >
               <Text>{t('accountManagement.details')}</Text>
             </Button>
-            {incident.status === 'OPEN' && (
+            {incident.status === 'OPEN' && !isAdminCharge && (
               <Button
                 variant="outline"
                 size="sm"
@@ -1245,7 +1472,8 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
             )}
           </View>
         </Card>
-      ))}
+        );
+      })}
       
       {incidents.length === 0 && (
         <Card style={[styles.p32, styles.alignCenter]}>

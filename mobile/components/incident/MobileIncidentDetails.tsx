@@ -352,6 +352,14 @@ export function MobileIncidentDetails({ onBack, onEdit, incidentId }: MobileInci
             <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={{ lineHeight: 20 }}>
               {incident.adminNote}
             </Text>
+            {/* Afficher le nom de l'admin qui a assigné la charge */}
+            {incident.type === 'admin_charge' && incident.resolvedByUser && (
+              <View style={[styles.mt8, styles.pt8, { borderTopWidth: 1, borderTopColor: colorScheme === 'light' ? '#e5e7eb' : '#4b5563' }]}>
+                <Text size="xs" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
+                  {t('accountManagement.assignedBy')}: {incident.resolvedByUser.fullName}
+                </Text>
+              </View>
+            )}
           </Card>
         )}
 

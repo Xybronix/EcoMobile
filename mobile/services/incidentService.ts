@@ -14,6 +14,13 @@ export interface Incident {
   refundAmount?: number;
   adminNote?: string;
   resolvedBy?: string;
+  resolvedByUser?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    fullName: string;
+  } | null;
   createdAt: string;
   updatedAt: string;
   bike?: {

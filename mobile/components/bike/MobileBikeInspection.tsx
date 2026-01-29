@@ -196,15 +196,17 @@ export function MobileBikeInspection({ bikeId, bikeName, inspectionType, bikeEqu
       const isWeb = Platform.OS === 'web';
 
       if (isWeb && source === 'library') {
-        if (typeof document !== 'undefined') {
-          const input = document.createElement('input');
+        if (typeof (globalThis as any).window !== 'undefined' && typeof (globalThis as any).window.document !== 'undefined') {
+          const window = (globalThis as any).window;
+          const input = window.document.createElement('input') as any;
           input.type = 'file';
           input.accept = 'image/*';
           input.multiple = false;
           input.onchange = (event: Event) => {
-            const target = event.target as HTMLInputElement;
-            if (target.files && target.files[0]) {
-              const file = target.files[0];
+            const target = event.target as any;
+            const files = target.files;
+            if (files && files[0]) {
+              const file = files[0] as File;
               
               const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
               if (!validImageTypes.includes(file.type)) {

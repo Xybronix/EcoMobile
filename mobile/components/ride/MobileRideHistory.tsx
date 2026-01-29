@@ -144,7 +144,7 @@ export function MobileRideHistory({ onRideDetails, onNavigate }: MobileRideHisto
       <View style={[styles.container, { backgroundColor: colorScheme === 'light' ? '#f9fafb' : '#111827' }]}>
         <MobileHeader title={t('ride.history')} />
         <View style={[styles.flex1, styles.justifyCenter, styles.alignCenter]}>
-          <ActivityIndicator size="large" color="#5D5CDE" />
+          <ActivityIndicator size="large" color="#16a34a" />
           <Text style={[styles.mt16, { color: colorScheme === 'light' ? '#6b7280' : '#9ca3af' }]}>
             {t('ride.loadingHistory')}
           </Text>
@@ -173,7 +173,7 @@ export function MobileRideHistory({ onRideDetails, onNavigate }: MobileRideHisto
           <RefreshControl
             refreshing={isRefreshing}
             onRefresh={handleRefresh}
-            tintColor="#5D5CDE"
+            tintColor="#16a34a"
           />
         }
         onScroll={({ nativeEvent }) => {
@@ -244,7 +244,7 @@ export function MobileRideHistory({ onRideDetails, onNavigate }: MobileRideHisto
                   </Text>
                   <TouchableOpacity
                     onPress={() => loadRides(true)}
-                    style={[styles.p12, { backgroundColor: '#5D5CDE', borderRadius: 8 }]}
+                    style={[styles.p12, { backgroundColor: '#16a34a', borderRadius: 8 }]}
                   >
                     <Text style={{ color: 'white', fontWeight: '500' }}>
                       {t('common.retry')}
@@ -326,7 +326,7 @@ export function MobileRideHistory({ onRideDetails, onNavigate }: MobileRideHisto
                   {/* Load More Button */}
                   {isLoadingMore && (
                     <View style={[styles.p16, styles.alignCenter]}>
-                      <ActivityIndicator size="small" color="#5D5CDE" />
+                      <ActivityIndicator size="small" color="#16a34a" />
                       <Text style={[styles.mt8, { color: colorScheme === 'light' ? '#6b7280' : '#9ca3af' }]}>
                         {t('ride.loadingMore')}
                       </Text>

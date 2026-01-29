@@ -585,6 +585,7 @@ const translations: Translations = {
   'accountManagement.newReport': { fr: 'Nouveau', en: 'New' },
   'accountManagement.refundAmount': { fr: 'Remboursement: {amount} XOF', en: 'Refund: {amount} XOF' },
   'accountManagement.details': { fr: 'Détails', en: 'Details' },
+  'accountManagement.reservationDetails': { fr: 'Détails de la réservation', en: 'Reservation Details' },
   'accountManagement.edit': { fr: 'Modifier', en: 'Edit' },
   'accountManagement.noReports': { fr: 'Aucun signalement trouvé', en: 'No reports found' },
   'accountManagement.createFirstReport': { fr: 'Créer un premier signalement', en: 'Create first report' },
@@ -986,6 +987,20 @@ const translations: Translations = {
   'account.cannotDeleteMessage': { fr: 'Seules les demandes en attente peuvent être supprimées.', en: 'Only pending requests can be deleted.' },
   'account.cannotCancel': { fr: 'Annulation impossible', en: 'Cannot Cancel' },
   'account.cannotCancelMessage': { fr: 'Seules les réservations actives peuvent être annulées.', en: 'Only active reservations can be cancelled.' },
+  
+  // Incident translations
+  'incident.adminCharge': { fr: 'Charge administrative', en: 'Administrative charge' },
+  'incident.reason.damage': { fr: 'Dommage au vélo', en: 'Bike damage' },
+  'incident.reason.theft': { fr: 'Vol ou perte', en: 'Theft or loss' },
+  'incident.reason.lateReturn': { fr: 'Retour tardif', en: 'Late return' },
+  'incident.reason.cleaning': { fr: 'Nettoyage requis', en: 'Cleaning required' },
+  'incident.reason.repair': { fr: 'Réparation nécessaire', en: 'Repair needed' },
+  'incident.reason.accessoryLoss': { fr: 'Perte d\'accessoire', en: 'Accessory loss' },
+  'incident.reason.other': { fr: 'Autre', en: 'Other' },
+  
+  // Account Management
+  'accountManagement.chargeAmount': { fr: 'Charge: {amount} FCFA', en: 'Charge: {amount} FCFA' },
+  'accountManagement.assignedBy': { fr: 'Assigné par', en: 'Assigned by' },
 };
 
 interface MobileI18nContextType {
