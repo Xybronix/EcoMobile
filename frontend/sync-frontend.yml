@@ -10,12 +10,13 @@ on:
 jobs:
   sync-frontend:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout full history
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          persist-credentials: false # IMPORTANT : Empêche le bot de s'imposer
+          persist-credentials: false
 
       - name: Configure Git identity
         run: |
@@ -26,6 +27,19 @@ jobs:
         run: |
           git subtree split --prefix=frontend -b frontend-split
 
+      - name: Debug token presence
+        run: |
+          if [ -z "${{ secrets.ECOMOBILE_SYNC_TOKEN }}" ]; then
+            echo "TOKEN IS EMPTY"
+            exit 1
+          else
+            echo "TOKEN IS PRESENT"
+          fi        
+
+      - name: Verify Git remote
+        run: |
+          git remote -v
+        
       - name: Push to EcoMobile-frontend
         run: |
           git push https://Xybronix:${{ secrets.ECOMOBILE_SYNC_TOKEN }}@github.com/Xybronix/EcoMobile-frontend.git frontend-split:main --force

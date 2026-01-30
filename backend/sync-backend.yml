@@ -10,12 +10,13 @@ on:
 jobs:
   sync-backend:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout full history
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          persist-credentials: false # IMPORTANT : Empêche le bot de s'imposer
+          persist-credentials: false
 
       - name: Configure Git identity
         run: |
@@ -25,8 +26,20 @@ jobs:
       - name: Split backend subtree
         run: |
           git subtree split --prefix=backend -b backend-split
+      
+      - name: Debug token presence
+        run: |
+          if [ -z "${{ secrets.ECOMOBILE_SYNC_TOKEN }}" ]; then
+            echo "TOKEN IS EMPTY"
+            exit 1
+          else
+            echo "TOKEN IS PRESENT"
+          fi
+
+      - name: Verify Git remote
+        run: |
+          git remote -v
 
       - name: Push to EcoMobile-backend
         run: |
-          # On utilise ton nom d'utilisateur explicitement avec le token
           git push https://Xybronix:${{ secrets.ECOMOBILE_SYNC_TOKEN }}@github.com/Xybronix/EcoMobile-backend.git backend-split:main --force
