@@ -88,7 +88,7 @@
             "dev": "vite",
             "build": "vite build",
             "predeploy": "npm run build",
-            "deploy": "node deploy.js",
+            "deploy": "npx gh-pages -d build -r https://github.com/Xybronix/EcoMobile.git",
             "prestart": "npm run build",
             "start": "serve -s build -l 10000",
             "postinstall": "patch-package"
