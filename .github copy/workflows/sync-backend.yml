@@ -1,0 +1,32 @@
+name: Sync EcoMobile Backend
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
+
+jobs:
+  sync-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false # IMPORTANT : Empêche le bot de s'imposer
+
+      - name: Configure Git identity
+        run: |
+          git config user.name "Xybronix"
+          git config user.email "xybronix@gmail.com"
+
+      - name: Split backend subtree
+        run: |
+          git subtree split --prefix=backend -b backend-split
+
+      - name: Push to EcoMobile-backend
+        run: |
+          # On utilise ton nom d'utilisateur explicitement avec le token
+          git push https://Xybronix:${{ secrets.ECOMOBILE_SYNC_TOKEN }}@github.com/Xybronix/EcoMobile-backend.git backend-split:main --force
