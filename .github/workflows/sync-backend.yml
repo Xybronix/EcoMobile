@@ -6,27 +6,57 @@ on:
       - main
     paths:
       - 'backend/**'
+  workflow_dispatch: # Permet de déclencher manuellement
 
 jobs:
   sync-backend:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # Nécessaire pour pousser vers les repos
+    
     steps:
-      - name: Checkout full history
+      - name: Checkout EcoMobile
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          persist-credentials: false # IMPORTANT : Empêche le bot de s'imposer
+          token: ${{ secrets.ECOMOBILE_SYNC_TOKEN }}
 
-      - name: Configure Git identity
+      - name: Configure Git
         run: |
-          git config user.name "Xybronix"
-          git config user.email "xybronix@gmail.com"
+          git config --global user.name "Xybronix"
+          git config --global user.email "xybronix@gmail.com"
 
-      - name: Split backend subtree
+      - name: Clone EcoMobile-backend
         run: |
-          git subtree split --prefix=backend -b backend-split
+          git clone https://${{ secrets.ECOMOBILE_SYNC_TOKEN }}@github.com/Xybronix/EcoMobile-backend.git /tmp/EcoMobile-backend || git init /tmp/EcoMobile-backend
 
-      - name: Push to EcoMobile-backend
+      - name: Sync backend files
         run: |
-          # On utilise ton nom d'utilisateur explicitement avec le token
-          git push https://Xybronix:${{ secrets.ECOMOBILE_SYNC_TOKEN }}@github.com/Xybronix/EcoMobile-backend.git backend-split:main --force
+          cd /tmp/EcoMobile-backend
+          if [ ! -d .git ]; then
+            git init
+            git remote add origin https://${{ secrets.ECOMOBILE_SYNC_TOKEN }}@github.com/Xybronix/EcoMobile-backend.git
+          fi
+          
+          # Supprimer tous les fichiers existants sauf .git
+          find . -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
+          
+          # Copier les fichiers du backend
+          cp -r ${{ github.workspace }}/backend/* . 2>/dev/null || true
+          cp -r ${{ github.workspace }}/backend/.[!.]* . 2>/dev/null || true
+          
+          # Nettoyer les fichiers système
+          rm -rf .git 2>/dev/null || true
+          rm -rf node_modules 2>/dev/null || true
+
+      - name: Commit and push
+        run: |
+          cd /tmp/EcoMobile-backend
+          git add -A
+          if git diff --staged --quiet; then
+            echo "Aucun changement détecté"
+          else
+            git commit -m "Sync from EcoMobile main - $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
+            git branch -M main
+            git push -u origin main --force
+          fi
