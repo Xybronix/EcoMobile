@@ -26,28 +26,42 @@ jobs:
           git config --global user.name "Xybronix"
           git config --global user.email "xybronix@gmail.com"
 
-      - name: Clone EcoMobile-backend
+      - name: Setup backend repository
         run: |
-          git clone https://${{ secrets.ECOMOBILE_SYNC_TOKEN }}@github.com/Xybronix/EcoMobile-backend.git /tmp/EcoMobile-backend || git init /tmp/EcoMobile-backend
+          # Nettoyer le répertoire s'il existe déjà
+          rm -rf /tmp/EcoMobile-backend
+          
+          # Essayer de cloner le dépôt, sinon l'initialiser
+          if git clone https://${{ secrets.ECOMOBILE_SYNC_TOKEN }}@github.com/Xybronix/EcoMobile-backend.git /tmp/EcoMobile-backend 2>/dev/null; then
+            echo "Dépôt cloné avec succès"
+          else
+            echo "Dépôt n'existe pas encore, initialisation..."
+            mkdir -p /tmp/EcoMobile-backend
+            cd /tmp/EcoMobile-backend
+            git init
+            git remote add origin https://${{ secrets.ECOMOBILE_SYNC_TOKEN }}@github.com/Xybronix/EcoMobile-backend.git
+          fi
 
       - name: Sync backend files
         run: |
           cd /tmp/EcoMobile-backend
+          
+          # S'assurer que c'est un dépôt Git valide
           if [ ! -d .git ]; then
             git init
-            git remote add origin https://${{ secrets.ECOMOBILE_SYNC_TOKEN }}@github.com/Xybronix/EcoMobile-backend.git
+            git remote add origin https://${{ secrets.ECOMOBILE_SYNC_TOKEN }}@github.com/Xybronix/EcoMobile-backend.git || true
           fi
           
           # Supprimer tous les fichiers existants sauf .git
-          find . -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
+          find . -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} + 2>/dev/null || true
           
           # Copier les fichiers du backend
           cp -r ${{ github.workspace }}/backend/* . 2>/dev/null || true
           cp -r ${{ github.workspace }}/backend/.[!.]* . 2>/dev/null || true
           
-          # Nettoyer les fichiers système
-          rm -rf .git 2>/dev/null || true
+          # Nettoyer les fichiers système (mais PAS .git !)
           rm -rf node_modules 2>/dev/null || true
+          rm -rf .env 2>/dev/null || true
 
       - name: Commit and push
         run: |
@@ -56,7 +70,7 @@ jobs:
           if git diff --staged --quiet; then
             echo "Aucun changement détecté"
           else
-            git commit -m "Sync from EcoMobile main - $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
+            git commit -m "Sync from EcoMobile main - $(date -u +'%Y-%m-%d %H:%M:%S UTC')" || exit 0
             git branch -M main
             git push -u origin main --force
           fi
