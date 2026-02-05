@@ -1,11 +1,49 @@
 import Constants from 'expo-constants';
+import { getTranslationSync } from '../mobile-i18n';
+import { storage } from '../../utils/storage';
 
-const getApiBaseUrl = () => {
-  if (__DEV__) {
-    return 'https://env-freebike-xybronix.hidora.com/api/v1';
+// Cache pour la langue
+let cachedLanguage: 'fr' | 'en' | null = null;
+const LANGUAGE_STORAGE_KEY = 'EcoMobile_mobile_language';
+
+// Fonction pour obtenir la langue actuelle (avec cache)
+const getCurrentLanguage = async (): Promise<'fr' | 'en'> => {
+  if (cachedLanguage) {
+    return cachedLanguage;
   }
   
-  return Constants.expoConfig?.extra?.apiUrl || 'https://env-freebike-xybronix.hidora.com/api/v1';
+  try {
+    const savedLanguage = await storage.getItem(LANGUAGE_STORAGE_KEY);
+    cachedLanguage = (savedLanguage === 'fr' || savedLanguage === 'en') ? savedLanguage as 'fr' | 'en' : 'fr';
+    return cachedLanguage;
+  } catch {
+    return 'fr';
+  }
+};
+
+const getApiBaseUrl = () => {
+  // Priorité 1: Variable d'environnement Expo (pour production)
+  const envApiUrl = Constants.expoConfig?.extra?.apiUrl;
+  
+  // Priorité 3: URL par défaut depuis app.json
+  const defaultUrl = 'https://env-freebike-xybronix.hidora.com/api/v1';
+  
+  // En développement, toujours utiliser l'URL de développement
+  if (__DEV__) {
+    return defaultUrl;
+  }
+  
+  // En production, utiliser l'URL depuis app.json ou la valeur par défaut
+  const apiUrl = envApiUrl || defaultUrl;
+  
+  // Log pour débogage (uniquement en développement ou si configuré)
+  if (__DEV__) {
+    console.log('[API Config] Mode:', __DEV__ ? 'DEVELOPMENT' : 'PRODUCTION');
+    console.log('[API Config] API URL:', apiUrl);
+    console.log('[API Config] Constants.expoConfig?.extra?.apiUrl:', envApiUrl);
+  }
+  
+  return apiUrl;
 };
 
 const API_BASE_URL = getApiBaseUrl();
@@ -13,7 +51,9 @@ const API_BASE_URL = getApiBaseUrl();
 
 export const API_CONFIG = {
   BASE_URL: API_BASE_URL,
-  TIMEOUT: 15000,
+  TIMEOUT: 30000, // Augmenté à 30s pour les connexions lentes
+  RETRY_ATTEMPTS: 3, // Nombre de tentatives en cas d'échec
+  RETRY_DELAY: 1000, // Délai entre les tentatives (ms)
   HEADERS: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
@@ -32,7 +72,7 @@ export class ApiError extends Error {
   }
 }
 
-// Intercepteur de requêtes
+// Intercepteur de requêtes avec gestion améliorée des erreurs
 export const handleApiResponse = async (response: Response) => {
   if (!response.ok) {
     let errorData;
@@ -47,7 +87,31 @@ export const handleApiResponse = async (response: Response) => {
     }
     
     // Le backend peut renvoyer soit 'error' soit 'message', on prend les deux en compte
-    const errorMessage = errorData.error || errorData.message || `Request failed with status ${response.status}`;
+    const backendErrorMessage = errorData.error || errorData.message || `Request failed with status ${response.status}`;
+    
+    // Gestion spéciale pour les erreurs 503 (Service Unavailable)
+    // Cela peut indiquer que le serveur est en veille (Render.com free tier)
+    if (response.status === 503) {
+      console.error('[API Error] Service Unavailable (503) - Le serveur peut être en veille');
+      const language = await getCurrentLanguage();
+      const translatedMessage = getTranslationSync('error.serviceUnavailableMessage', language);
+      throw new ApiError(
+        response.status,
+        translatedMessage,
+        'SERVICE_UNAVAILABLE'
+      );
+    }
+    
+    // Gestion spéciale pour les erreurs de connexion réseau
+    if (response.status === 0 || response.status === 408) {
+      const language = await getCurrentLanguage();
+      const translatedMessage = getTranslationSync('error.connectionError', language);
+      throw new ApiError(
+        response.status,
+        translatedMessage,
+        'NETWORK_ERROR'
+      );
+    }
     
     // Si c'est un 403 (Forbidden), déconnecter l'utilisateur automatiquement
     if (response.status === 403) {
@@ -59,9 +123,10 @@ export const handleApiResponse = async (response: Response) => {
       }
     }
     
+    // Pour les autres erreurs, utiliser le message du backend (qui peut déjà être traduit)
     throw new ApiError(
       response.status, 
-      errorMessage, 
+      backendErrorMessage, 
       errorData.code
     );
   }
@@ -69,7 +134,76 @@ export const handleApiResponse = async (response: Response) => {
   try {
     return await response.json();
   } catch (error) {
+    const language = await getCurrentLanguage();
+    const baseMessage = getTranslationSync('error.invalidJsonResponse', language);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    throw new ApiError(500, 'Invalid JSON response from server :', errorMessage);
+    throw new ApiError(500, `${baseMessage}: ${errorMessage}`, 'INVALID_JSON');
   }
+};
+
+// Fonction helper pour retry automatique en cas d'erreur réseau ou 503
+export const fetchWithRetry = async (
+  url: string,
+  options: RequestInit = {},
+  retries: number = API_CONFIG.RETRY_ATTEMPTS
+): Promise<Response> => {
+  let lastError: Error | null = null;
+  
+  for (let attempt = 0; attempt < retries; attempt++) {
+    try {
+      // Créer un AbortController pour gérer le timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), API_CONFIG.TIMEOUT);
+      
+      try {
+        const response = await fetch(url, {
+          ...options,
+          signal: controller.signal,
+        });
+        
+        clearTimeout(timeoutId);
+        
+        // Si c'est un 503, on réessaie
+        if (response.status === 503 && attempt < retries - 1) {
+          if (__DEV__) {
+            console.log(`[API Retry] Tentative ${attempt + 1}/${retries} - Service Unavailable (503), nouvelle tentative dans ${API_CONFIG.RETRY_DELAY * (attempt + 1)}ms...`);
+          }
+          await new Promise(resolve => setTimeout(resolve, API_CONFIG.RETRY_DELAY * (attempt + 1)));
+          continue;
+        }
+        
+        return response;
+      } catch (fetchError) {
+        clearTimeout(timeoutId);
+        throw fetchError;
+      }
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error('Unknown error');
+      
+      // Si c'est une erreur réseau/timeout et qu'il reste des tentatives, on réessaie
+      if (attempt < retries - 1) {
+        const isNetworkError = 
+          error instanceof TypeError || 
+          (error instanceof Error && (error.message.includes('Network') || error.message.includes('fetch'))) ||
+          (error instanceof Error && error.name === 'AbortError');
+        
+        if (isNetworkError) {
+          if (__DEV__) {
+            console.log(`[API Retry] Tentative ${attempt + 1}/${retries} - Erreur réseau, nouvelle tentative dans ${API_CONFIG.RETRY_DELAY * (attempt + 1)}ms...`);
+          }
+          await new Promise(resolve => setTimeout(resolve, API_CONFIG.RETRY_DELAY * (attempt + 1)));
+          continue;
+        }
+      }
+      
+      // Si ce n'est pas une erreur réseau ou qu'on a épuisé les tentatives, on propage l'erreur
+      if (attempt === retries - 1) {
+        throw lastError;
+      }
+    }
+  }
+  
+  const language = await getCurrentLanguage();
+  const errorMessage = getTranslationSync('error.failedAfterRetries', language);
+  throw lastError || new Error(errorMessage);
 };

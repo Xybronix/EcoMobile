@@ -24,7 +24,13 @@
         "image": "latest",
         "env": {
           "EXPO_IMAGE_OPTIMIZER": "true",
-          "EXPO_OPTIMIZE_IMAGES": "true"
+          "EXPO_OPTIMIZE_IMAGES": "true",
+          "EXPO_PUBLIC_API_URL": "https://env-freebike-xybronix.hidora.com/api/v1"
+        }
+      },
+      "ios": {
+        "env": {
+          "EXPO_PUBLIC_API_URL": "https://env-freebike-xybronix.hidora.com/api/v1"
         }
       }
     }

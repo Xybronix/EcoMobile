@@ -9,7 +9,7 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "extra": {
-      "apiUrl": "https://ecomobile-8bx0.onrender.com/api/v1",
+      "apiUrl": "https://env-freebike-xybronix.hidora.com/api/v1",
       "router": {},
       "eas": {
         "projectId": "9eecef1f-106f-411c-9764-092a45decd93"

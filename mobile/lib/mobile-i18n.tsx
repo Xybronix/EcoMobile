@@ -83,6 +83,10 @@ const translations: Translations = {
   'error.occurred': { fr: 'Une erreur est survenue', en: 'An error occurred' },
   'error.resetPasswordError': { fr: 'Erreur lors de la réinitialisation', en: 'Error resetting password' },
   'error.invalidResetLink': { fr: 'Lien de réinitialisation invalide', en: 'Invalid reset link' },
+  'error.serviceUnavailableMessage': { fr: 'Le serveur est temporairement indisponible. Veuillez réessayer dans quelques instants.', en: 'The server is temporarily unavailable. Please try again in a few moments.' },
+  'error.connectionError': { fr: 'Erreur de connexion au serveur. Vérifiez votre connexion internet.', en: 'Server connection error. Check your internet connection.' },
+  'error.invalidJsonResponse': { fr: 'Réponse JSON invalide du serveur', en: 'Invalid JSON response from server' },
+  'error.failedAfterRetries': { fr: 'Échec après plusieurs tentatives', en: 'Failed after retries' },
 
   // Success messages
   'success.loginSuccessful': { fr: 'Connexion réussie !', en: 'Login successful!' },
@@ -1014,6 +1018,45 @@ interface MobileI18nContextType {
 }
 
 const STORAGE_KEY = 'EcoMobile_mobile_language';
+
+// Export des traductions pour utilisation en dehors des composants React
+export { translations };
+
+// Fonction utilitaire pour obtenir une traduction sans contexte React
+// Utile pour les fichiers de configuration et utilitaires
+export const getTranslation = async (key: string, params?: Record<string, string | number>): Promise<string> => {
+  try {
+    const savedLanguage = await storage.getItem(STORAGE_KEY);
+    const language: Language = (savedLanguage === 'fr' || savedLanguage === 'en') ? savedLanguage as Language : 'fr';
+    
+    let translation = translations[key]?.[language] || key;
+    
+    if (params) {
+      Object.entries(params).forEach(([param, value]) => {
+        translation = translation.replace(`{${param}}`, value.toString());
+      });
+    }
+    
+    return translation;
+  } catch (error) {
+    console.error('Error getting translation:', error);
+    // Fallback en français en cas d'erreur
+    return translations[key]?.fr || key;
+  }
+};
+
+// Fonction synchrone avec langue par défaut (pour les cas où on ne peut pas attendre)
+export const getTranslationSync = (key: string, language: Language = 'fr', params?: Record<string, string | number>): string => {
+  let translation = translations[key]?.[language] || key;
+  
+  if (params) {
+    Object.entries(params).forEach(([param, value]) => {
+      translation = translation.replace(`{${param}}`, value.toString());
+    });
+  }
+  
+  return translation;
+};
 
 const MobileI18nContext = createContext<MobileI18nContextType | undefined>(undefined);
 
