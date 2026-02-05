@@ -38,8 +38,7 @@
         "android.permission.RECORD_AUDIO"
       ],
       "package": "com.xybronix.FreeBike",
-      "versionCode": 1,
-      "enableHermes": true
+      "versionCode": 1
     },
     "web": {
       "output": "static",
