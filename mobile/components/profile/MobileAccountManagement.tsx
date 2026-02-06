@@ -17,7 +17,7 @@ import { incidentService } from '@/services/incidentService';
 import { bikeRequestService } from '@/services/bikeRequestService';
 import { reservationService } from '@/services/reservationService';
 import { Calendar, Wallet, CreditCard, Clock, Shield, AlertTriangle, ArrowLeft, Lock, Unlock, FileText, MapPin, Trash2, Lightbulb } from 'lucide-react-native';
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { View, ScrollView, RefreshControl, TouchableOpacity, Image } from 'react-native';
 import { useMobileI18n } from '@/lib/mobile-i18n';
@@ -51,24 +51,67 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
   const [currentSubscription, setCurrentSubscription] = useState<any>(null);
   const [depositInfo, setDepositInfo] = useState<any>(null);
   
+  // Cache pour éviter de recharger les données à chaque changement d'onglet
+  const [dataCache, setDataCache] = useState<{
+    accountData?: { timestamp: number; data: any };
+    requests?: { timestamp: number; data: any };
+    reservations?: { timestamp: number; data: any };
+  }>({});
+  
+  const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+  
   // Filtres
   const [transactionFilter, setTransactionFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState('all');
 
+  // Vérifier si les données en cache sont encore valides
+  const isCacheValid = (cacheKey: keyof typeof dataCache): boolean => {
+    const cached = dataCache[cacheKey];
+    if (!cached) return false;
+    return Date.now() - cached.timestamp < CACHE_DURATION;
+  };
+
   useFocusEffect(
     useCallback(() => {
-      loadAccountData();
+      // Charger les données de compte uniquement si le cache est expiré
+      if (!isCacheValid('accountData')) {
+        loadAccountData();
+      } else {
+        // Utiliser les données en cache
+        const cached = dataCache.accountData;
+        if (cached) {
+          setWalletData(cached.data.walletData);
+          setDepositInfo(cached.data.depositInfo);
+          setTransactions(cached.data.transactions);
+          setIncidents(cached.data.incidents);
+          setCurrentSubscription(cached.data.currentSubscription);
+        }
+      }
       
-      if (activeTab === 'requests') {
+      // Charger les données spécifiques à l'onglet uniquement si nécessaire
+      if (activeTab === 'requests' && !isCacheValid('requests')) {
         loadRequests();
-      } else if (activeTab === 'reservations') {
+      } else if (activeTab === 'requests' && isCacheValid('requests')) {
+        const cached = dataCache.requests;
+        if (cached) {
+          setUnlockRequests(cached.data.unlockRequests);
+          setLockRequests(cached.data.lockRequests);
+        }
+      }
+      
+      if (activeTab === 'reservations' && !isCacheValid('reservations')) {
         loadReservations();
+      } else if (activeTab === 'reservations' && isCacheValid('reservations')) {
+        const cached = dataCache.reservations;
+        if (cached) {
+          setReservations(cached.data.reservations);
+        }
       }
       
       return () => {
         // Code de nettoyage si nécessaire
       };
-    }, [activeTab])
+    }, [activeTab, dataCache])
   );
 
   const loadAccountData = async () => {
@@ -82,18 +125,37 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
         incidentService.getIncidents(1, 50)
       ]);
 
-      setWalletData(wallet);
-      setDepositInfo(depositData);
-      setTransactions(userTransactions.transactions || []);
-      setIncidents(userIncidents.incidents || []);
+      const accountData = {
+        walletData: wallet,
+        depositInfo: depositData,
+        transactions: userTransactions.transactions || [],
+        incidents: userIncidents.incidents || [],
+        currentSubscription: null as any,
+      };
 
       try {
         const subscription = await walletService.getCurrentSubscription();
-        setCurrentSubscription(subscription);
+        accountData.currentSubscription = subscription;
       } catch (subscriptionError) {
         console.log('No active subscription found');
-        setCurrentSubscription(null);
+        accountData.currentSubscription = null;
       }
+
+      // Mettre à jour l'état
+      setWalletData(accountData.walletData);
+      setDepositInfo(accountData.depositInfo);
+      setTransactions(accountData.transactions);
+      setIncidents(accountData.incidents);
+      setCurrentSubscription(accountData.currentSubscription);
+
+      // Mettre en cache
+      setDataCache(prev => ({
+        ...prev,
+        accountData: {
+          timestamp: Date.now(),
+          data: accountData,
+        },
+      }));
       
     } catch (error) {
       console.error('Error loading account data:', error);
@@ -110,8 +172,22 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
         bikeRequestService.getUserLockRequests(1, 50)
       ]);
       
-      setUnlockRequests(unlockReqs.data || []);
-      setLockRequests(lockReqs.data || []);
+      const requestsData = {
+        unlockRequests: unlockReqs.data || [],
+        lockRequests: lockReqs.data || [],
+      };
+      
+      setUnlockRequests(requestsData.unlockRequests);
+      setLockRequests(requestsData.lockRequests);
+
+      // Mettre en cache
+      setDataCache(prev => ({
+        ...prev,
+        requests: {
+          timestamp: Date.now(),
+          data: requestsData,
+        },
+      }));
     } catch (error) {
       console.error('Error loading requests:', error);
       toast.error(t('common.error'));
@@ -121,20 +197,41 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
   const loadReservations = async () => {
     try {
       const userReservations = await reservationService.getUserReservations();
-      setReservations(userReservations || []);
+      const reservationsData = {
+        reservations: userReservations || [],
+      };
+      
+      setReservations(reservationsData.reservations);
+
+      // Mettre en cache
+      setDataCache(prev => ({
+        ...prev,
+        reservations: {
+          timestamp: Date.now(),
+          data: reservationsData,
+        },
+      }));
     } catch (error) {
       console.error('Error loading reservations:', error);
       toast.error('Erreur lors du chargement des réservations');
     }
   };
 
-  useEffect(() => {
-    if (activeTab === 'requests') {
-      loadRequests();
-    } else if (activeTab === 'reservations') {
-      loadReservations();
-    }
-  }, [activeTab]);
+  // Fonction pour forcer le rechargement (utile après des actions qui modifient les données)
+  // Note: Cette fonction peut être utilisée après des actions qui modifient les données (ex: rechargement de wallet)
+  // Exemple: invalidateCache('accountData') après un rechargement de wallet
+  // const invalidateCache = (cacheKey?: keyof typeof dataCache) => {
+  //   if (cacheKey) {
+  //     setDataCache(prev => {
+  //       const newCache = { ...prev };
+  //       delete newCache[cacheKey];
+  //       return newCache;
+  //     });
+  //   } else {
+  //     // Invalider tout le cache
+  //     setDataCache({});
+  //   }
+  // };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -405,7 +502,6 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
     const endDate = new Date(reservation.endDate);
     const now = new Date();
     
-    const isActive = reservation.status === 'ACTIVE';
     const isUpcoming = startDate > now;
     const isOngoing = startDate <= now && endDate >= now;
     const isPast = endDate < now;
@@ -467,8 +563,10 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
             <View style={styles.gap4}>
               <Text size="sm" color="#6b7280">Localisation du vélo:</Text>
               <TouchableOpacity 
-                onPress={() => {
+                onPress={async () => {
                   const url = `https://www.google.com/maps/dir/?api=1&destination=${reservation.bike.latitude},${reservation.bike.longitude}`;
+                  const { Linking } = await import('expo-linking');
+                  await Linking.openURL(url);
                 }}
                 style={[styles.row, styles.alignCenter, styles.gap4]}
               >

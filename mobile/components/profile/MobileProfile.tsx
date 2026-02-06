@@ -20,6 +20,7 @@ import { authService } from '@/services/authService';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { documentService, type DocumentsStatus } from '@/services/documentService';
+import { useNotificationSSE } from '@/hooks/useNotificationSSE';
 
 interface MobileProfileProps {
   onNavigate: (screen: string) => void;
@@ -33,7 +34,7 @@ export default function MobileProfile({ onNavigate }: MobileProfileProps) {
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [notifications, setNotifications] = useState(true);
   const [userStats, setUserStats] = useState<UserStats | null>(null);
-  const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const { unreadCount: unreadNotifications } = useNotificationSSE();
   const [isLoading, setIsLoading] = useState(false);
   const [documentsStatus, setDocumentsStatus] = useState<DocumentsStatus | null>(null);
   const isInitialMount = useRef(true);
@@ -74,15 +75,14 @@ export default function MobileProfile({ onNavigate }: MobileProfileProps) {
       isLoadingRef.current = true;
       setIsLoading(true);
       
-      const [stats, unreadCount, notificationsEnabled, docsStatus] = await Promise.all([
+      const [stats, notificationsEnabled, docsStatus] = await Promise.all([
         userService.getStats(),
-        userService.getUnreadNotificationsCount(),
         notificationService.areNotificationsEnabled(),
         documentService.getDocumentsStatus().catch(() => null) // Ne pas bloquer si erreur
       ]);
 
       setUserStats(stats);
-      setUnreadNotifications(unreadCount);
+      // unreadNotifications est déjà géré par useNotificationSSE
       setNotifications(notificationsEnabled);
       setDocumentsStatus(docsStatus);
       

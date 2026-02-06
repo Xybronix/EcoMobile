@@ -87,6 +87,7 @@ const translations: Translations = {
   'error.connectionError': { fr: 'Erreur de connexion au serveur. Vérifiez votre connexion internet.', en: 'Server connection error. Check your internet connection.' },
   'error.invalidJsonResponse': { fr: 'Réponse JSON invalide du serveur', en: 'Invalid JSON response from server' },
   'error.failedAfterRetries': { fr: 'Échec après plusieurs tentatives', en: 'Failed after retries' },
+  'error.badGateway': { fr: 'Erreur de passerelle (502). Le serveur est temporairement indisponible. Veuillez réessayer dans quelques instants.', en: 'Bad Gateway error (502). The server is temporarily unavailable. Please try again in a few moments.' },
 
   // Success messages
   'success.loginSuccessful': { fr: 'Connexion réussie !', en: 'Login successful!' },

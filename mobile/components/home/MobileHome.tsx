@@ -15,6 +15,7 @@ import { ScrollView, TouchableOpacity, View } from 'react-native';
 import { useMobileAuth } from '@/lib/mobile-auth';
 import { useMobileI18n } from '@/lib/mobile-i18n';
 import { MobileHeader } from '@/components/layout/MobileHeader';
+import { cacheService } from '@/services/cacheService';
 
 interface MobileHomeProps {
   onNavigate: (screen: string, data?: unknown) => void;
@@ -169,54 +170,91 @@ export function MobileHome({ onNavigate }: MobileHomeProps) {
   };
 
   useEffect(() => {
-    const loadWalletBalance = async () => {
+    const loadDashboardData = async () => {
       if (!user) return;
       
       try {
         setIsLoadingWallet(true);
-        setWalletError(null);
-        const balance = await walletService.getBalance();
-        setWalletBalance(balance);
-      } catch (error: any) {
-        setWalletError(error.message);
-        setWalletBalance({ balance: 0, currency: 'XAF' });
-      } finally {
-        setIsLoadingWallet(false);
-      }
-    };
-
-    loadWalletBalance();
-  }, [user]);
-
-  useEffect(() => {
-    const loadRidesData = async () => {
-      if (!user) return;
-      
-      try {
         setIsLoadingRides(true);
+        setWalletError(null);
         setRidesError(null);
         
-        const ridesResponse = await rideService.getUserRides({ 
-          page: 1, 
-          limit: 5,
-          status: 'completed'
-        });
-
-        setRecentRides(ridesResponse.rides || []);
+        // Utiliser le cache pour éviter les requêtes inutiles
+        const cacheKey = `dashboard_${user.id}`;
+        const cached = await cacheService.get<{
+          wallet: any;
+          recentRides: any[];
+          stats: {
+            totalRides: number;
+            totalSpent: number;
+            totalDistance: number;
+            lastRideDate: string | null;
+          };
+        }>(cacheKey);
         
-        const stats = await rideService.getRideStats();
-        setRideStats(stats);
-        
+        if (cached) {
+          // Utiliser les données en cache
+          setWalletBalance(cached.wallet || { balance: 0, currency: 'XAF' });
+          setRecentRides(cached.recentRides || []);
+          setRideStats({
+            totalRides: cached.stats.totalRides,
+            totalDistance: cached.stats.totalDistance,
+            totalDuration: 0,
+            totalCost: cached.stats.totalSpent,
+            averageDistance: 0,
+            averageDuration: 0,
+          });
+          setIsLoadingWallet(false);
+          setIsLoadingRides(false);
+          
+          // Recharger en arrière-plan pour mettre à jour
+          loadDashboardDataFromAPI(cacheKey);
+        } else {
+          // Pas de cache, charger depuis l'API
+          await loadDashboardDataFromAPI(cacheKey);
+        }
       } catch (error: any) {
+        setWalletError(error.message);
         setRidesError(error.message);
+        setWalletBalance({ balance: 0, currency: 'XAF' });
         setRecentRides([]);
         setRideStats(null);
-      } finally {
+        setIsLoadingWallet(false);
         setIsLoadingRides(false);
       }
     };
 
-    loadRidesData();
+    const loadDashboardDataFromAPI = async (cacheKey: string) => {
+      try {
+        // Utiliser l'endpoint groupé pour récupérer toutes les données en une seule requête
+        const dashboardData = await userService.getDashboard();
+        
+        setWalletBalance(dashboardData.wallet || { balance: 0, currency: 'XAF' });
+        setRecentRides(dashboardData.recentRides || []);
+        setRideStats({
+          totalRides: dashboardData.stats.totalRides,
+          totalDistance: dashboardData.stats.totalDistance,
+          totalDuration: 0,
+          totalCost: dashboardData.stats.totalSpent,
+          averageDistance: 0,
+          averageDuration: 0,
+        });
+        
+        // Mettre en cache pour 2 minutes
+        await cacheService.set(cacheKey, {
+          wallet: dashboardData.wallet,
+          recentRides: dashboardData.recentRides,
+          stats: dashboardData.stats,
+        }, 2 * 60 * 1000);
+      } catch (error: any) {
+        throw error;
+      } finally {
+        setIsLoadingWallet(false);
+        setIsLoadingRides(false);
+      }
+    };
+
+    loadDashboardData();
   }, [user]);
 
   const refreshWallet = async () => {

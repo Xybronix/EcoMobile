@@ -143,6 +143,39 @@ class UserService {
     }
   }
 
+  /**
+   * Récupère toutes les données du dashboard en une seule requête (optimisé)
+   */
+  async getDashboard(): Promise<{
+    wallet: any;
+    deposit: any;
+    recentRides: any[];
+    stats: {
+      totalRides: number;
+      totalSpent: number;
+      totalDistance: number;
+      lastRideDate: string | null;
+    };
+    subscription: any | null;
+  }> {
+    const headers = await this.getAuthHeaders();
+    
+    try {
+      const response = await fetch(`${this.baseUrl}/dashboard`, {
+        method: 'GET',
+        headers,
+      });
+
+      const result = await handleApiResponse(response);
+      return result.data;
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new Error(this.getErrorMessage(error));
+      }
+      throw new Error('network_error');
+    }
+  }
+
   async getStats(): Promise<UserStats> {
     const headers = await this.getAuthHeaders();
     

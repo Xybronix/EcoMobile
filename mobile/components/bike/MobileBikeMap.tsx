@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable react-hooks/exhaustive-deps */
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -20,6 +19,8 @@ import { RefreshControl, ScrollView, TouchableOpacity, View } from 'react-native
 import * as Location from 'expo-location';
 import { useMobileI18n } from '@/lib/mobile-i18n';
 import { MobileHeader } from '@/components/layout/MobileHeader';
+import { debounce } from '@/utils/debounce';
+import { cacheService } from '@/services/cacheService';
 
 interface MobileBikeMapProps {
   onNavigate: (screen: string, data?: unknown) => void;
@@ -73,18 +74,37 @@ export function MobileBikeMap({ onNavigate }: MobileBikeMapProps) {
     loadAreas();
   }, []);
 
+  // OPTIMISATION: Utiliser le cache et debouncing pour éviter les requêtes inutiles
+  const loadActiveBikesDebounced = useRef(
+    debounce((applyRadiusFilter: boolean) => {
+      loadActiveBikes(applyRadiusFilter);
+    }, 500) // Attendre 500ms après le dernier changement
+  ).current;
+
   useEffect(() => {
     // Charger les vélos une fois que la localisation est disponible
     // Au chargement initial, charger tous les vélos sans filtre de rayon
     if (userLocation || searchLocation) {
-      loadActiveBikes();
+      // Vérifier le cache d'abord
+      const cacheKey = `bikes_${userLocation?.lat}_${userLocation?.lng}_${maxDistance}_${minBattery}`;
+      cacheService.get<Bike[]>(cacheKey).then((cached) => {
+        if (cached) {
+          setBikes(cached);
+          setIsLoading(false);
+        } else {
+          loadActiveBikes(false);
+        }
+      }).catch(() => {
+        loadActiveBikes(false);
+      });
     }
   }, [userLocation, searchLocation]);
 
-  // Recharger les vélos quand les filtres changent (seulement si les filtres ont été appliqués)
+  // Recharger les vélos quand les filtres changent (avec debouncing)
   useEffect(() => {
     if (filtersApplied && (userLocation || searchLocation)) {
-      loadActiveBikes();
+      // Utiliser debouncing pour éviter les requêtes multiples lors de changements rapides
+      loadActiveBikesDebounced(true);
     }
   }, [maxDistance, minBattery, searchMode, selectedArea, filtersApplied]);
 
@@ -155,12 +175,36 @@ export function MobileBikeMap({ onNavigate }: MobileBikeMapProps) {
         }
       }
 
-      const result = await bikeService.getAvailableBikes(filters, 1, 50);
+      // Vérifier le cache
+      const cacheKey = `bikes_${referenceLocation.lat}_${referenceLocation.lng}_${maxDistance}_${minBattery}`;
+      const cached = await cacheService.get<Bike[]>(cacheKey);
       
-      setBikes(result.bikes || []);
+      if (cached) {
+        setBikes(cached);
+        setIsLoading(false);
+        // Recharger en arrière-plan pour mettre à jour
+        loadBikesFromAPI(filters, cacheKey);
+      } else {
+        await loadBikesFromAPI(filters, cacheKey);
+      }
     } catch (error) {
       console.error('Error loading bikes:', error);
       toast.error(t('common.error'));
+      setIsLoading(false);
+    }
+  };
+
+  const loadBikesFromAPI = async (filters: any, cacheKey: string) => {
+    try {
+      const result = await bikeService.getAvailableBikes(filters, 1, 50);
+      const bikes = result.bikes || [];
+      
+      setBikes(bikes);
+      
+      // Mettre en cache pour 2 minutes
+      await cacheService.set(cacheKey, bikes, 2 * 60 * 1000);
+    } catch (error) {
+      throw error;
     } finally {
       setIsLoading(false);
     }

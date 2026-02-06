@@ -1,6 +1,7 @@
 import Constants from 'expo-constants';
 import { getTranslationSync } from '../mobile-i18n';
 import { storage } from '../../utils/storage';
+import { loggerService } from '../../services/loggerService';
 
 // Cache pour la langue
 let cachedLanguage: 'fr' | 'en' | null = null;
@@ -75,9 +76,9 @@ export class ApiError extends Error {
 // Intercepteur de requêtes avec gestion améliorée des erreurs
 export const handleApiResponse = async (response: Response) => {
   if (!response.ok) {
-    let errorData;
+    let errorData: { error?: string; message?: string; code?: string } = {};
     try {
-      errorData = await response.json();
+      errorData = await response.json() as { error?: string; message?: string; code?: string };
     } catch {
       errorData = { 
         error: `HTTP ${response.status} - ${response.statusText}`,
@@ -89,12 +90,43 @@ export const handleApiResponse = async (response: Response) => {
     // Le backend peut renvoyer soit 'error' soit 'message', on prend les deux en compte
     const backendErrorMessage = errorData.error || errorData.message || `Request failed with status ${response.status}`;
     
+    // Gestion spéciale pour les erreurs 502 (Bad Gateway)
+    // Cela peut indiquer que le serveur backend n'est pas accessible ou qu'il y a un problème de proxy
+    if (response.status === 502) {
+      const language = await getCurrentLanguage();
+      const translatedMessage = getTranslationSync('error.badGateway', language);
+      
+      // Logger l'erreur 502
+      await loggerService.logApiError(
+        `Bad Gateway (502): ${translatedMessage}`,
+        response.url || 'Unknown URL',
+        'GET',
+        502,
+        { errorData, statusText: response.statusText }
+      );
+      
+      throw new ApiError(
+        response.status,
+        translatedMessage,
+        'BAD_GATEWAY'
+      );
+    }
+    
     // Gestion spéciale pour les erreurs 503 (Service Unavailable)
     // Cela peut indiquer que le serveur est en veille (Render.com free tier)
     if (response.status === 503) {
-      console.error('[API Error] Service Unavailable (503) - Le serveur peut être en veille');
       const language = await getCurrentLanguage();
       const translatedMessage = getTranslationSync('error.serviceUnavailableMessage', language);
+      
+      // Logger l'erreur 503
+      await loggerService.logApiError(
+        `Service Unavailable (503): ${translatedMessage}`,
+        response.url || 'Unknown URL',
+        'GET',
+        503,
+        { errorData, statusText: response.statusText }
+      );
+      
       throw new ApiError(
         response.status,
         translatedMessage,
@@ -106,12 +138,31 @@ export const handleApiResponse = async (response: Response) => {
     if (response.status === 0 || response.status === 408) {
       const language = await getCurrentLanguage();
       const translatedMessage = getTranslationSync('error.connectionError', language);
+      
+      // Logger l'erreur de connexion
+      await loggerService.logApiError(
+        `Connection Error (${response.status}): ${translatedMessage}`,
+        response.url || 'Unknown URL',
+        'GET',
+        response.status,
+        { errorData, statusText: response.statusText }
+      );
+      
       throw new ApiError(
         response.status,
         translatedMessage,
         'NETWORK_ERROR'
       );
     }
+    
+    // Logger toutes les autres erreurs HTTP
+    await loggerService.logApiError(
+      `HTTP ${response.status}: ${backendErrorMessage}`,
+      response.url || 'Unknown URL',
+      'GET',
+      response.status,
+      { errorData, statusText: response.statusText }
+    );
     
     // Si c'est un 403 (Forbidden), déconnecter l'utilisateur automatiquement
     if (response.status === 403) {
@@ -137,6 +188,14 @@ export const handleApiResponse = async (response: Response) => {
     const language = await getCurrentLanguage();
     const baseMessage = getTranslationSync('error.invalidJsonResponse', language);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    
+    // Logger l'erreur de parsing JSON
+    await loggerService.logError(
+      `Invalid JSON Response: ${baseMessage}`,
+      error instanceof Error ? error : new Error(errorMessage),
+      { url: response.url, status: response.status }
+    );
+    
     throw new ApiError(500, `${baseMessage}: ${errorMessage}`, 'INVALID_JSON');
   }
 };
@@ -158,15 +217,15 @@ export const fetchWithRetry = async (
       try {
         const response = await fetch(url, {
           ...options,
-          signal: controller.signal,
+          signal: controller.signal as any, // Type assertion pour compatibilité React Native
         });
         
         clearTimeout(timeoutId);
         
-        // Si c'est un 503, on réessaie
-        if (response.status === 503 && attempt < retries - 1) {
+        // Si c'est un 502 (Bad Gateway) ou 503 (Service Unavailable), on réessaie
+        if ((response.status === 502 || response.status === 503) && attempt < retries - 1) {
           if (__DEV__) {
-            console.log(`[API Retry] Tentative ${attempt + 1}/${retries} - Service Unavailable (503), nouvelle tentative dans ${API_CONFIG.RETRY_DELAY * (attempt + 1)}ms...`);
+            console.log(`[API Retry] Tentative ${attempt + 1}/${retries} - ${response.status === 502 ? 'Bad Gateway (502)' : 'Service Unavailable (503)'}, nouvelle tentative dans ${API_CONFIG.RETRY_DELAY * (attempt + 1)}ms...`);
           }
           await new Promise(resolve => setTimeout(resolve, API_CONFIG.RETRY_DELAY * (attempt + 1)));
           continue;
@@ -179,6 +238,16 @@ export const fetchWithRetry = async (
       }
     } catch (error) {
       lastError = error instanceof Error ? error : new Error('Unknown error');
+      
+      // Logger l'erreur de tentative
+      await loggerService.logWarning(
+        `API Retry attempt ${attempt + 1}/${retries} failed`,
+        {
+          url,
+          error: lastError.message,
+          errorName: lastError.name,
+        }
+      );
       
       // Si c'est une erreur réseau/timeout et qu'il reste des tentatives, on réessaie
       if (attempt < retries - 1) {
@@ -198,6 +267,14 @@ export const fetchWithRetry = async (
       
       // Si ce n'est pas une erreur réseau ou qu'on a épuisé les tentatives, on propage l'erreur
       if (attempt === retries - 1) {
+        // Logger l'erreur finale après toutes les tentatives
+        await loggerService.logApiError(
+          `Failed after ${retries} retries: ${lastError.message}`,
+          url,
+          options.method || 'GET',
+          undefined,
+          { error: lastError.message, errorName: lastError.name }
+        );
         throw lastError;
       }
     }
