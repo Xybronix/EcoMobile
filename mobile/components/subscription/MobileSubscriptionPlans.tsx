@@ -1,32 +1,19 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable react-hooks/exhaustive-deps */
-import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Text } from '@/components/ui/Text';
 import { toast } from '@/components/ui/Toast';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { subscriptionService } from '@/services/subscriptionService';
+import { subscriptionService, SubscriptionPackage, SubscriptionFormula, ActiveSubscription } from '@/services/subscriptionService';
 import { walletService } from '@/services/walletService';
 import { getGlobalStyles } from '@/styles/globalStyles';
 import { haptics } from '@/utils/haptics';
-import { ArrowLeft, Check, Clock, CreditCard, Star, Zap } from 'lucide-react-native';
+import { ArrowLeft, Check, CreditCard, Star, X } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
-import { ScrollView, TouchableOpacity, View, Alert } from 'react-native';
+import { ScrollView, TouchableOpacity, View, Alert, Modal } from 'react-native';
 import { useMobileI18n } from '@/lib/mobile-i18n';
 import { useMobileAuth } from '@/lib/mobile-auth';
-
-interface Plan {
-  id: string;
-  name: string;
-  hourlyRate: number;
-  dailyRate: number;
-  weeklyRate: number;
-  monthlyRate: number;
-  discount: number;
-  features: string[];
-  isPopular?: boolean;
-}
 
 interface MobileSubscriptionPlansProps {
   onBack: () => void;
@@ -39,39 +26,34 @@ export function MobileSubscriptionPlans({ onBack, onNavigate }: MobileSubscripti
   const colorScheme = useColorScheme();
   const styles = getGlobalStyles(colorScheme);
   
-  const [plans, setPlans] = useState<Plan[]>([]);
-  const [selectedPlan, setSelectedPlan] = useState<string>('');
-  const [selectedPackage, setSelectedPackage] = useState<'daily' | 'weekly' | 'monthly'>('daily');
+  const [packages, setPackages] = useState<SubscriptionPackage[]>([]);
+  const [selectedPackageId, setSelectedPackageId] = useState<string>('');
+  const [selectedFormula, setSelectedFormula] = useState<SubscriptionFormula | null>(null);
+  const [selectedPackage, setSelectedPackage] = useState<SubscriptionPackage | null>(null);
   const [walletData, setWalletData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [currentSubscription, setCurrentSubscription] = useState<ActiveSubscription | null>(null);
+  const [isChangeModalOpen, setIsChangeModalOpen] = useState(false);
 
   useEffect(() => {
-    loadPlans();
+    loadPackages();
     loadWalletData();
+    loadCurrentSubscription();
   }, []);
 
-  const loadPlans = async () => {
+  const loadPackages = async () => {
     try {
       setIsLoading(true);
-      const availablePlans = await subscriptionService.getAvailablePlans();
+      const availablePackages = await subscriptionService.getAvailablePackages();
+      setPackages(availablePackages);
       
-      // Filtrer les plans pour n'afficher que ceux avec au moins un format rempli
-      const filteredPlans = availablePlans.filter(plan => {
-        const hasFilledFormat = 
-          (plan.hourlyRate && plan.hourlyRate > 0) ||
-          (plan.dailyRate && plan.dailyRate > 0) ||
-          (plan.weeklyRate && plan.weeklyRate > 0) ||
-          (plan.monthlyRate && plan.monthlyRate > 0);
-        return hasFilledFormat;
-      });
-      
-      setPlans(filteredPlans);
-      if (filteredPlans.length > 0) {
-        setSelectedPlan(filteredPlans[0].id);
+      if (availablePackages.length > 0) {
+        setSelectedPackageId(availablePackages[0].id);
+        setSelectedPackage(availablePackages[0]);
       }
     } catch (error) {
-      console.error('Error loading plans:', error);
+      console.error('Error loading packages:', error);
       toast.error(t('subscription.error.loading'));
     } finally {
       setIsLoading(false);
@@ -87,79 +69,31 @@ export function MobileSubscriptionPlans({ onBack, onNavigate }: MobileSubscripti
     }
   };
 
-  // Options de package avec filtre pour n'afficher que celles avec prix > 0
-  const getPackageOptions = (plan: Plan | undefined) => {
-    if (!plan) return [];
-    
-    const allOptions = [
-      {
-        key: 'hourly' as const,
-        label: t('subscription.package.hourly'),
-        description: t('subscription.package.hourlyDesc'),
-        icon: Clock,
-        getRateKey: (p: Plan) => p.hourlyRate,
-        rate: plan.hourlyRate
-      },
-      {
-        key: 'daily' as const,
-        label: t('subscription.package.daily'),
-        description: t('subscription.package.dailyDesc'),
-        icon: Clock,
-        getRateKey: (p: Plan) => p.dailyRate,
-        rate: plan.dailyRate
-      },
-      {
-        key: 'weekly' as const,
-        label: t('subscription.package.weekly'), 
-        description: t('subscription.package.weeklyDesc'),
-        icon: Star,
-        getRateKey: (p: Plan) => p.weeklyRate,
-        rate: plan.weeklyRate
-      },
-      {
-        key: 'monthly' as const,
-        label: t('subscription.package.monthly'),
-        description: t('subscription.package.monthlyDesc'),
-        icon: Zap,
-        getRateKey: (p: Plan) => p.monthlyRate,
-        rate: plan.monthlyRate
-      }
-    ];
-    
-    // Filtrer pour n'afficher que les formats avec prix > 0
-    return allOptions.filter(option => option.rate && option.rate > 0);
-  };
-
-  const selectedPlanData = plans.find(p => p.id === selectedPlan);
-  const availablePackageOptions = getPackageOptions(selectedPlanData);
-  const selectedPackageData = availablePackageOptions.find(p => p.key === selectedPackage);
-  
-  // Réinitialiser le package sélectionné si l'option n'est plus disponible
-  React.useEffect(() => {
-    if (selectedPlanData && availablePackageOptions.length > 0) {
-      if (!availablePackageOptions.find(p => p.key === selectedPackage)) {
-        setSelectedPackage(availablePackageOptions[0].key as any);
-      }
+  const loadCurrentSubscription = async () => {
+    try {
+      const subscription = await subscriptionService.getCurrentSubscription();
+      setCurrentSubscription(subscription);
+    } catch (error) {
+      console.error('Error loading subscription:', error);
     }
-  }, [selectedPlan, selectedPlanData]);
-
-  const getPrice = () => {
-    if (!selectedPlanData || !selectedPackageData) return 0;
-    return selectedPackageData.getRateKey(selectedPlanData);
   };
+
+  const getFormulasForPackage = (packageId: string) => {
+    const pkg = packages.find(p => p.id === packageId);
+    return pkg?.formulas || [];
+  };
+
+  const formulas = selectedPackageId ? getFormulasForPackage(selectedPackageId) : [];
 
   const handleSubscribe = async () => {
-    if (!selectedPlanData || !user) {
-      toast.error(t('subscription.selectPlanError'));
+    if (!selectedFormula || !user) {
+      toast.error(t('subscription.error.selectFormula'));
       return;
     }
 
-    const price = getPrice();
-    
-    // Vérifier le solde
     const currentBalance = walletData?.balance || 0;
 
-    if (currentBalance < price) {
+    if (currentBalance < selectedFormula.price) {
       haptics.error();
       Alert.alert(
         t('subscription.insufficientBalance.title'),
@@ -176,20 +110,19 @@ export function MobileSubscriptionPlans({ onBack, onNavigate }: MobileSubscripti
       setIsSubmitting(true);
       
       await subscriptionService.subscribe({
-        planId: selectedPlan,
-        packageType: selectedPackage,
+        formulaId: selectedFormula.id,
         startDate: new Date()
       });
 
       haptics.success();
       toast.success(t('subscription.success.title'));
       
+      await loadCurrentSubscription();
+      await loadWalletData();
+      
       Alert.alert(
         t('subscription.success.title'),
-        `${t('subscription.success.message')} ${ 
-          selectedPlanData.name, 
-          selectedPackageData?.label 
-        }`,
+        `${t('subscription.success.message')} ${selectedPackage?.name} - ${selectedFormula.name}`,
         [
           { text: t('subscription.success.ok'), onPress: () => onBack() }
         ]
@@ -198,6 +131,56 @@ export function MobileSubscriptionPlans({ onBack, onNavigate }: MobileSubscripti
     } catch (error: any) {
       haptics.error();
       toast.error(error.message || t('subscription.error.subscribing'));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleCancelSubscription = async () => {
+    if (!currentSubscription) return;
+
+    Alert.alert(
+      t('subscription.cancel.title'),
+      t('subscription.cancel.confirm'),
+      [
+        { 
+          text: t('subscription.cancel.no'), 
+          style: 'cancel' 
+        },
+        { 
+          text: t('subscription.cancel.yes'), 
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await subscriptionService.cancelSubscription(currentSubscription.id);
+              haptics.success();
+              toast.success(t('subscription.cancel.success'));
+              await loadCurrentSubscription();
+              await loadWalletData();
+            } catch (error: any) {
+              haptics.error();
+              toast.error(error.message);
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handleChangeSubscription = async (newFormulaId: string) => {
+    if (!currentSubscription) return;
+
+    try {
+      setIsSubmitting(true);
+      await subscriptionService.changeSubscription(currentSubscription.id, newFormulaId);
+      haptics.success();
+      toast.success(t('subscription.change.success'));
+      await loadCurrentSubscription();
+      await loadWalletData();
+      setIsChangeModalOpen(false);
+    } catch (error: any) {
+      haptics.error();
+      toast.error(error.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -239,201 +222,295 @@ export function MobileSubscriptionPlans({ onBack, onNavigate }: MobileSubscripti
         contentContainerStyle={[styles.p16, styles.gap16]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Plans Selection */}
-        <View style={styles.gap16}>
-          <Text variant="body" color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
-            {t('subscription.plans.selectPlan')}
-          </Text>
-          
-          {plans.map((plan) => (
-            <TouchableOpacity
-              key={plan.id}
-              onPress={() => {
-                setSelectedPlan(plan.id);
-                haptics.light();
-              }}
-              style={[
-                styles.card,
-                styles.p16,
-                {
-                  borderWidth: selectedPlan === plan.id ? 2 : 1,
-                  borderColor: selectedPlan === plan.id ? '#16a34a' : (colorScheme === 'light' ? '#e5e7eb' : '#4b5563'),
-                  backgroundColor: selectedPlan === plan.id ? '#f0fdf4' : (colorScheme === 'light' ? 'white' : '#1f2937')
-                }
-              ]}
-            >
-              <View style={[styles.row, styles.spaceBetween, styles.alignCenter, styles.mb8]}>
-                <Text 
-                  variant="body" 
-                  color={selectedPlan === plan.id ? '#16a34a' : (colorScheme === 'light' ? '#111827' : '#f9fafb')}
-                  weight="bold"
-                >
-                  {plan.name}
-                </Text>
-                {plan.isPopular && (
-                  <Badge variant="default">
-                    <Text color="white" size="xs">{t('subscription.plans.popular')}</Text>
-                  </Badge>
-                )}
-              </View>
-              
-              {/* Afficher uniquement les formats avec prix > 0 */}
-              <View style={[styles.row, { flexWrap: 'wrap' }, styles.gap8, styles.mb8]}>
-                {plan.hourlyRate > 0 && (
-                  <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
-                    {t('subscription.plans.hourlyRate')}: {plan.hourlyRate.toLocaleString('fr-FR')} {t('subscription.plans.currency')}
-                  </Text>
-                )}
-                {plan.dailyRate > 0 && (
-                  <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
-                    {t('subscription.plans.dailyRate')}: {plan.dailyRate.toLocaleString('fr-FR')} {t('subscription.plans.currency')}
-                  </Text>
-                )}
-                {plan.weeklyRate > 0 && (
-                  <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
-                    {t('subscription.plans.weeklyRate')}: {plan.weeklyRate.toLocaleString('fr-FR')} {t('subscription.plans.currency')}
-                  </Text>
-                )}
-                {plan.monthlyRate > 0 && (
-                  <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
-                    {t('subscription.plans.monthlyRate')}: {plan.monthlyRate.toLocaleString('fr-FR')} {t('subscription.plans.currency')}
-                  </Text>
-                )}
-              </View>
-              
-              {plan.discount > 0 && (
-                <Text size="sm" color="#16a34a" style={styles.mb8}>
-                  {t('subscription.plans.discount')}: {plan.discount}%
-                </Text>
-              )}
-              
-              <View style={[styles.row, { flexWrap: 'wrap' }, styles.gap4]}>
-                {plan.features?.map((feature, index) => (
-                  <View key={index} style={[styles.row, styles.alignCenter, styles.gap4]}>
-                    <Check size={12} color="#16a34a" />
-                    <Text size="xs" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
-                      {feature}
-                    </Text>
-                  </View>
-                ))}
-              </View>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* Package Type Selection */}
-        <View style={styles.gap16}>
-          <Text variant="body" color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
-            {t('subscription.plans.selectDuration')}
-          </Text>
-          
-          {availablePackageOptions.map((option) => {
-            const Icon = option.icon;
-            const price = selectedPlanData ? option.getRateKey(selectedPlanData) : 0;
-            
-            return (
-              <TouchableOpacity
-                key={option.key}
-                onPress={() => {
-                  setSelectedPackage(option.key as any);
-                  haptics.light();
-                }}
-                style={[
-                  styles.card,
-                  styles.p16,
-                  {
-                    borderWidth: selectedPackage === option.key ? 2 : 1,
-                    borderColor: selectedPackage === option.key ? '#16a34a' : (colorScheme === 'light' ? '#e5e7eb' : '#4b5563'),
-                    backgroundColor: selectedPackage === option.key ? '#f0fdf4' : (colorScheme === 'light' ? 'white' : '#1f2937')
-                  }
-                ]}
-              >
-                <View style={[styles.row, styles.spaceBetween, styles.alignCenter]}>
-                  <View style={[styles.row, styles.alignCenter, styles.gap12]}>
-                    <Icon 
-                      size={24} 
-                      color={selectedPackage === option.key ? '#16a34a' : (colorScheme === 'light' ? '#6b7280' : '#9ca3af')} 
-                    />
-                    <View>
-                      <Text 
-                        variant="body" 
-                        color={selectedPackage === option.key ? '#16a34a' : (colorScheme === 'light' ? '#111827' : '#f9fafb')}
-                      >
-                        {option.label}
-                      </Text>
-                      <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
-                        {option.description}
-                      </Text>
-                    </View>
-                  </View>
-                  
-                  <View style={styles.alignEnd}>
-                    <Text variant="body" color="#16a34a" weight="bold">
-                      {price.toLocaleString('fr-FR')} {t('subscription.plans.currency')}
-                    </Text>
-                  </View>
-                </View>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-
-        {/* Summary */}
-        {selectedPlanData && (
-          <Card style={[styles.p16, { backgroundColor: '#f0fdf4', borderColor: '#16a34a' }]}>
-            <Text variant="body" color="#111827" style={styles.mb12}>
-              {t('subscription.summary.title')}
-            </Text>
-            
-            <View style={[styles.row, styles.spaceBetween, styles.mb4]}>
-              <Text size="sm" color="#6b7280">{t('subscription.summary.plan')}</Text>
-              <Text size="sm" color="#111827">{selectedPlanData.name}</Text>
-            </View>
-            
-            <View style={[styles.row, styles.spaceBetween, styles.mb4]}>
-              <Text size="sm" color="#6b7280">{t('subscription.summary.package')}</Text>
-              <Text size="sm" color="#111827">{selectedPackageData?.label}</Text>
-            </View>
-            
-            <View style={[styles.row, styles.spaceBetween, styles.mb4]}>
-              <Text size="sm" color="#6b7280">{t('subscription.summary.currentBalance')}</Text>
-              <Text size="sm" color="#111827">{(walletData?.balance || 0).toLocaleString('fr-FR')} {t('subscription.plans.currency')}</Text>
-            </View>
-            
-            <View style={[styles.row, styles.spaceBetween, { paddingTop: 8, borderTopWidth: 1, borderTopColor: '#d1fae5' }]}>
-              <Text variant="body" color="#111827">{t('subscription.summary.totalPrice')}</Text>
-              <Text variant="body" color="#16a34a" weight="bold">
-                {getPrice().toLocaleString('fr-FR')} {t('subscription.plans.currency')}
+        
+        {/* Current Subscription Display */}
+        {currentSubscription && (
+          <Card style={[styles.p16, { backgroundColor: '#dbeafe', borderColor: '#0284c7' }]}>
+            <View style={[styles.row, styles.spaceBetween, styles.alignCenter, styles.mb8]}>
+              <Text variant="body" color="#0c4a6e" weight="bold">
+                {t('subscription.current.active')}
               </Text>
+              <Star size={20} color="#0284c7" fill="#0284c7" />
+            </View>
+            
+            <Text size="sm" color="#0c4a6e" style={styles.mb8}>
+              <Text weight="bold">{currentSubscription.packageName}</Text>
+              {' - '}
+              <Text weight="bold">{currentSubscription.formulaName}</Text>
+            </Text>
+
+            <View style={[styles.column, styles.gap8, styles.mb12]}>
+              <View style={[styles.row, styles.spaceBetween]}>
+                <Text size="xs" color="#0c4a6e">{t('subscription.current.daysRemaining')}</Text>
+                <Text size="xs" color="#0c4a6e" weight="bold">{currentSubscription.remainingDays}</Text>
+              </View>
+              <View style={[styles.row, styles.spaceBetween]}>
+                <Text size="xs" color="#0c4a6e">{t('subscription.current.expiresAt')}</Text>
+                <Text size="xs" color="#0c4a6e">{new Date(currentSubscription.endDate).toLocaleDateString('fr-FR')}</Text>
+              </View>
+              <View style={[styles.row, styles.spaceBetween]}>
+                <Text size="xs" color="#0c4a6e">{t('subscription.current.hours')}</Text>
+                <Text size="xs" color="#0c4a6e">{currentSubscription.dayStartHour}h - {currentSubscription.dayEndHour}h</Text>
+              </View>
+            </View>
+
+            <View style={[styles.row, styles.gap8]}>
+              <Button 
+                onPress={() => setIsChangeModalOpen(true)}
+                style={{ 
+                  flex: 1,
+                  backgroundColor: '#0284c7'
+                }}
+              >
+                <Text color="white">{t('subscription.change.title')}</Text>
+              </Button>
+              <Button 
+                onPress={handleCancelSubscription}
+                style={{ 
+                  flex: 1,
+                  backgroundColor: '#dc2626'
+                }}
+              >
+                <Text color="white">{t('subscription.cancel.title')}</Text>
+              </Button>
             </View>
           </Card>
         )}
 
-        {/* Subscribe Button */}
-        <Button 
-          onPress={handleSubscribe}
-          disabled={isSubmitting || !selectedPlanData || !selectedPackageData}
-          fullWidth
-          style={{ 
-            backgroundColor: '#16a34a',
-            opacity: (isSubmitting || !selectedPlanData || !selectedPackageData) ? 0.6 : 1
-          }}
-        >
-          <View style={[styles.row, styles.alignCenter, styles.gap4]}>
-            <CreditCard size={16} color="white" />
-            <Text style={styles.ml8} color="white">
-              {isSubmitting 
-                ? t('subscription.subscribing') 
-                : t('subscription.subscribe', { price: getPrice() })
-              }
-            </Text>
-          </View>
-        </Button>
+        {/* No Subscription - Show options to subscribe */}
+        {!currentSubscription && (
+          <>
+            {/* Packages Selection */}
+            <View style={styles.gap16}>
+              <Text variant="body" color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
+                {t('subscription.plans.selectPackage')}
+              </Text>
+              
+              {packages.map((pkg) => (
+                <TouchableOpacity
+                  key={pkg.id}
+                  onPress={() => {
+                    setSelectedPackageId(pkg.id);
+                    setSelectedPackage(pkg);
+                    setSelectedFormula(null);
+                    haptics.light();
+                  }}
+                  style={[
+                    styles.card,
+                    styles.p16,
+                    {
+                      borderWidth: selectedPackageId === pkg.id ? 2 : 1,
+                      borderColor: selectedPackageId === pkg.id ? '#16a34a' : (colorScheme === 'light' ? '#e5e7eb' : '#4b5563'),
+                      backgroundColor: selectedPackageId === pkg.id ? '#f0fdf4' : (colorScheme === 'light' ? 'white' : '#1f2937')
+                    }
+                  ]}
+                >
+                  <Text 
+                    variant="body" 
+                    color={selectedPackageId === pkg.id ? '#16a34a' : (colorScheme === 'light' ? '#111827' : '#f9fafb')}
+                    weight="bold"
+                  >
+                    {pkg.name}
+                  </Text>
+                  {pkg.description && (
+                    <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={styles.mt4}>
+                      {pkg.description}
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              ))}
+            </View>
 
-        <Text size="xs" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={styles.textCenter}>
-          {t('subscription.footer')}
-        </Text>
+            {/* Formulas Selection */}
+            {formulas.length > 0 && (
+              <View style={styles.gap16}>
+                <Text variant="body" color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
+                  {t('subscription.plans.selectFormula')}
+                </Text>
+                
+                {formulas.map((formula) => (
+                  <TouchableOpacity
+                    key={formula.id}
+                    onPress={() => {
+                      setSelectedFormula(formula);
+                      haptics.light();
+                    }}
+                    style={[
+                      styles.card,
+                      styles.p16,
+                      {
+                        borderWidth: selectedFormula?.id === formula.id ? 2 : 1,
+                        borderColor: selectedFormula?.id === formula.id ? '#16a34a' : (colorScheme === 'light' ? '#e5e7eb' : '#4b5563'),
+                        backgroundColor: selectedFormula?.id === formula.id ? '#f0fdf4' : (colorScheme === 'light' ? 'white' : '#1f2937')
+                      }
+                    ]}
+                  >
+                    <View style={[styles.row, styles.spaceBetween, styles.alignCenter, styles.mb8]}>
+                      <View style={styles.flex1}>
+                        <Text 
+                          variant="body" 
+                          color={selectedFormula?.id === formula.id ? '#16a34a' : (colorScheme === 'light' ? '#111827' : '#f9fafb')}
+                          weight="bold"
+                        >
+                          {formula.name}
+                        </Text>
+                        {formula.description && (
+                          <Text size="sm" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
+                            {formula.description}
+                          </Text>
+                        )}
+                      </View>
+                      <View style={styles.alignEnd}>
+                        <Text variant="body" color="#16a34a" weight="bold">
+                          {formula.price.toLocaleString('fr-FR')}
+                        </Text>
+                        <Text size="xs" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
+                          {t('subscription.currency')}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* Formula Details */}
+                    <View style={[styles.column, styles.gap4, { borderTopWidth: 1, borderTopColor: colorScheme === 'light' ? '#e5e7eb' : '#4b5563', paddingTop: 8 }]}>
+                      <View style={[styles.row, styles.spaceBetween]}>
+                        <Text size="xs" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
+                          {t('subscription.duration')}
+                        </Text>
+                        <Text size="xs" color={colorScheme === 'light' ? '#111827' : '#f9fafb'} weight="bold">
+                          {formula.numberOfDays} {formula.numberOfDays === 1 ? 'jour' : 'jours'}
+                        </Text>
+                      </View>
+                      <View style={[styles.row, styles.spaceBetween]}>
+                        <Text size="xs" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
+                          {t('subscription.hours')}
+                        </Text>
+                        <Text size="xs" color={colorScheme === 'light' ? '#111827' : '#f9fafb'} weight="bold">
+                          {formula.dayStartHour}h - {formula.dayEndHour}h
+                        </Text>
+                      </View>
+                      {formula.chargeAfterHours && formula.afterHoursPrice && (
+                        <View style={[styles.row, styles.spaceBetween]}>
+                          <Text size="xs" color="#dc2626">
+                            {t('subscription.afterHours')}
+                          </Text>
+                          <Text size="xs" color="#dc2626" weight="bold">
+                            {formula.afterHoursPrice.toLocaleString('fr-FR')} {t('subscription.currency')}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+
+            {/* Summary and Subscribe */}
+            {selectedFormula && selectedPackage && (
+              <>
+                <Card style={[styles.p16, { backgroundColor: '#f0fdf4', borderColor: '#16a34a' }]}>
+                  <Text variant="body" color="#111827" style={styles.mb12}>
+                    {t('subscription.summary.title')}
+                  </Text>
+                  
+                  <View style={[styles.row, styles.spaceBetween, styles.mb4]}>
+                    <Text size="sm" color="#6b7280">{t('subscription.summary.package')}</Text>
+                    <Text size="sm" color="#111827">{selectedPackage.name}</Text>
+                  </View>
+                  
+                  <View style={[styles.row, styles.spaceBetween, styles.mb4]}>
+                    <Text size="sm" color="#6b7280">{t('subscription.summary.formula')}</Text>
+                    <Text size="sm" color="#111827">{selectedFormula.name}</Text>
+                  </View>
+                  
+                  <View style={[styles.row, styles.spaceBetween, styles.mb4]}>
+                    <Text size="sm" color="#6b7280">{t('subscription.summary.currentBalance')}</Text>
+                    <Text size="sm" color="#111827">{(walletData?.balance || 0).toLocaleString('fr-FR')} {t('subscription.currency')}</Text>
+                  </View>
+                  
+                  <View style={[styles.row, styles.spaceBetween, { paddingTop: 8, borderTopWidth: 1, borderTopColor: '#d1fae5' }]}>
+                    <Text variant="body" color="#111827">{t('subscription.summary.totalPrice')}</Text>
+                    <Text variant="body" color="#16a34a" weight="bold">
+                      {selectedFormula.price.toLocaleString('fr-FR')} {t('subscription.currency')}
+                    </Text>
+                  </View>
+                </Card>
+
+                <Button 
+                  onPress={handleSubscribe}
+                  disabled={isSubmitting}
+                  fullWidth
+                  style={{ 
+                    backgroundColor: '#16a34a',
+                    opacity: isSubmitting ? 0.6 : 1
+                  }}
+                >
+                  <View style={[styles.row, styles.alignCenter, styles.gap4]}>
+                    <CreditCard size={16} color="white" />
+                    <Text color="white">
+                      {isSubmitting 
+                        ? t('subscription.subscribing') 
+                        : t('subscription.subscribe')
+                      }
+                    </Text>
+                  </View>
+                </Button>
+              </>
+            )}
+          </>
+        )}
       </ScrollView>
+
+      {/* Change Subscription Modal */}
+      <Modal
+        visible={isChangeModalOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setIsChangeModalOpen(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <View style={[styles.flex1, { marginTop: 50, backgroundColor: colorScheme === 'light' ? 'white' : '#111827', borderTopLeftRadius: 20, borderTopRightRadius: 20 }]}>
+            {/* Modal Header */}
+            <View style={[styles.px16, styles.py16, styles.row, styles.spaceBetween, styles.alignCenter, { borderBottomWidth: 1, borderBottomColor: colorScheme === 'light' ? '#e5e7eb' : '#374151' }]}>
+              <Text variant="body" color={colorScheme === 'light' ? '#111827' : '#f9fafb'} weight="bold">
+                {t('subscription.change.selectNew')}
+              </Text>
+              <TouchableOpacity onPress={() => setIsChangeModalOpen(false)}>
+                <X size={24} color={colorScheme === 'light' ? '#111827' : '#f9fafb'} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={[styles.flex1, styles.p16]} contentContainerStyle={styles.gap12}>
+              {packages.map(pkg => (
+                <View key={pkg.id}>
+                  <Text variant="body" color="#16a34a" weight="bold" style={styles.mb8}>
+                    {pkg.name}
+                  </Text>
+                  {pkg.formulas.map(formula => (
+                    <TouchableOpacity
+                      key={formula.id}
+                      onPress={() => handleChangeSubscription(formula.id)}
+                      disabled={isSubmitting}
+                      style={[styles.card, styles.p12, styles.mb8, { opacity: isSubmitting ? 0.6 : 1 }]}
+                    >
+                      <View style={[styles.row, styles.spaceBetween, styles.alignCenter]}>
+                        <View style={styles.flex1}>
+                          <Text size="sm" color={colorScheme === 'light' ? '#111827' : '#f9fafb'} weight="bold">
+                            {formula.name}
+                          </Text>
+                          <Text size="xs" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>
+                            {formula.numberOfDays} jours - {formula.price.toLocaleString('fr-FR')}
+                          </Text>
+                        </View>
+                        <Check size={20} color="#16a34a" />
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }

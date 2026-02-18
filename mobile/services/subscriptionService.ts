@@ -2,31 +2,46 @@
 import { API_CONFIG, handleApiResponse, ApiError } from '@/lib/api/config';
 import { authService } from './authService';
 
-export interface Plan {
+export interface SubscriptionPackage {
   id: string;
   name: string;
-  type: string;
-  hourlyRate: number;
-  dailyRate: number;
-  weeklyRate: number;
-  monthlyRate: number;
-  discount: number;
-  features: string[];
-  isPopular?: boolean;
+  description?: string;
+  isActive: boolean;
+  formulas: SubscriptionFormula[];
 }
 
-export interface SubscriptionRequest {
-  planId: string;
-  packageType: 'daily' | 'weekly' | 'monthly';
-  startDate: Date;
+export interface SubscriptionFormula {
+  id: string;
+  packageId: string;
+  name: string;
+  description?: string;
+  numberOfDays: number;
+  price: number;
+  dayStartHour: number;
+  dayEndHour: number;
+  chargeAfterHours: boolean;
+  afterHoursPrice?: number;
+  afterHoursType?: string;
+  isActive: boolean;
+}
+
+export interface SubscribeToFormulaRequest {
+  formulaId: string;
+  startDate?: Date;
 }
 
 export interface ActiveSubscription {
   id: string;
-  planName: string;
-  packageType: string;
+  packageName: string;
+  formulaName: string;
   startDate: string;
   endDate: string;
+  dayResetTime: string;
+  currentDay: number;
+  numberOfDays: number;
+  dayStartHour: number;
+  dayEndHour: number;
+  chargeAfterHours: boolean;
   status: string;
   remainingDays: number;
 }
@@ -45,22 +60,37 @@ class SubscriptionService {
     };
   }
 
-  async getAvailablePlans(): Promise<Plan[]> {
+  async getAvailablePackages(): Promise<SubscriptionPackage[]> {
     try {
-      const response = await fetch(`${this.baseUrl}/plans`, {
+      const response = await fetch(`${this.baseUrl}/packages`, {
         method: 'GET',
         headers: API_CONFIG.HEADERS,
       });
 
       const result = await handleApiResponse(response);
-      return result.data?.plans || [];
+      return result.data?.packages || [];
     } catch (error) {
-      console.error('Error loading plans:', error);
+      console.error('Error loading packages:', error);
       return [];
     }
   }
 
-  async subscribe(data: SubscriptionRequest): Promise<ActiveSubscription> {
+  async getPackageDetails(packageId: string): Promise<SubscriptionPackage | null> {
+    try {
+      const response = await fetch(`${this.baseUrl}/packages/${packageId}`, {
+        method: 'GET',
+        headers: API_CONFIG.HEADERS,
+      });
+
+      const result = await handleApiResponse(response);
+      return result.data || null;
+    } catch (error) {
+      console.error('Error loading package details:', error);
+      return null;
+    }
+  }
+
+  async subscribe(data: SubscribeToFormulaRequest): Promise<ActiveSubscription> {
     const headers = await this.getAuthHeaders();
     
     try {
@@ -110,6 +140,26 @@ class SubscriptionService {
       });
 
       await handleApiResponse(response);
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new Error(this.getErrorMessage(error));
+      }
+      throw new Error('network_error');
+    }
+  }
+
+  async changeSubscription(subscriptionId: string, newFormulaId: string): Promise<ActiveSubscription> {
+    const headers = await this.getAuthHeaders();
+    
+    try {
+      const response = await fetch(`${this.baseUrl}/${subscriptionId}/change`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ newFormulaId }),
+      });
+
+      const result = await handleApiResponse(response);
+      return result.data;
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(this.getErrorMessage(error));
