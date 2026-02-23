@@ -1,8 +1,7 @@
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { Platform } from 'react-native';
 
-// documentDirectory est une constante exportée par expo-file-system
 const DOCUMENT_DIRECTORY = FileSystem.documentDirectory || '';
 
 interface LogEntry {
@@ -28,10 +27,10 @@ class LoggerService {
   private maxLogEntries = 1000; // Maximum d'entrées à garder en mémoire
 
   private constructor() {
-    // documentDirectory est une constante exportée par expo-file-system
     this.logDir = `${DOCUMENT_DIRECTORY}logs/`;
     this.logFile = `${this.logDir}app-logs.json`;
-    this.initializeLogDir();
+    // Ne pas appeler initializeLogDir ici car c'est asynchrone
+    // On l'appellera lors des écritures
   }
 
   public static getInstance(): LoggerService {
@@ -41,14 +40,17 @@ class LoggerService {
     return LoggerService.instance;
   }
 
-  private async initializeLogDir() {
+  private async initializeLogDir(): Promise<boolean> {
     try {
       const dirInfo = await FileSystem.getInfoAsync(this.logDir);
       if (!dirInfo.exists) {
         await FileSystem.makeDirectoryAsync(this.logDir, { intermediates: true });
+        console.log('[Logger] Log directory created');
       }
+      return true;
     } catch (error) {
       console.error('[Logger] Error initializing log directory:', error);
+      return false;
     }
   }
 
@@ -102,7 +104,6 @@ class LoggerService {
 
     await this.writeLog(logEntry);
     
-    // Afficher en console en développement
     if (__DEV__) {
       console.error(`[Error] ${message}`, error, context);
     }
@@ -155,7 +156,15 @@ class LoggerService {
    */
   private async writeLog(entry: LogEntry): Promise<void> {
     try {
-      await this.initializeLogDir();
+      // Initialiser le dossier si nécessaire
+      const dirInitialized = await this.initializeLogDir();
+      if (!dirInitialized) {
+        // Si on ne peut pas initialiser le dossier, on log seulement en console
+        if (__DEV__) {
+          console.log('[Logger] Using console only mode');
+        }
+        return;
+      }
       
       // Lire les logs existants
       let logs: LogEntry[] = [];
@@ -253,7 +262,7 @@ class LoggerService {
   public async exportLogsAsText(): Promise<string> {
     const logs = await this.getLogs();
     
-    let text = `=== FreeBike Application Logs ===\n`;
+    let text = `=== Application Logs ===\n`;
     text += `Generated: ${new Date().toISOString()}\n`;
     text += `Platform: ${Platform.OS} ${Platform.Version}\n`;
     text += `Total entries: ${logs.length}\n\n`;
@@ -301,7 +310,7 @@ class LoggerService {
       if (isAvailable) {
         await Sharing.shareAsync(textFile, {
           mimeType: 'text/plain',
-          dialogTitle: 'Partager les logs de l\'application',
+          dialogTitle: 'Partager les logs',
         });
         return true;
       } else {
