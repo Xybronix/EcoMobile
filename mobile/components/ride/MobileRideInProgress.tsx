@@ -214,6 +214,18 @@ export function MobileRideInProgress({
     try {
       setIsLoading(true);
       
+      // Vérifier si une demande de verrouillage est déjà en attente pour ce vélo
+      const existingRequests = await bikeRequestService.getUserLockRequests(1, 10);
+      const pendingLockRequest = existingRequests.data?.find(
+        (req: any) => req.bikeId === bike.id && req.status === 'PENDING'
+      );
+      
+      if (pendingLockRequest) {
+        toast.info(t('lock.requestAlreadyPending') || 'Une demande de verrouillage est déjà en attente pour ce vélo');
+        onNavigate?.('account-management', { initialTab: 'requests' });
+        return;
+      }
+      
       const currentLocation = bikePosition || {
         latitude: bike.latitude || 0,
         longitude: bike.longitude || 0
@@ -230,7 +242,13 @@ export function MobileRideInProgress({
       onNavigate?.('account-management', { initialTab: 'requests' });
       
     } catch (error: any) {
-      toast.error(error.message || t('lock.requestError'));
+      // Gérer le cas où le backend retourne une erreur de demande existante
+      if (error.message?.includes('déjà en attente') || error.message?.includes('already pending')) {
+        toast.info(t('lock.requestAlreadyPending') || 'Une demande de verrouillage est déjà en attente pour ce vélo');
+        onNavigate?.('account-management', { initialTab: 'requests' });
+      } else {
+        toast.error(error.message || t('lock.requestError'));
+      }
     } finally {
       setIsLoading(false);
     }

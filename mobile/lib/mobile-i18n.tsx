@@ -208,6 +208,7 @@ const translations: Translations = {
   'lock.requestSent': { fr: 'Demande de verrouillage envoyée. Un administrateur va valider la fin de votre trajet.', en: 'Lock request sent. An administrator will validate the end of your ride.' },
   'lock.requestError': { fr: 'Erreur lors de la demande de verrouillage', en: 'Error sending lock request' },
   'lock.requestButton': { fr: 'Demander le verrouillage', en: 'Request Lock' },
+  'lock.requestAlreadyPending': { fr: 'Une demande de verrouillage est déjà en attente pour ce vélo. Veuillez patienter.', en: 'A lock request is already pending for this bike. Please wait.' },
   'lock.adminValidation': { fr: 'Le verrouillage nécessite une validation par un administrateur pour vérifier que le vélo est correctement positionné.', en: 'Locking requires administrator validation to verify the bike is properly positioned.' },
 
   // Ride
@@ -314,7 +315,10 @@ const translations: Translations = {
   'payment.included': { fr: 'Inclus', en: 'Included' },
   'payment.willBeDeducted': { fr: 'À déduire du portefeuille', en: 'To be deducted from wallet' },
   'payment.includedInPlan': { fr: 'Inclus dans le forfait', en: 'Included in plan' },
-  'subscription.subscribe': { fr: 'Souscrire pour {price} XOF', en: 'Subscribe for {price} XOF' },
+  'subscription.currency': { fr: 'XAF', en: 'XAF' },
+  'subscription.duration': { fr: 'Nombre de jours', en: 'Number of days' },
+  'subscription.hours': { fr: 'Période', en: 'Period' },
+  'subscription.subscribe': { fr: 'Souscrire', en: 'Subscribe' },
   'subscription.subscribeButton': { fr: 'Souscrire pour {price} FCFA', en: 'Subscribe for {price} FCFA' },
   'subscription.subscribing': { fr: 'Souscription...', en: 'Subscribing...' },
   'subscription.selectPlanError': { fr: 'Veuillez sélectionner un plan', en: 'Please select a plan' },
@@ -325,6 +329,8 @@ const translations: Translations = {
   'subscription.validUntil': { fr: 'Valide jusqu\'au {date} ({days} jour(s) restant(s))', en: 'Valid until {date} ({days} day(s) remaining)' },
   'subscription.plans.title': { fr: 'Choisir un forfait', en: 'Choose a Plan' },
   'subscription.plans.selectPlan': { fr: 'Sélectionnez votre plan tarifaire', en: 'Select your pricing plan' },
+  'subscription.plans.selectPackage': { fr: 'Sélectionnez votre plan tarifaire', en: 'Select your pricing plan' },
+  'subscription.plans.selectFormula': { fr: 'Sélectionnez votre formule spécifique', en: 'Select your specific plan' },
   'subscription.plans.selectDuration': { fr: 'Choisissez la durée de votre forfait', en: 'Choose your plan duration' },
   'subscription.plans.hourlyRate': { fr: 'Tarif horaire', en: 'Hourly rate' },
   'subscription.plans.dailyRate': { fr: 'Tarif journalier', en: 'Daily rate' },
