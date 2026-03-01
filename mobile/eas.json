@@ -6,7 +6,8 @@
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "channel": "development"
     },
     "preview": {
       "distribution": "internal",
@@ -14,7 +15,8 @@
         "buildType": "apk",
         "gradleCommand": ":app:assembleRelease",
         "image": "latest"
-      }
+      },
+      "channel": "preview"
     },
     "production": {
       "autoIncrement": true,
@@ -32,7 +34,8 @@
         "env": {
           "EXPO_PUBLIC_API_URL": "https://env-freebike-xybronix.hidora.com/api/v1"
         }
-      }
+      },
+      "channel": "production"
     }
   },
   "submit": {

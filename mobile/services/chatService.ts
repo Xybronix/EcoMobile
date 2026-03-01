@@ -72,6 +72,24 @@ class ChatService {
     }
   }
 
+  async uploadAttachment(base64DataUri: string): Promise<{ url: string }> {
+    const headers = await this.getAuthHeaders();
+    try {
+      const response = await fetch(`${this.baseUrl}/attachments`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ base64: base64DataUri }),
+      });
+      const result = await handleApiResponse(response);
+      return result.data;
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new Error(this.getErrorMessage(error));
+      }
+      throw new Error('network_error');
+    }
+  }
+
   async deleteMessage(messageId: string): Promise<void> {
     const headers = await this.getAuthHeaders();
     

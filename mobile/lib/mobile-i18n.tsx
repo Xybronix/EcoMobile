@@ -354,6 +354,7 @@ const translations: Translations = {
   'subscription.summary.title': { fr: 'Résumé de votre abonnement', en: 'Subscription Summary' },
   'subscription.summary.plan': { fr: 'Plan :', en: 'Plan:' },
   'subscription.summary.package': { fr: 'Forfait :', en: 'Package:' },
+  'subscription.summary.formula': { fr: 'Formule :', en: 'Formula:' },
   'subscription.summary.currentBalance': { fr: 'Solde actuel :', en: 'Current balance:' },
   'subscription.summary.totalPrice': { fr: 'Prix total :', en: 'Total price:' },
 
@@ -451,6 +452,7 @@ const translations: Translations = {
   'profile.notifications': { fr: 'Notifications', en: 'Notifications' },
   'profile.help': { fr: 'Aide', en: 'Help' },
   'profile.legal': { fr: 'Mentions légales', en: 'Legal' },
+  'profile.appInfo': { fr: 'À propos & Mises à jour', en: 'About & Updates' },
   'profile.version': { fr: 'Version', en: 'Version' },
   'profile.security': { fr: 'Sécurité', en: 'Security' },
   'profile.chatSupport': { fr: 'Chat avec le support', en: 'Chat with support' },
@@ -1012,6 +1014,47 @@ const translations: Translations = {
   // Account Management
   'accountManagement.chargeAmount': { fr: 'Charge: {amount} FCFA', en: 'Charge: {amount} FCFA' },
   'accountManagement.assignedBy': { fr: 'Assigné par', en: 'Assigned by' },
+
+  // App Info & OTA Updates
+  'appInfo.about': { fr: 'À propos', en: 'About' },
+  'appInfo.appVersion': { fr: 'Version de l\'app', en: 'App version' },
+  'appInfo.updateChannel': { fr: 'Canal de mise à jour', en: 'Update channel' },
+  'appInfo.activeUpdateId': { fr: 'ID de la mise à jour active', en: 'Active update ID' },
+  'appInfo.installedOn': { fr: 'Installée le', en: 'Installed on' },
+  'appInfo.otaUpdates': { fr: 'Mises à jour OTA', en: 'OTA updates' },
+  'appInfo.enabled': { fr: 'Activées', en: 'Enabled' },
+  'appInfo.devMode': { fr: 'Dev mode', en: 'Dev mode' },
+  'appInfo.notConfigured': { fr: 'Non configuré', en: 'Not configured' },
+  'appInfo.nativeBuild': { fr: 'Version native', en: 'Native build' },
+  'appInfo.unknown': { fr: 'Inconnue', en: 'Unknown' },
+  'appInfo.updates': { fr: 'Mises à jour', en: 'Updates' },
+  'appInfo.checkPrompt': { fr: 'Appuyez sur le bouton pour vérifier.', en: 'Tap the button to check.' },
+  'appInfo.checking': { fr: 'Vérification en cours…', en: 'Checking for updates…' },
+  'appInfo.upToDate': { fr: 'L\'application est à jour.', en: 'The app is up to date.' },
+  'appInfo.available': { fr: 'Une mise à jour est disponible.', en: 'An update is available.' },
+  'appInfo.availableDesc': { fr: 'La mise à jour est rapide et ne supprime pas vos données.', en: 'The update is quick and does not delete your data.' },
+  'appInfo.downloading': { fr: 'Téléchargement et installation…', en: 'Downloading and installing…' },
+  'appInfo.installUpdate': { fr: 'Installer la mise à jour', en: 'Install update' },
+  'appInfo.checkUpdates': { fr: 'Vérifier les mises à jour', en: 'Check for updates' },
+  'appInfo.reset': { fr: 'Réinitialiser', en: 'Reset' },
+  'appInfo.devModeNotice': { fr: 'Mises à jour non disponibles en mode développement', en: 'Updates not available in development mode' },
+  'appInfo.checkError': { fr: 'Impossible de vérifier les mises à jour.', en: 'Unable to check for updates.' },
+  'appInfo.downloadError': { fr: 'Le téléchargement a échoué. Veuillez réessayer.', en: 'Download failed. Please try again.' },
+  'appInfo.copyright': { fr: '© {year} Xybronix · FreeBike', en: '© {year} Xybronix · FreeBike' },
+
+  // Mandatory OTA update screen
+  'update.mandatory.title': { fr: 'Mise à jour requise', en: 'Update required' },
+  'update.mandatory.description': { fr: 'Une nouvelle version de l\'application est disponible. Vous devez mettre à jour pour continuer à utiliser l\'application.', en: 'A new version of the app is available. You must update to continue using the app.' },
+  'update.mandatory.dataNotice': { fr: 'La mise à jour est rapide et ne supprime pas vos données.', en: 'The update is quick and does not delete your data.' },
+  'update.mandatory.button': { fr: 'Mettre à jour maintenant', en: 'Update now' },
+  'update.mandatory.downloading': { fr: 'Téléchargement en cours…', en: 'Downloading…' },
+  'update.mandatory.installing': { fr: 'Installation en cours…', en: 'Installing…' },
+  'update.mandatory.error': { fr: 'La mise à jour a échoué. Veuillez réessayer.', en: 'Update failed. Please try again.' },
+  'update.mandatory.retry': { fr: 'Réessayer', en: 'Retry' },
+
+  // Document modification
+  'document.modify': { fr: 'Modifier', en: 'Modify' },
+  'document.modifyWarning': { fr: 'Votre document sera soumis à une nouvelle vérification.', en: 'Your document will be submitted for re-verification.' },
 };
 
 interface MobileI18nContextType {

@@ -7,11 +7,12 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { getGlobalStyles } from '@/styles/globalStyles';
 import { haptics } from '@/utils/haptics';
 import * as ImagePicker from 'expo-image-picker';
-import { ArrowLeft, Camera, Edit, Mail, Save, User, X } from 'lucide-react-native';
+import { ArrowLeft, Camera, ChevronRight, Edit, FileText, Mail, Save, User, X } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { Image, Modal, ScrollView, TouchableOpacity, View } from 'react-native';
 import { useMobileAuth } from '@/lib/mobile-auth';
 import { useMobileI18n } from '@/lib/mobile-i18n';
+import { useRouter } from 'expo-router';
 
 interface MobileEditProfileProps {
   onNavigate: (screen: string) => void;
@@ -20,6 +21,7 @@ interface MobileEditProfileProps {
 export default function MobileEditProfile({ onNavigate }: MobileEditProfileProps) {
   const { user, updateProfile, refreshUser } = useMobileAuth();
   const { t } = useMobileI18n();
+  const router = useRouter();
   const colorScheme = useColorScheme();
   const styles = getGlobalStyles(colorScheme);
   
@@ -405,7 +407,7 @@ export default function MobileEditProfile({ onNavigate }: MobileEditProfileProps
                 onPress={handleSubmit}
                 disabled={isLoading}
                 fullWidth
-                style={{ 
+                style={{
                   backgroundColor: '#16a34a',
                   height: 48
                 }}
@@ -421,6 +423,74 @@ export default function MobileEditProfile({ onNavigate }: MobileEditProfileProps
               </Button>
             </View>
           )}
+
+          {/* Documents personnels */}
+          <View
+            style={[
+              styles.pt16,
+              {
+                borderTopWidth: 1,
+                borderTopColor: colorScheme === 'light' ? '#e5e7eb' : '#374151',
+                marginTop: 8
+              }
+            ]}
+          >
+            <Text
+              variant="body"
+              color={colorScheme === 'light' ? '#111827' : '#f9fafb'}
+              style={styles.mb12}
+            >
+              {t('profile.edit.documents') || 'Documents personnels'}
+            </Text>
+            <TouchableOpacity
+              onPress={() => {
+                haptics.light();
+                router.push('/(auth)/submit-documents');
+              }}
+              style={[
+                styles.row,
+                styles.alignCenter,
+                styles.spaceBetween,
+                styles.p16,
+                styles.rounded12,
+                {
+                  backgroundColor: colorScheme === 'light' ? '#f9fafb' : '#1f2937',
+                  borderWidth: 1,
+                  borderColor: colorScheme === 'light' ? '#e5e7eb' : '#374151'
+                }
+              ]}
+            >
+              <View style={[styles.row, styles.alignCenter, styles.gap12]}>
+                <View
+                  style={[
+                    styles.w40,
+                    styles.h40,
+                    styles.rounded20,
+                    styles.alignCenter,
+                    styles.justifyCenter,
+                    { backgroundColor: '#eff6ff' }
+                  ]}
+                >
+                  <FileText size={20} color="#3b82f6" />
+                </View>
+                <View>
+                  <Text
+                    variant="body"
+                    color={colorScheme === 'light' ? '#111827' : '#f9fafb'}
+                  >
+                    {t('profile.edit.updateDocuments') || 'Mettre à jour mes documents'}
+                  </Text>
+                  <Text
+                    size="xs"
+                    color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}
+                  >
+                    {t('profile.edit.documentsHint') || 'Pièce d\'identité, justificatif de domicile...'}
+                  </Text>
+                </View>
+              </View>
+              <ChevronRight size={20} color={colorScheme === 'light' ? '#9ca3af' : '#6b7280'} />
+            </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
 

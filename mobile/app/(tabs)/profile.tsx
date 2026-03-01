@@ -29,6 +29,9 @@ export default function ProfileScreen() {
       case 'chat':
         router.navigate('/(modals)/chat' as any);
         break;
+      case 'app-info':
+        router.navigate('/(modals)/app-info' as any);
+        break;
       default:
         console.log(`Navigation to ${screen} not implemented`);
     }

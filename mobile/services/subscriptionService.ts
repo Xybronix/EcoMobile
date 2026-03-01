@@ -61,18 +61,14 @@ class SubscriptionService {
   }
 
   async getAvailablePackages(): Promise<SubscriptionPackage[]> {
-    try {
-      const response = await fetch(`${this.baseUrl}/packages`, {
-        method: 'GET',
-        headers: API_CONFIG.HEADERS,
-      });
+    const response = await fetch(`${this.baseUrl}/packages`, {
+      method: 'GET',
+      headers: API_CONFIG.HEADERS,
+    });
 
-      const result = await handleApiResponse(response);
-      return result.data?.packages || [];
-    } catch (error) {
-      console.error('Error loading packages:', error);
-      return [];
-    }
+    const result = await handleApiResponse(response);
+    // Support both { data: { packages: [] } } and { data: [] }
+    return result.data?.packages ?? result.data ?? [];
   }
 
   async getPackageDetails(packageId: string): Promise<SubscriptionPackage | null> {

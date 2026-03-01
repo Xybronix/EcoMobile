@@ -25,6 +25,7 @@ export default function ModalsLayout() {
       <Stack.Screen name="wallet" options={{ headerShown: false }} />
       <Stack.Screen name="edit-profile" options={{ headerShown: false }} />
       <Stack.Screen name="security" options={{ headerShown: false }} />
+      <Stack.Screen name="app-info" options={{ headerShown: false }} />
     </Stack>
   );
 }

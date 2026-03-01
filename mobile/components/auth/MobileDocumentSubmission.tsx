@@ -46,7 +46,7 @@ interface MobileDocumentSubmissionProps {
   onBack?: () => void;
 }
 
-export default function MobileDocumentSubmission({ onNavigate }: MobileDocumentSubmissionProps) {
+export default function MobileDocumentSubmission({ onNavigate, onBack }: MobileDocumentSubmissionProps) {
   const { t } = useMobileI18n();
   const { user } = useMobileAuth();
   const colorScheme = useColorScheme();
@@ -65,6 +65,11 @@ export default function MobileDocumentSubmission({ onNavigate }: MobileDocumentS
     visible: false,
     side: null
   });
+
+  // Edit mode states (allows resubmission when APPROVED)
+  const [isEditingIdentity, setIsEditingIdentity] = useState(false);
+  const [isEditingResidence, setIsEditingResidence] = useState(false);
+  const [isEditingActivity, setIsEditingActivity] = useState(false);
 
   // Identity document state
   const [documentType, setDocumentType] = useState<'CNI' | 'RECEPISSE'>('CNI');
@@ -696,7 +701,9 @@ export default function MobileDocumentSubmission({ onNavigate }: MobileDocumentS
         title={t('document.submission')}
         showBack
         onBack={() => {
-          if (documentsStatus?.allDocumentsApproved && user?.status === 'active') {
+          if (onBack) {
+            onBack();
+          } else if (documentsStatus?.allDocumentsApproved && user?.status === 'active') {
             onNavigate('home');
           } else {
             onNavigate('login');
@@ -793,8 +800,8 @@ export default function MobileDocumentSubmission({ onNavigate }: MobileDocumentS
             </View>
           ))}
 
-          {/* Afficher les champs de soumission uniquement si aucun document n'est en attente ou approuvé */}
-          {!identityHasPendingOrApproved ? (
+          {/* Afficher les champs de soumission si pas de doc, si doc rejeté, ou si l'utilisateur veut modifier */}
+          {!identityHasPendingOrApproved || isEditingIdentity ? (
             <>
               <View style={[styles.mb16]}>
                 <Label>{t('document.documentType')}</Label>
@@ -1004,24 +1011,34 @@ export default function MobileDocumentSubmission({ onNavigate }: MobileDocumentS
                 )}
               </Button>
             </>
+          ) : identityDocuments.some(doc => doc.status === 'APPROVED') ? (
+            <View style={[styles.mb16]}>
+              <View style={[styles.p12, styles.mb12, {
+                backgroundColor: colorScheme === 'light' ? '#f0fdf4' : '#052e16',
+                borderRadius: 8,
+                borderWidth: 1,
+                borderColor: colorScheme === 'light' ? '#bbf7d0' : '#166534'
+              }]}>
+                <Text style={[styles.text, styles.textSemiBold, { color: colorScheme === 'light' ? '#166534' : '#86efac', textAlign: 'center' }]}>
+                  {t('document.alreadyApproved')}
+                </Text>
+              </View>
+              <Text style={[styles.textSm, styles.mb8, { color: colorScheme === 'light' ? '#6b7280' : '#9ca3af', textAlign: 'center' }]}>
+                {t('document.modifyWarning')}
+              </Text>
+              <Button onPress={() => setIsEditingIdentity(true)} fullWidth>
+                <Text style={{ color: 'white', fontWeight: '500' }}>{t('document.modify')}</Text>
+              </Button>
+            </View>
           ) : (
-            <View style={[styles.p12, styles.mb16, { 
+            <View style={[styles.p12, styles.mb16, {
               backgroundColor: colorScheme === 'light' ? '#f0f9ff' : '#0c4a6e',
               borderRadius: 8,
               borderWidth: 1,
               borderColor: colorScheme === 'light' ? '#bae6fd' : '#0369a1'
             }]}>
-              <Text style={[
-                styles.text,
-                styles.textSemiBold,
-                { 
-                  color: colorScheme === 'light' ? '#0369a1' : '#bae6fd',
-                  textAlign: 'center'
-                }
-              ]}>
-                {identityDocuments.some(doc => doc.status === 'APPROVED') 
-                  ? t('document.alreadyApproved')
-                  : t('document.waitingForReview')}
+              <Text style={[styles.text, styles.textSemiBold, { color: colorScheme === 'light' ? '#0369a1' : '#bae6fd', textAlign: 'center' }]}>
+                {t('document.waitingForReview')}
               </Text>
             </View>
           )}
@@ -1080,8 +1097,8 @@ export default function MobileDocumentSubmission({ onNavigate }: MobileDocumentS
             </View>
           )}
 
-          {/* Afficher les champs de soumission uniquement si aucune preuve n'est en attente ou approuvée */}
-          {!residenceHasPendingOrApproved ? (
+          {/* Afficher les champs de soumission si pas de preuve, si rejeté, ou si l'utilisateur veut modifier */}
+          {!residenceHasPendingOrApproved || isEditingResidence ? (
             <>
               <View style={[styles.mb16]}>
                 <Label>{t('document.proofType')}</Label>
@@ -1246,24 +1263,34 @@ export default function MobileDocumentSubmission({ onNavigate }: MobileDocumentS
                 )}
               </Button>
             </>
+          ) : residenceProof?.status === 'APPROVED' ? (
+            <View style={[styles.mb16]}>
+              <View style={[styles.p12, styles.mb12, {
+                backgroundColor: colorScheme === 'light' ? '#f0fdf4' : '#052e16',
+                borderRadius: 8,
+                borderWidth: 1,
+                borderColor: colorScheme === 'light' ? '#bbf7d0' : '#166534'
+              }]}>
+                <Text style={[styles.text, styles.textSemiBold, { color: colorScheme === 'light' ? '#166534' : '#86efac', textAlign: 'center' }]}>
+                  {t('document.alreadyApproved')}
+                </Text>
+              </View>
+              <Text style={[styles.textSm, styles.mb8, { color: colorScheme === 'light' ? '#6b7280' : '#9ca3af', textAlign: 'center' }]}>
+                {t('document.modifyWarning')}
+              </Text>
+              <Button onPress={() => setIsEditingResidence(true)} fullWidth>
+                <Text style={{ color: 'white', fontWeight: '500' }}>{t('document.modify')}</Text>
+              </Button>
+            </View>
           ) : (
-            <View style={[styles.p12, styles.mb16, { 
+            <View style={[styles.p12, styles.mb16, {
               backgroundColor: colorScheme === 'light' ? '#f0f9ff' : '#0c4a6e',
               borderRadius: 8,
               borderWidth: 1,
               borderColor: colorScheme === 'light' ? '#bae6fd' : '#0369a1'
             }]}>
-              <Text style={[
-                styles.text,
-                styles.textSemiBold,
-                { 
-                  color: colorScheme === 'light' ? '#0369a1' : '#bae6fd',
-                  textAlign: 'center'
-                }
-              ]}>
-                {residenceProof?.status === 'APPROVED' 
-                  ? t('document.alreadyApproved')
-                  : t('document.waitingForReview')}
+              <Text style={[styles.text, styles.textSemiBold, { color: colorScheme === 'light' ? '#0369a1' : '#bae6fd', textAlign: 'center' }]}>
+                {t('document.waitingForReview')}
               </Text>
             </View>
           )}
@@ -1327,9 +1354,10 @@ export default function MobileDocumentSubmission({ onNavigate }: MobileDocumentS
             </View>
           )}
 
-          {!documentsStatus?.activityLocationProof || 
-           (documentsStatus.activityLocationProof.status !== 'PENDING' && 
-            documentsStatus.activityLocationProof.status !== 'APPROVED') ? (
+          {!documentsStatus?.activityLocationProof ||
+           (documentsStatus.activityLocationProof.status !== 'PENDING' &&
+            documentsStatus.activityLocationProof.status !== 'APPROVED') ||
+           isEditingActivity ? (
             <>
               <View style={[styles.mb16]}>
                 <Label>{t('document.proofType')}</Label>
@@ -1494,24 +1522,34 @@ export default function MobileDocumentSubmission({ onNavigate }: MobileDocumentS
                 )}
               </Button>
             </>
+          ) : documentsStatus?.activityLocationProof?.status === 'APPROVED' ? (
+            <View style={[styles.mb16]}>
+              <View style={[styles.p12, styles.mb12, {
+                backgroundColor: colorScheme === 'light' ? '#f0fdf4' : '#052e16',
+                borderRadius: 8,
+                borderWidth: 1,
+                borderColor: colorScheme === 'light' ? '#bbf7d0' : '#166534'
+              }]}>
+                <Text style={[styles.text, styles.textSemiBold, { color: colorScheme === 'light' ? '#166534' : '#86efac', textAlign: 'center' }]}>
+                  {t('document.alreadyApproved')}
+                </Text>
+              </View>
+              <Text style={[styles.textSm, styles.mb8, { color: colorScheme === 'light' ? '#6b7280' : '#9ca3af', textAlign: 'center' }]}>
+                {t('document.modifyWarning')}
+              </Text>
+              <Button onPress={() => setIsEditingActivity(true)} fullWidth>
+                <Text style={{ color: 'white', fontWeight: '500' }}>{t('document.modify')}</Text>
+              </Button>
+            </View>
           ) : (
-            <View style={[styles.p12, styles.mb16, { 
+            <View style={[styles.p12, styles.mb16, {
               backgroundColor: colorScheme === 'light' ? '#f0f9ff' : '#0c4a6e',
               borderRadius: 8,
               borderWidth: 1,
               borderColor: colorScheme === 'light' ? '#bae6fd' : '#0369a1'
             }]}>
-              <Text style={[
-                styles.text,
-                styles.textSemiBold,
-                { 
-                  color: colorScheme === 'light' ? '#0369a1' : '#bae6fd',
-                  textAlign: 'center'
-                }
-              ]}>
-                {documentsStatus.activityLocationProof.status === 'APPROVED' 
-                  ? t('document.alreadyApproved')
-                  : t('document.waitingForReview')}
+              <Text style={[styles.text, styles.textSemiBold, { color: colorScheme === 'light' ? '#0369a1' : '#bae6fd', textAlign: 'center' }]}>
+                {t('document.waitingForReview')}
               </Text>
             </View>
           )}

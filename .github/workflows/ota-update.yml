@@ -1,0 +1,44 @@
+name: OTA Mobile Update
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'mobile/**'
+  workflow_dispatch:
+    inputs:
+      message:
+        description: 'Message de la mise à jour'
+        required: false
+        default: 'Mise à jour manuelle'
+
+jobs:
+  ota-update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Install dependencies
+        working-directory: mobile
+        run: npm install --prefer-offline --no-audit
+
+      - name: Publish OTA update
+        working-directory: mobile
+        run: |
+          MESSAGE="${{ github.event.inputs.message }}"
+          if [ -z "$MESSAGE" ]; then
+            MESSAGE="Auto-update from ${{ github.sha }}"
+          fi
+          npx eas-cli update --branch production --message "$MESSAGE" --non-interactive
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}

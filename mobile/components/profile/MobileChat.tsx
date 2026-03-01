@@ -5,8 +5,9 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { getGlobalStyles } from '@/styles/globalStyles';
 import { haptics } from '@/utils/haptics';
 import { ArrowLeft, Info, Paperclip, Send } from 'lucide-react-native';
+import * as ImagePicker from 'expo-image-picker';
 import React, { useEffect, useRef, useState } from 'react';
-import { ScrollView, TouchableOpacity, View, RefreshControl, Keyboard, TouchableWithoutFeedback, Animated, Dimensions, TextInput, TextInputContentSizeChangeEventData, NativeSyntheticEvent } from 'react-native';
+import { ScrollView, TouchableOpacity, View, RefreshControl, Keyboard, TouchableWithoutFeedback, Animated, Dimensions, TextInput, TextInputContentSizeChangeEventData, NativeSyntheticEvent, Alert, Image } from 'react-native';
 import { useMobileAuth } from '@/lib/mobile-auth';
 import { useMobileI18n } from '@/lib/mobile-i18n';
 import { chatService, ChatMessage } from '@/services/chatService';
@@ -78,11 +79,39 @@ export function MobileChat({ onNavigate }: MobileChatProps) {
     try {
       setIsLoading(true);
       const result = await chatService.getMessages(1, 100);
-      setMessages(result.messages.reverse());
+      setMessages(result.messages);
     } catch (error) {
       console.error('Error loading messages:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleAttachment = async () => {
+    haptics.light();
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert(t('chat.permissionRequired') || 'Permission requise', t('chat.galleryPermission') || 'Autorisez l\'accès à la galerie pour envoyer des images.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      base64: true,
+      quality: 0.7,
+    });
+    if (result.canceled || !result.assets?.[0]?.base64) return;
+    const asset = result.assets[0];
+    const mimeType = asset.mimeType || 'image/jpeg';
+    const base64DataUri = `data:${mimeType};base64,${asset.base64}`;
+    setIsSending(true);
+    try {
+      const { url } = await chatService.uploadAttachment(base64DataUri);
+      const sentMessage = await chatService.sendMessage(`[image]${url}`);
+      setMessages(prev => [...prev, sentMessage]);
+    } catch {
+      Alert.alert(t('common.error') || 'Erreur', t('chat.uploadError') || 'Impossible d\'envoyer l\'image.');
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -260,7 +289,7 @@ export function MobileChat({ onNavigate }: MobileChatProps) {
 
             {/* Messages */}
             {messages.map((message, index) => {
-              const isCurrentUser = message.userId === user?.id;
+              const isCurrentUser = !message.isAdmin;
               const showDate = index === 0 || 
                 new Date(messages[index - 1].createdAt).toDateString() !== new Date(message.createdAt).toDateString();
 
@@ -309,10 +338,10 @@ export function MobileChat({ onNavigate }: MobileChatProps) {
                             { backgroundColor: '#16a34a' }
                           ]}
                         >
-                          <Text size="xs" color="white" weight="medium">S</Text>
+                          <Text size="xs" color="white" weight="medium">A</Text>
                         </View>
                       )}
-                      
+
                       <View style={[{ maxWidth: '70%' }]}>
                         <View
                           style={[
@@ -332,12 +361,20 @@ export function MobileChat({ onNavigate }: MobileChatProps) {
                                 }
                           ]}
                         >
-                          <Text 
-                            size="sm" 
-                            color={isCurrentUser ? 'white' : (colorScheme === 'light' ? '#111827' : '#f9fafb')}
-                          >
-                            {message.message}
-                          </Text>
+                          {message.message.startsWith('[image]') ? (
+                            <Image
+                              source={{ uri: message.message.replace('[image]', '') }}
+                              style={{ width: 200, height: 150, borderRadius: 8 }}
+                              resizeMode="cover"
+                            />
+                          ) : (
+                            <Text
+                              size="sm"
+                              color={isCurrentUser ? 'white' : (colorScheme === 'light' ? '#111827' : '#f9fafb')}
+                            >
+                              {message.message}
+                            </Text>
+                          )}
                         </View>
                         <Text 
                           size="xs" 
@@ -455,9 +492,10 @@ export function MobileChat({ onNavigate }: MobileChatProps) {
         ]}
       >
         <View style={[styles.row, styles.alignCenter, styles.gap8, { alignItems: 'flex-end' }]}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.p12, styles.rounded8, { marginBottom: 8 }]}
-            onPress={() => haptics.light()}
+            onPress={handleAttachment}
+            disabled={isSending}
           >
             <Paperclip size={20} color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} />
           </TouchableOpacity>

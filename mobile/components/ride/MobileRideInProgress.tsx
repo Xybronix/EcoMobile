@@ -52,6 +52,7 @@ export function MobileRideInProgress({
   } | null>(null);
   
   const mapRef = useRef<OSMMapRef>(null);
+  const lockRequestInFlightRef = useRef(false);
 
   useEffect(() => {
     loadActiveRide();
@@ -210,6 +211,8 @@ export function MobileRideInProgress({
 
   const handleRequestLock = async () => {
     if (!currentRide) return;
+    if (lockRequestInFlightRef.current) return;
+    lockRequestInFlightRef.current = true;
 
     try {
       setIsLoading(true);
@@ -251,6 +254,7 @@ export function MobileRideInProgress({
       }
     } finally {
       setIsLoading(false);
+      lockRequestInFlightRef.current = false;
     }
   };
 

@@ -8,7 +8,7 @@ import type { UserStats } from '@/services/userService';
 import { getGlobalStyles } from '@/styles/globalStyles';
 import { haptics } from '@/utils/haptics';
 import { storeLanguage } from '@/utils/storage';
-import { Bell, ChevronRight, FileText, Globe, HelpCircle, LogOut, MessageCircle, Shield, User, Wallet, CheckCircle, AlertCircle } from 'lucide-react-native';
+import { Bell, ChevronRight, FileText, Globe, HelpCircle, Info, LogOut, MessageCircle, Shield, User, Wallet, CheckCircle, AlertCircle } from 'lucide-react-native';
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { RefreshControl, ScrollView, Switch, TouchableOpacity, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
@@ -284,6 +284,15 @@ export default function MobileProfile({ onNavigate }: MobileProfileProps) {
             toast.info(t('profile.legalComingSoon'));
           },
           color: '#6b7280',
+        },
+        {
+          icon: Info,
+          label: t('profile.appInfo'),
+          onPress: () => {
+            haptics.light();
+            onNavigate('app-info');
+          },
+          color: '#0ea5e9',
         },
       ],
     },

@@ -13,6 +13,7 @@ import { MobileAuthProvider } from '@/lib/mobile-auth';
 import { Colors } from '@/constants/theme';
 import { InternetStatusBar } from '@/components/ui/InternetStatusBar';
 import { ToastContainer } from '@/components/ui/ToastContainer';
+import { UpdateChecker } from '@/components/ui/UpdateChecker';
 import "@/global.css";
 
 const CustomLightTheme = {
@@ -76,6 +77,7 @@ export default function RootLayout() {
             </Stack>
             <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
             <ToastContainer />
+            <UpdateChecker />
           </View>
         </ThemeProvider>
       </MobileAuthProvider>
