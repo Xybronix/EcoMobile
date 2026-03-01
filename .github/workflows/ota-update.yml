@@ -41,4 +41,4 @@ jobs:
           fi
           npx eas-cli update --branch production --message "$MESSAGE" --non-interactive
         env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          EXPO_ACCESS_TOKEN: ${{ secrets.EXPO_ACCESS_TOKEN }}
