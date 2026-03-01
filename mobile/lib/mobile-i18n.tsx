@@ -369,8 +369,42 @@ const translations: Translations = {
   'subscription.success.message': { fr: 'Votre abonnement {plan} - {package} est maintenant actif.', en: 'Your {plan} - {package} subscription is now active.' },
   'subscription.success.ok': { fr: 'OK', en: 'OK' },
 
+  // After Hours
+  'subscription.afterHours': { fr: 'Hors plage horaire', en: 'After hours' },
+
+  // Current Subscription
+  'subscription.current.active': { fr: 'Abonnement actif', en: 'Active Subscription' },
+  'subscription.current.daysRemaining': { fr: 'Jours restants', en: 'Days remaining' },
+  'subscription.current.expiresAt': { fr: 'Expire le', en: 'Expires on' },
+  'subscription.current.hours': { fr: 'Plage horaire', en: 'Hours' },
+
+  // Change Subscription
+  'subscription.change.title': { fr: 'Changer', en: 'Change' },
+  'subscription.change.selectNew': { fr: 'Choisir un nouveau forfait', en: 'Choose a new plan' },
+  'subscription.change.success': { fr: 'Abonnement modifié avec succès', en: 'Subscription changed successfully' },
+
+  // Cancel Subscription
+  'subscription.cancel.title': { fr: 'Annuler', en: 'Cancel' },
+  'subscription.cancel.confirm': { fr: 'Voulez-vous vraiment annuler votre abonnement ?', en: 'Do you really want to cancel your subscription?' },
+  'subscription.cancel.yes': { fr: 'Oui, annuler', en: 'Yes, cancel' },
+  'subscription.cancel.no': { fr: 'Non', en: 'No' },
+  'subscription.cancel.success': { fr: 'Abonnement annulé', en: 'Subscription cancelled' },
+
+  // Free Plans
+  'subscription.freePlans.title': { fr: 'Vos forfaits gratuits', en: 'Your free plans' },
+  'subscription.freePlans.free': { fr: 'Gratuit', en: 'Free' },
+  'subscription.freePlans.daysRemaining': { fr: 'Jours restants', en: 'Days remaining' },
+  'subscription.freePlans.expiresAt': { fr: 'Expire le', en: 'Expires on' },
+  'subscription.freePlans.active': { fr: 'Actif', en: 'Active' },
+  'subscription.freePlans.timeRange': { fr: 'Plage horaire', en: 'Time range' },
+  'subscription.freePlans.activateBtn': { fr: 'Souscrire à ce forfait gratuit', en: 'Subscribe to this free plan' },
+  'subscription.freePlans.activateSuccess': { fr: 'Forfait gratuit activé !', en: 'Free plan activated!' },
+  'subscription.freePlans.activateError': { fr: "Erreur lors de l'activation", en: 'Activation error' },
+  'subscription.freePlans.activeDesc': { fr: 'Ce forfait est actif — vos prochains trajets seront gratuits', en: 'This plan is active — your next rides will be free' },
+
   // Error Messages
   'subscription.error.loading': { fr: 'Erreur lors du chargement des plans', en: 'Error loading plans' },
+  'subscription.error.selectFormula': { fr: 'Veuillez sélectionner une formule', en: 'Please select a formula' },
   'subscription.error.subscribing': { fr: 'Erreur lors de la souscription', en: 'Error subscribing' },
 
   // Price Display

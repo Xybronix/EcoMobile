@@ -25,6 +25,20 @@ export interface SubscriptionFormula {
   isActive: boolean;
 }
 
+export interface FreePlanBeneficiary {
+  id: string;
+  daysGranted: number;
+  daysRemaining: number;
+  startDate: string;  // Si > now → pas encore activé
+  expiresAt: string;
+  isActive: boolean;
+  rule: {
+    name: string;
+    startHour: number | null;
+    endHour: number | null;
+  };
+}
+
 export interface SubscribeToFormulaRequest {
   formulaId: string;
   startDate?: Date;
@@ -124,6 +138,29 @@ class SubscriptionService {
     } catch (error) {
       return null;
     }
+  }
+
+  async getMyFreePlans(): Promise<FreePlanBeneficiary[]> {
+    const headers = await this.getAuthHeaders();
+    try {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/free-days/me`, {
+        method: 'GET',
+        headers,
+      });
+      const result = await handleApiResponse(response);
+      return result.data ?? [];
+    } catch {
+      return [];
+    }
+  }
+
+  async activateFreePlan(beneficiaryId: string): Promise<void> {
+    const headers = await this.getAuthHeaders();
+    const response = await fetch(`${API_CONFIG.BASE_URL}/free-days/me/activate/${beneficiaryId}`, {
+      method: 'PATCH',
+      headers,
+    });
+    await handleApiResponse(response);
   }
 
   async cancelSubscription(subscriptionId: string): Promise<void> {

@@ -1,6 +1,7 @@
 import { API_CONFIG, handleApiResponse, ApiError } from '@/lib/api/config';
 import { authService } from './authService';
 import { Ride, RideStats, Location, ApiResponse } from '@/lib/mobile-types';
+import { bikeService } from './bikeService';
 
 export interface RideHistoryFilters {
   startDate?: string;
@@ -28,13 +29,20 @@ class RideService {
     const headers = await this.getAuthHeaders();
     
     try {
+      const bikeDetails = await bikeService.getBikeById(bikeId);
+
       const response = await fetch(`${this.baseUrl}/start`, {
         method: 'POST',
         headers,
-        body: JSON.stringify({ bikeId, startLocation }),
+        body: JSON.stringify({ bikeId, startLocation, pricing: bikeDetails.currentPricing }),
       });
 
       const result: ApiResponse<Ride> = await handleApiResponse(response);
+
+      if (result.data && result.data.bike && bikeDetails.currentPricing) {
+        result.data.bike.currentPricing = bikeDetails.currentPricing;
+      }
+      
       return result.data!;
     } catch (error) {
       throw this.handleError(error);

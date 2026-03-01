@@ -1,7 +1,7 @@
 /* eslint-disable react/no-unescaped-entities */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable react-hooks/exhaustive-deps */
-import { AlertTriangle, Clock, DollarSign, MapPin, Pause, Play, Lock, Navigation, Battery, Gauge, ArrowLeft } from 'lucide-react-native';
+import { AlertTriangle, Clock, DollarSign, MapPin, Pause, Play, Lock, Navigation, Bike as BikeIcon, Gauge, ArrowLeft } from 'lucide-react-native';
 import React, { useEffect, useState, useRef } from 'react';
 import { ScrollView, TouchableOpacity, View, ActivityIndicator, Platform } from 'react-native';
 import { Text } from '../ui/Text';
@@ -138,7 +138,7 @@ export function MobileRideInProgress({
   const updatePriceInfo = () => {
     if (!currentRide) return;
 
-    const hourlyRate = bike.pricingPlan?.hourlyRate || 200;
+    const hourlyRate = currentRide.bike?.currentPricing?.hourlyRate ?? bike.currentPricing?.hourlyRate ?? 0;
     const durationHours = duration / 3600;
     let calculatedCost = Math.ceil(durationHours * hourlyRate);
 
@@ -509,11 +509,7 @@ export function MobileRideInProgress({
                   </Text>
                 </View>
                 <View style={[styles.row, styles.alignCenter, styles.gap4]}>
-                  <Battery size={20} color={bike.batteryLevel > 20 ? '#16a34a' : '#dc2626'} />
-                  <Text variant="body" weight="semibold" 
-                    style={{ color: bike.batteryLevel > 20 ? '#16a34a' : '#dc2626' }}>
-                    {bike.batteryLevel}%
-                  </Text>
+                  <BikeIcon size={20} color="#16a34a" />
                 </View>
               </View>
             </View>
@@ -596,7 +592,9 @@ export function MobileRideInProgress({
               <View style={[styles.row, styles.spaceBetween, styles.py8]}>
                 <Text variant="caption" color="muted">Tarif horaire</Text>
                 <Text variant="caption" weight="medium">
-                  {bike.pricingPlan?.hourlyRate || 200} XOF/h
+                  {currentRide.bike?.currentPricing?.hourlyRate || bike.currentPricing?.hourlyRate ? 
+                  `${currentRide.bike?.currentPricing?.hourlyRate || bike.currentPricing?.hourlyRate} XOF/h` : 
+                  '--'}
                 </Text>
               </View>
 

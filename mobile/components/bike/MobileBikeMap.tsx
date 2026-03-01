@@ -197,12 +197,12 @@ export function MobileBikeMap({ onNavigate }: MobileBikeMapProps) {
   const loadBikesFromAPI = async (filters: any, cacheKey: string) => {
     try {
       const result = await bikeService.getAvailableBikes(filters, 1, 50);
-      const bikes = result.bikes || [];
-      
+      const bikes = (result.bikes || []).filter((b: Bike) => b.status === 'AVAILABLE');
+
       setBikes(bikes);
-      
-      // Mettre en cache pour 2 minutes
-      await cacheService.set(cacheKey, bikes, 2 * 60 * 1000);
+
+      // Mettre en cache pour 30 secondes
+      await cacheService.set(cacheKey, bikes, 30 * 1000);
     } catch (error) {
       throw error;
     } finally {

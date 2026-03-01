@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/Card';
 import { Text } from '@/components/ui/Text';
 import { toast } from '@/components/ui/Toast';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { subscriptionService, SubscriptionPackage, SubscriptionFormula, ActiveSubscription } from '@/services/subscriptionService';
+import { subscriptionService, SubscriptionPackage, SubscriptionFormula, ActiveSubscription, FreePlanBeneficiary } from '@/services/subscriptionService';
 import { walletService } from '@/services/walletService';
 import { getGlobalStyles } from '@/styles/globalStyles';
 import { haptics } from '@/utils/haptics';
@@ -35,11 +35,13 @@ export function MobileSubscriptionPlans({ onBack, onNavigate }: MobileSubscripti
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentSubscription, setCurrentSubscription] = useState<ActiveSubscription | null>(null);
   const [isChangeModalOpen, setIsChangeModalOpen] = useState(false);
+  const [freePlans, setFreePlans] = useState<FreePlanBeneficiary[]>([]);
 
   useEffect(() => {
     loadPackages();
     loadWalletData();
     loadCurrentSubscription();
+    loadFreePlans();
   }, []);
 
   const loadPackages = async () => {
@@ -75,6 +77,15 @@ export function MobileSubscriptionPlans({ onBack, onNavigate }: MobileSubscripti
       setCurrentSubscription(subscription);
     } catch (error) {
       console.error('Error loading subscription:', error);
+    }
+  };
+
+  const loadFreePlans = async () => {
+    try {
+      const plans = await subscriptionService.getMyFreePlans();
+      setFreePlans(plans);
+    } catch (error) {
+      console.error('Error loading free plans:', error);
     }
   };
 
@@ -275,6 +286,94 @@ export function MobileSubscriptionPlans({ onBack, onNavigate }: MobileSubscripti
               </Button>
             </View>
           </Card>
+        )}
+
+        {/* Free Plans Section */}
+        {freePlans.length > 0 && (
+          <View style={styles.gap8}>
+            <Text variant="body" color={colorScheme === 'light' ? '#111827' : '#f9fafb'} weight="bold">
+              {t('subscription.freePlans.title')}
+            </Text>
+            {freePlans.map((plan) => {
+              const isActivated = new Date(plan.startDate) <= new Date();
+              return (
+                <Card
+                  key={plan.id}
+                  style={[styles.p16, {
+                    backgroundColor: isActivated
+                      ? (colorScheme === 'light' ? '#f0fdf4' : '#14532d')
+                      : (colorScheme === 'light' ? '#f9fafb' : '#1f2937'),
+                    borderColor: isActivated ? '#16a34a' : (colorScheme === 'light' ? '#d1d5db' : '#4b5563'),
+                    borderWidth: 1,
+                  }]}
+                >
+                  <View style={[styles.row, styles.spaceBetween, styles.alignCenter, styles.mb8]}>
+                    <Text variant="body" color={colorScheme === 'light' ? '#111827' : '#f9fafb'} weight="bold">
+                      {plan.rule.name}
+                    </Text>
+                    <View style={[styles.row, styles.gap4, styles.alignCenter]}>
+                      <View style={[styles.px8, styles.py4, { borderRadius: 999, backgroundColor: '#16a34a' }]}>
+                        <Text size="xs" color="white" weight="bold">{t('subscription.freePlans.free')}</Text>
+                      </View>
+                      {isActivated && (
+                        <View style={[styles.px8, styles.py4, { borderRadius: 999, backgroundColor: '#0ea5e9' }]}>
+                          <Text size="xs" color="white" weight="bold">{t('subscription.freePlans.active')}</Text>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                  <View style={[styles.column, styles.gap4]}>
+                    <View style={[styles.row, styles.spaceBetween]}>
+                      <Text size="xs" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>{t('subscription.freePlans.daysRemaining')}</Text>
+                      <Text size="xs" color={colorScheme === 'light' ? '#111827' : '#f9fafb'} weight="bold">
+                        {plan.daysRemaining} / {plan.daysGranted}
+                      </Text>
+                    </View>
+                    <View style={[styles.row, styles.spaceBetween]}>
+                      <Text size="xs" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>{t('subscription.freePlans.expiresAt')}</Text>
+                      <Text size="xs" color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
+                        {new Date(plan.expiresAt).toLocaleDateString('fr-FR')}
+                      </Text>
+                    </View>
+                    {(plan.rule.startHour != null && plan.rule.endHour != null) && (
+                      <View style={[styles.row, styles.spaceBetween]}>
+                        <Text size="xs" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>{t('subscription.freePlans.timeRange')}</Text>
+                        <Text size="xs" color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
+                          {plan.rule.startHour}h – {plan.rule.endHour}h
+                        </Text>
+                      </View>
+                    )}
+                    {!isActivated && (
+                      <TouchableOpacity
+                        style={[styles.mt8, { paddingVertical: 10, borderRadius: 10, backgroundColor: '#16a34a', alignItems: 'center' }]}
+                        onPress={async () => {
+                          haptics.medium();
+                          try {
+                            await subscriptionService.activateFreePlan(plan.id);
+                            haptics.success();
+                            toast.success(t('subscription.freePlans.activateSuccess'));
+                            await loadFreePlans();
+                          } catch (e: any) {
+                            haptics.error();
+                            toast.error(e.message || t('subscription.freePlans.activateError'));
+                          }
+                        }}
+                      >
+                        <Text color="white" style={{ fontWeight: '700', fontSize: 14 }}>
+                          {t('subscription.freePlans.activateBtn')}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                    {isActivated && (
+                      <Text size="xs" color="#16a34a" style={[styles.mt4, { fontStyle: 'italic' }]}>
+                        {t('subscription.freePlans.activeDesc')}
+                      </Text>
+                    )}
+                  </View>
+                </Card>
+              );
+            })}
+          </View>
         )}
 
         {/* No Subscription - Show options to subscribe */}
