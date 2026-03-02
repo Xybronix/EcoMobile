@@ -36,6 +36,8 @@ export interface FreePlanBeneficiary {
     name: string;
     startHour: number | null;
     endHour: number | null;
+    validFrom: string | null;
+    validUntil: string | null;
   };
 }
 

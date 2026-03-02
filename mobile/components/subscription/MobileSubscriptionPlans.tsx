@@ -295,7 +295,8 @@ export function MobileSubscriptionPlans({ onBack, onNavigate }: MobileSubscripti
               {t('subscription.freePlans.title')}
             </Text>
             {freePlans.map((plan) => {
-              const isActivated = new Date(plan.startDate) <= new Date();
+              // Un plan est activé seulement si startDate n'est PAS la sentinelle (année 2099+)
+              const isActivated = new Date(plan.startDate).getFullYear() < 2099;
               return (
                 <Card
                   key={plan.id}
@@ -340,6 +341,14 @@ export function MobileSubscriptionPlans({ onBack, onNavigate }: MobileSubscripti
                         <Text size="xs" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'}>{t('subscription.freePlans.timeRange')}</Text>
                         <Text size="xs" color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
                           {plan.rule.startHour}h – {plan.rule.endHour}h
+                        </Text>
+                      </View>
+                    )}
+                    {plan.rule.validUntil && (
+                      <View style={[styles.row, styles.spaceBetween]}>
+                        <Text size="xs" color="#dc2626">{t('subscription.freePlans.validUntil')}</Text>
+                        <Text size="xs" color="#dc2626" weight="bold">
+                          {new Date(plan.rule.validUntil).toLocaleDateString('fr-FR')}
                         </Text>
                       </View>
                     )}

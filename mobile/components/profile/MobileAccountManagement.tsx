@@ -13,6 +13,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { getGlobalStyles } from '@/styles/globalStyles';
 import { haptics } from '@/utils/haptics';
 import { walletService } from '@/services/walletService';
+import { subscriptionService, FreePlanBeneficiary } from '@/services/subscriptionService';
 import { incidentService } from '@/services/incidentService';
 import { bikeRequestService } from '@/services/bikeRequestService';
 import { reservationService } from '@/services/reservationService';
@@ -49,6 +50,7 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
   const [lockRequests, setLockRequests] = useState<any[]>([]);
   const [reservations, setReservations] = useState<any[]>([]);
   const [currentSubscription, setCurrentSubscription] = useState<any>(null);
+  const [activeFreePlans, setActiveFreePlans] = useState<FreePlanBeneficiary[]>([]);
   const [depositInfo, setDepositInfo] = useState<any>(null);
   
   // Cache pour éviter de recharger les données à chaque changement d'onglet
@@ -85,7 +87,15 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
           setTransactions(cached.data.transactions);
           setIncidents(cached.data.incidents);
           setCurrentSubscription(cached.data.currentSubscription);
+          setActiveFreePlans(cached.data.activeFreePlans || []);
         }
+        // Toujours recharger les forfaits gratuits (état peut changer depuis une autre page)
+        subscriptionService.getMyFreePlans().then((freePlans) => {
+          const active = freePlans.filter(
+            (p) => new Date(p.startDate).getFullYear() < 2099
+          );
+          setActiveFreePlans(active);
+        }).catch(() => {});
       }
       
       // Charger les données spécifiques à l'onglet uniquement si nécessaire
@@ -131,6 +141,7 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
         transactions: userTransactions.transactions || [],
         incidents: userIncidents.incidents || [],
         currentSubscription: null as any,
+        activeFreePlans: [] as FreePlanBeneficiary[],
       };
 
       try {
@@ -141,12 +152,23 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
         accountData.currentSubscription = null;
       }
 
+      try {
+        const freePlans = await subscriptionService.getMyFreePlans();
+        // Seuls les plans activés (startDate non sentinelle)
+        accountData.activeFreePlans = freePlans.filter(
+          (p) => new Date(p.startDate).getFullYear() < 2099
+        );
+      } catch {
+        accountData.activeFreePlans = [];
+      }
+
       // Mettre à jour l'état
       setWalletData(accountData.walletData);
       setDepositInfo(accountData.depositInfo);
       setTransactions(accountData.transactions);
       setIncidents(accountData.incidents);
       setCurrentSubscription(accountData.currentSubscription);
+      setActiveFreePlans(accountData.activeFreePlans);
 
       // Mettre en cache
       setDataCache(prev => ({
@@ -565,8 +587,8 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
               <TouchableOpacity 
                 onPress={async () => {
                   const url = `https://www.google.com/maps/dir/?api=1&destination=${reservation.bike.latitude},${reservation.bike.longitude}`;
-                  const { Linking } = await import('expo-linking');
-                  await Linking.openURL(url);
+                  const Linking = await import('expo-linking');
+                  await Linking.default.openURL(url);
                 }}
                 style={[styles.row, styles.alignCenter, styles.gap4]}
               >
@@ -875,7 +897,7 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
             </View>
           </View>
         </Card>
-      ) : (
+      ) : activeFreePlans.length === 0 ? (
         <Card style={[styles.p16, { backgroundColor: '#f8fafc', borderColor: '#e2e8f0' }]}>
           <Text variant="body" color="#111827" style={styles.mb8}>
             {t('accountManagement.noActivePlan')}
@@ -895,7 +917,31 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
             </Button>
           </View>
         </Card>
-      )}
+      ) : null}
+
+      {/* Active Free Plans */}
+      {activeFreePlans.length > 0 && activeFreePlans.map((plan) => (
+        <Card key={plan.id} style={[styles.p16, { backgroundColor: '#f0fdf4', borderColor: '#16a34a', borderWidth: 1 }]}>
+          <View style={[styles.row, styles.spaceBetween, styles.alignCenter, styles.mb8]}>
+            <Text variant="body" color="#111827">
+              {plan.rule.name}
+            </Text>
+            <View style={[styles.px8, styles.py4, { borderRadius: 999, backgroundColor: '#16a34a' }]}>
+              <Text size="xs" color="white" weight="bold">Gratuit · Actif</Text>
+            </View>
+          </View>
+          <View style={[styles.row, styles.spaceBetween]}>
+            <Text size="sm" color="#6b7280">Jours restants</Text>
+            <Text size="sm" color="#16a34a" weight="bold">{plan.daysRemaining}</Text>
+          </View>
+          {plan.rule.startHour != null && plan.rule.endHour != null && (
+            <View style={[styles.row, styles.spaceBetween, styles.mt4]}>
+              <Text size="xs" color="#6b7280">Plage horaire</Text>
+              <Text size="xs" color="#111827">{plan.rule.startHour}h – {plan.rule.endHour}h</Text>
+            </View>
+          )}
+        </Card>
+      ))}
 
       {/* Wallet Overview */}
       <View style={[styles.row, styles.gap12]}>

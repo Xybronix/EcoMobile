@@ -11,6 +11,7 @@ import { useMobileI18n } from '@/lib/mobile-i18n';
 import { rideService } from '@/services/rideService';
 import { bikeRequestService } from '@/services/bikeRequestService';
 import { walletService } from '@/services/walletService';
+import { subscriptionService, FreePlanBeneficiary } from '@/services/subscriptionService';
 import type { Bike, Ride } from '@/lib/mobile-types';
 import { OSMMap, OSMMapRef } from '@/components/maps/OSMMap';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -40,6 +41,7 @@ export function MobileRideInProgress({
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingRide, setIsLoadingRide] = useState(true);
   const [currentSubscription, setCurrentSubscription] = useState<any>(null);
+  const [activeFreePlans, setActiveFreePlans] = useState<FreePlanBeneficiary[]>([]);
   const [priceInfo, setPriceInfo] = useState<{
     currentCost: number;
     willBeCharged: boolean;
@@ -57,6 +59,7 @@ export function MobileRideInProgress({
   useEffect(() => {
     loadActiveRide();
     loadUserSubscription();
+    loadFreePlans();
   }, []);
 
   const loadActiveRide = async () => {
@@ -101,18 +104,37 @@ export function MobileRideInProgress({
     }
   };
 
+  const loadFreePlans = async () => {
+    try {
+      const freePlans = await subscriptionService.getMyFreePlans();
+      const now = new Date();
+      const activated = freePlans.filter(
+        (p) =>
+          new Date(p.startDate).getFullYear() < 2099 &&
+          new Date(p.expiresAt) > now &&
+          p.daysRemaining > 0
+      );
+      setActiveFreePlans(activated);
+    } catch {
+      // pas de forfait gratuit
+    }
+  };
+
   useEffect(() => {
     if (!isPaused && currentRide) {
       const timer = setInterval(() => {
         setDuration((prev) => prev + 1);
         setDistance((prev) => prev + 0.002);
-        updatePriceInfo();
+        // Passer les valeurs explicitement pour éviter la closure stale
+        updatePriceInfo(currentRide, currentSubscription, activeFreePlans);
       }, 1000);
 
       return () => clearInterval(timer);
     }
     return undefined;
-  }, [isPaused, currentRide, duration, currentSubscription]);
+    // Intentionnellement sans `duration` dans les deps pour éviter de recréer le timer chaque seconde
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPaused, currentRide, currentSubscription, activeFreePlans]);
 
   useEffect(() => {
     if (currentRide) {
@@ -128,23 +150,30 @@ export function MobileRideInProgress({
         } catch (error) {
           console.warn('Failed to update bike position:', error);
         }
-      }, 30000);
+      }, 60000);
 
       return () => clearInterval(positionInterval);
     }
     return undefined;
   }, [currentRide]);
 
-  const updatePriceInfo = () => {
-    if (!currentRide) return;
+  const updatePriceInfo = (
+    ride: Ride | null = currentRide,
+    subscription: any = currentSubscription,
+    freePlans: FreePlanBeneficiary[] = activeFreePlans
+  ) => {
+    if (!ride) return;
 
-    const hourlyRate = currentRide.bike?.currentPricing?.hourlyRate ?? bike.currentPricing?.hourlyRate ?? 0;
-    const durationHours = duration / 3600;
-    let calculatedCost = Math.ceil(durationHours * hourlyRate);
+    // Calculer la durée réelle depuis le startTime (évite le state stale)
+    const actualDurationSeconds = Math.floor(
+      (Date.now() - new Date(ride.startTime).getTime()) / 1000
+    );
+    const hourlyRate = ride.bike?.currentPricing?.hourlyRate ?? bike.currentPricing?.hourlyRate ?? 0;
+    const durationHours = actualDurationSeconds / 3600;
+    const calculatedCost = Math.ceil(durationHours * hourlyRate);
 
-    if (currentSubscription) {
-      const isOvertime = checkIfOvertime(currentRide.startTime, currentSubscription.packageType);
-      
+    if (subscription) {
+      const isOvertime = checkIfOvertime(ride.startTime, subscription.packageType);
       if (isOvertime) {
         const reductionPercentage = 50;
         const finalCost = Math.round(calculatedCost * (1 - reductionPercentage / 100));
@@ -158,10 +187,35 @@ export function MobileRideInProgress({
         setPriceInfo({
           currentCost: calculatedCost,
           willBeCharged: false,
-          message: `Inclus dans ${currentSubscription.planName}`,
+          message: `Inclus dans ${subscription.planName}`,
           isOvertime: false
         });
       }
+    } else if (freePlans.length > 0) {
+      // Vérifier si le trajet est dans la plage horaire du forfait gratuit
+      const rideHour = new Date(ride.startTime).getHours();
+      const applicablePlan = freePlans.find((p) => {
+        const sh = p.rule.startHour;
+        const eh = p.rule.endHour;
+        if (sh == null || eh == null) return true;
+        return rideHour >= sh && rideHour < eh;
+      });
+      if (applicablePlan) {
+        setPriceInfo({
+          currentCost: 0,
+          willBeCharged: false,
+          message: `Gratuit · ${applicablePlan.rule.name}`,
+          isOvertime: false
+        });
+        return;
+      }
+      // Hors plage horaire du forfait gratuit
+      setPriceInfo({
+        currentCost: calculatedCost,
+        willBeCharged: true,
+        message: 'Tarif standard (hors plage du forfait gratuit)',
+        isOvertime: false
+      });
     } else {
       setPriceInfo({
         currentCost: calculatedCost,
@@ -514,10 +568,10 @@ export function MobileRideInProgress({
               </View>
             </View>
 
-            {/* Statut Forfait */}
+            {/* Statut Forfait payant */}
             {currentSubscription && (
               <View style={[
-                styles.card, 
+                styles.card,
                 styles.rounded12,
                 { backgroundColor: '#eff6ff', borderColor: '#3b82f6', borderWidth: 1 }
               ]}>
@@ -529,6 +583,25 @@ export function MobileRideInProgress({
                   { color: priceInfo?.isOvertime ? '#f59e0b' : '#16a34a' }
                 ]}>
                   {priceInfo?.message || 'Couvert par le forfait'}
+                </Text>
+              </View>
+            )}
+
+            {/* Statut Forfait gratuit */}
+            {!currentSubscription && activeFreePlans.length > 0 && (
+              <View style={[
+                styles.card,
+                styles.rounded12,
+                { backgroundColor: '#f0fdf4', borderColor: '#16a34a', borderWidth: 1 }
+              ]}>
+                <Text variant="caption" weight="semibold" style={{ color: '#15803d' }}>
+                  Forfait gratuit actif: {activeFreePlans[0].rule.name}
+                </Text>
+                <Text variant="caption" style={[styles.mt4, { color: '#16a34a' }]}>
+                  {priceInfo?.message || 'Ce trajet est gratuit'}
+                </Text>
+                <Text variant="caption" style={[styles.mt4, { color: '#6b7280' }]}>
+                  {activeFreePlans[0].daysRemaining} jour(s) restant(s)
                 </Text>
               </View>
             )}

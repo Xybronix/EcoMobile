@@ -401,6 +401,7 @@ const translations: Translations = {
   'subscription.freePlans.activateSuccess': { fr: 'Forfait gratuit activé !', en: 'Free plan activated!' },
   'subscription.freePlans.activateError': { fr: "Erreur lors de l'activation", en: 'Activation error' },
   'subscription.freePlans.activeDesc': { fr: 'Ce forfait est actif — vos prochains trajets seront gratuits', en: 'This plan is active — your next rides will be free' },
+  'subscription.freePlans.validUntil': { fr: 'À utiliser avant le', en: 'Valid until' },
 
   // Error Messages
   'subscription.error.loading': { fr: 'Erreur lors du chargement des plans', en: 'Error loading plans' },
