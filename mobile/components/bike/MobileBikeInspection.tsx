@@ -4,7 +4,7 @@ import { Card } from '@/components/ui/Card';
 import { Text } from '@/components/ui/Text';
 import { Textarea } from '@/components/ui/Textarea';
 import { toast } from '@/components/ui/Toast';
-import { VerticalSlider } from '@/components/ui/VerticalSlider';
+import { HorizontalSlider } from '@/components/ui/HorizontalSlider';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { getGlobalStyles } from '@/styles/globalStyles';
 import { haptics } from '@/utils/haptics';
@@ -12,7 +12,7 @@ import { subscriptionService } from '@/services/subscriptionService';
 import { bikeRequestService } from '@/services/bikeRequestService';
 import { InternetStatusBar } from '@/components/ui/InternetStatusBar';
 import * as ImagePicker from 'expo-image-picker';
-import { AlertTriangle, ArrowLeft, CheckCheck, XCircle } from 'lucide-react-native';
+import { AlertTriangle, ArrowLeft, CheckCheck, X, XCircle, Camera } from 'lucide-react-native';
 import React, { useState, useEffect } from 'react';
 import { ScrollView, TouchableOpacity, View, Alert, Image, Platform, KeyboardAvoidingView, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import { useMobileI18n } from '@/lib/mobile-i18n';
@@ -125,10 +125,10 @@ export function MobileBikeInspection({ bikeId, bikeName, inspectionType, bikeEqu
       ({ id, label, value: null, required: false });
 
     const requiredItems: InspectionItem[] = [
-      makeItem('brakes',        { fr: 'Freins', en: 'Brakes' }),
-      makeItem('tires',         { fr: 'Pneus', en: 'Tires' }),
-      makeItem('battery',       { fr: 'Batterie', en: 'Battery' }),
-      makeItem('chain',         { fr: 'Chaîne', en: 'Chain' }),
+      makeItem('brakes',        { fr: t('inspection.brakes'), en: 'Brakes' }),
+      makeItem('tires',         { fr: t('inspection.tires'), en: 'Tires' }),
+      makeItem('battery',       { fr: t('inspection.battery'), en: 'Battery' }),
+      makeItem('chain',         { fr: t('inspection.chain'), en: 'Chain' }),
       makeItem('frontWheel',    equipmentLabels.frontWheel),
       makeItem('rearWheel',     equipmentLabels.rearWheel),
       makeItem('motor',         equipmentLabels.motor),
@@ -137,9 +137,9 @@ export function MobileBikeInspection({ bikeId, bikeName, inspectionType, bikeEqu
     ];
 
     const optionalItems: InspectionItem[] = [
-      makeItem('seat',        { fr: 'Selle', en: 'Seat' }),
-      makeItem('handlebars',  { fr: 'Guidon', en: 'Handlebars' }),
-      makeItem('frame',       { fr: 'Cadre', en: 'Frame' }),
+      makeItem('seat',        { fr: t('inspection.seat'), en: 'Seat' }),
+      makeItem('handlebars',  { fr: t('inspection.handlebars'), en: 'Handlebars' }),
+      makeItem('frame',       { fr: t('inspection.frame'), en: 'Frame' }),
       makeItem('headlight',   equipmentLabels.headlight),
       makeItem('display',     equipmentLabels.display),
       makeItem('accelerator', equipmentLabels.accelerator),
@@ -465,7 +465,7 @@ export function MobileBikeInspection({ bikeId, bikeName, inspectionType, bikeEqu
             </View>
           </Card>
 
-          {/* Inspection Items — sliders verticaux */}
+          {/* Inspection Items — sliders horizontaux */}
           <TouchableWithoutFeedback onPress={dismissKeyboard}>
             <Card style={styles.p16}>
               <View style={[styles.row, styles.spaceBetween, styles.alignCenter, styles.mb12]}>
@@ -483,7 +483,7 @@ export function MobileBikeInspection({ bikeId, bikeName, inspectionType, bikeEqu
                     }}
                   >
                     <CheckCheck size={12} color="#16a34a" />
-                    <Text size="xs" style={{ color: '#15803d', fontWeight: '600' }}>Tout OK</Text>
+                    <Text size="xs" style={{ color: '#15803d', fontWeight: '600' }}>{t('inspection.allOk')}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={() => setAllItems(0)}
@@ -494,26 +494,26 @@ export function MobileBikeInspection({ bikeId, bikeName, inspectionType, bikeEqu
                     }}
                   >
                     <XCircle size={12} color="#ef4444" />
-                    <Text size="xs" style={{ color: '#dc2626', fontWeight: '600' }}>Tout NOK</Text>
+                    <Text size="xs" style={{ color: '#dc2626', fontWeight: '600' }}>{t('inspection.allNotOk')}</Text>
                   </TouchableOpacity>
                 </View>
               </View>
 
               <Text size="xs" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={styles.mb12}>
-                Glissez chaque barre pour indiquer l'état (0 % = hors service, 100 % = parfait)
+                {t('inspection.sliderInstruction')}
               </Text>
 
-              {/* Grille de sliders */}
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'space-between' }}>
+              {/* Grille de sliders horizontaux */}
+              <View style={{ width: '100%' }}>
                 {inspectionItems.map((item) => (
-                  <VerticalSlider
-                    key={item.id}
-                    label={item.label[language]}
-                    value={item.value}
-                    onChange={(v) => updateInspectionItem(item.id, v)}
-                    height={110}
-                    colorScheme={colorScheme}
-                  />
+                  <View key={item.id} style={{ marginBottom: 16 }}>
+                    <HorizontalSlider
+                      label={item.label[language]}
+                      value={item.value}
+                      onChange={(v) => updateInspectionItem(item.id, v)}
+                      colorScheme={colorScheme}
+                    />
+                  </View>
                 ))}
               </View>
             </Card>
@@ -536,124 +536,127 @@ export function MobileBikeInspection({ bikeId, bikeName, inspectionType, bikeEqu
               <View style={[styles.row, styles.gap8, { marginTop: 8 }]}>
                 <AlertTriangle size={14} color="#f59e0b" />
                 <Text size="xs" color="#f59e0b">
-                  {badItems.length} élément(s) en mauvais état
+                  {t('inspection.issuesCount', { count: badItems.length })}
                 </Text>
               </View>
             )}
           </Card>
 
-          {/* Notes (toujours visibles) */}
+          {/* Notes */}
           <TouchableWithoutFeedback onPress={dismissKeyboard}>
             <Card style={styles.p16}>
               <Text size="sm" color={colorScheme === 'light' ? '#111827' : '#f9fafb'} style={styles.mb8}>
-                Commentaires (optionnel)
+                {t('inspection.notes')}
               </Text>
               <Textarea
                 value={notes}
                 onChangeText={setNotes}
-                placeholder="Décrivez les problèmes observés ou toute remarque utile…"
+                placeholder={hasAnyIssues ? t('inspection.notesPlaceholderRecommended') : t('inspection.notesPlaceholderOptional')}
                 style={styles.mt8}
                 multiline
                 numberOfLines={3}
                 onFocus={() => setIsKeyboardVisible(true)}
                 onBlur={() => setIsKeyboardVisible(false)}
               />
-                )}
-                {!hasRequiredIssues && hasAnyIssues && notes.trim() && (
-                  <Text size="xs" color="#16a34a" style={styles.mt4}>
-                    {t('inspection.thanksForFeedback')}
-                  </Text>
-                )}
-              </Card>
-            </TouchableWithoutFeedback>
-          )}
-
-          {/* Photos */}
-          {allInspected && (
-            <Card style={styles.p16}>
-              <Label>{t('inspection.photos')} {hasAnyIssues && `(${t('inspection.recommended')})`}</Label>
-              <Text size="xs" color={colorScheme === 'light' ? '#111827' : '#f9fafb'} style={[styles.mt4, styles.mb12]}>
-                {hasRequiredIssues 
-                  ? t('inspection.photosRequiredCritical')
-                  : (hasAnyIssues 
-                      ? t('inspection.photosRecommended')
-                      : t('inspection.photosOptional')
-                    )}
-              </Text>
-              
-              {/* Photo Grid */}
-              <View style={[styles.row, { flexWrap: 'wrap' }, styles.gap8, styles.mb12]}>
-                {photos.map((photo, index) => (
-                  <View 
-                    key={index} 
-                    style={[
-                      styles.relative,
-                      { width: 100, height: 100 },
-                      styles.rounded8,
-                      styles.alignCenter,
-                      styles.justifyCenter,
-                      { backgroundColor: colorScheme === 'light' ? '#f3f4f6' : '#374151' }
-                    ]}
-                  >
-                    {photo ? (
-                      <Image
-                        source={{ uri: photo }}
-                        style={[
-                          styles.wT100,
-                          styles.hT100,
-                          styles.rounded8,
-                          { resizeMode: 'cover' }
-                        ]}
-                      />
-                    ) : (
-                      <View style={[styles.alignCenter, styles.justifyCenter, styles.wT100, styles.hT100]}>
-                        <Text size="xs" color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
-                          {t('common.photo', { number: index + 1 })}
-                        </Text>
-                      </View>
-                    )}
-
-                    <TouchableOpacity
-                      onPress={() => handleRemovePhoto(index)}
-                      style={[
-                        styles.absolute,
-                        { top: 4, right: 4 },
-                        styles.w24,
-                        styles.h24,
-                        styles.rounded12,
-                        styles.alignCenter,
-                        styles.justifyCenter,
-                        { backgroundColor: '#ef4444' }
-                      ]}
-                    >
-                      <X size={16} color="white" />
-                    </TouchableOpacity>
-                  </View>
-                ))}
-              </View>
-
-              {photos.length < 5 && (
-                <>
-                  <Button 
-                    variant="secondary" 
-                    onPress={showPhotoOptions}
-                    style={styles.mb8}
-                    fullWidth
-                  >
-                    <View style={[styles.row, styles.gap4, styles.alignCenter]}>
-                      <Camera size={16} color={colorScheme === 'light' ? '#111827' : '#f9fafb'} />
-                      <Text style={styles.ml8} color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
-                        {t('inspection.addPhoto')}
-                      </Text>
-                    </View>
-                  </Button>
-                  <Text size="xs" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={styles.textCenter}>
-                    {t('inspection.supportedFormats')} • {t('inspection.maxSize')}
-                  </Text>
-                </>
+              {hasAnyIssues && notes.trim() && (
+                <Text size="xs" color="#16a34a" style={styles.mt4}>
+                  {t('inspection.thanksForFeedback')}
+                </Text>
               )}
             </Card>
-          )}
+          </TouchableWithoutFeedback>
+
+          {/* Photos */}
+          <Card style={styles.p16}>
+            <View style={[styles.row, styles.spaceBetween, styles.alignCenter, styles.mb8]}>
+              <Text size="sm" color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
+                {t('inspection.photos')}
+              </Text>
+              {hasAnyIssues && (
+                <Text size="xs" color="#f59e0b">
+                  {t('inspection.recommended')}
+                </Text>
+              )}
+            </View>
+            <Text size="xs" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={[styles.mt4, styles.mb12]}>
+              {hasAnyIssues 
+                ? t('inspection.photosRecommended')
+                : t('inspection.photosOptional')
+              }
+            </Text>
+            
+            {/* Photo Grid */}
+            <View style={[styles.row, { flexWrap: 'wrap' }, styles.gap8, styles.mb12]}>
+              {photos.map((photo, index) => (
+                <View 
+                  key={index} 
+                  style={[
+                    styles.relative,
+                    { width: 100, height: 100 },
+                    styles.rounded8,
+                    styles.alignCenter,
+                    styles.justifyCenter,
+                    { backgroundColor: colorScheme === 'light' ? '#f3f4f6' : '#374151' }
+                  ]}
+                >
+                  {photo ? (
+                    <Image
+                      source={{ uri: photo }}
+                      style={[
+                        styles.wT100,
+                        styles.hT100,
+                        styles.rounded8,
+                        { resizeMode: 'cover' }
+                      ]}
+                    />
+                  ) : (
+                    <View style={[styles.alignCenter, styles.justifyCenter, styles.wT100, styles.hT100]}>
+                      <Text size="xs" color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
+                        {t('common.photo', { number: index + 1 })}
+                      </Text>
+                    </View>
+                  )}
+
+                  <TouchableOpacity
+                    onPress={() => handleRemovePhoto(index)}
+                    style={[
+                      styles.absolute,
+                      { top: 4, right: 4 },
+                      styles.w24,
+                      styles.h24,
+                      styles.rounded12,
+                      styles.alignCenter,
+                      styles.justifyCenter,
+                      { backgroundColor: '#ef4444' }
+                    ]}
+                  >
+                    <X size={16} color="white" />
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+
+            {photos.length < 5 && (
+              <>
+                <Button 
+                  variant="secondary" 
+                  onPress={showPhotoOptions}
+                  style={styles.mb8}
+                  fullWidth
+                >
+                  <View style={[styles.row, styles.gap4, styles.alignCenter]}>
+                    <Camera size={16} color={colorScheme === 'light' ? '#111827' : '#f9fafb'} />
+                    <Text style={styles.ml8} color={colorScheme === 'light' ? '#111827' : '#f9fafb'}>
+                      {t('inspection.addPhoto')}
+                    </Text>
+                  </View>
+                </Button>
+                <Text size="xs" color={colorScheme === 'light' ? '#6b7280' : '#9ca3af'} style={styles.textCenter}>
+                  {t('inspection.supportedFormats')} • {t('inspection.maxSize')}
+                </Text>
+              </>
+            )}
+          </Card>
 
           {/* Complete Button */}
           <Button
@@ -683,4 +686,3 @@ export function MobileBikeInspection({ bikeId, bikeName, inspectionType, bikeEqu
     </KeyboardAvoidingView>
   );
 }
-
