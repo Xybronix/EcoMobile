@@ -239,22 +239,6 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
     }
   };
 
-  // Fonction pour forcer le rechargement (utile après des actions qui modifient les données)
-  // Note: Cette fonction peut être utilisée après des actions qui modifient les données (ex: rechargement de wallet)
-  // Exemple: invalidateCache('accountData') après un rechargement de wallet
-  // const invalidateCache = (cacheKey?: keyof typeof dataCache) => {
-  //   if (cacheKey) {
-  //     setDataCache(prev => {
-  //       const newCache = { ...prev };
-  //       delete newCache[cacheKey];
-  //       return newCache;
-  //     });
-  //   } else {
-  //     // Invalider tout le cache
-  //     setDataCache({});
-  //   }
-  // };
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'COMPLETED': case 'APPROVED': case 'RESOLVED': case 'CLOSED': return '#16a34a';
@@ -316,13 +300,13 @@ export function MobileAccountManagement({ onBack, onNavigate, initialTab = 'over
 
   const getReasonText = (reason: string) => {
     const reasonMap: { [key: string]: string } = {
-      'damage': t('incident.reason.damage') || 'Dommage au vélo',
-      'theft': t('incident.reason.theft') || 'Vol ou perte',
-      'late_return': t('incident.reason.lateReturn') || 'Retour tardif',
-      'cleaning': t('incident.reason.cleaning') || 'Nettoyage requis',
-      'repair': t('incident.reason.repair') || 'Réparation nécessaire',
-      'accessory_loss': t('incident.reason.accessoryLoss') || 'Perte d\'accessoire',
-      'other': t('incident.reason.other') || 'Autre'
+      'damage': t('incident.reason.damage'),
+      'theft': t('incident.reason.theft'),
+      'late_return': t('incident.reason.lateReturn'),
+      'cleaning': t('incident.reason.cleaning'),
+      'repair': t('incident.reason.repair'),
+      'accessory_loss': t('incident.reason.accessoryLoss'),
+      'other': t('incident.reason.other')
     };
     return reasonMap[reason] || reason;
   };

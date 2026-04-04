@@ -223,15 +223,15 @@ export function MobileSubscriptionPlans({ onBack, onNavigate }: MobileSubscripti
           const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
           const progressPercent = totalDays > 0 ? Math.min((currentSubscription.remainingDays / totalDays) * 100, 100) : 0;
           return (
-            <Card style={[styles.p16, { backgroundColor: '#dbeafe', borderColor: '#0284c7', borderWidth: 1 }]}>
+            <Card style={[styles.p16, { backgroundColor: '#dbeafe', borderColor: '#16a34a', borderWidth: 1 }]}>
               <View style={[styles.row, styles.spaceBetween, styles.alignCenter, styles.mb8]}>
-                <Text variant="body" color="#0c4a6e" weight="bold">
+                <Text variant="body" color="#10b981" weight="bold">
                   {t('subscription.current.active')}
                 </Text>
-                <Star size={18} color="#0284c7" fill="#0284c7" />
+                <Star size={18} color="#16a34a" fill="#16a34a" />
               </View>
 
-              <Text size="sm" color="#0c4a6e" style={styles.mb12}>
+              <Text size="sm" color="#10b981" style={styles.mb12}>
                 <Text weight="bold">{currentSubscription.packageName}</Text>
                 {' — '}
                 <Text weight="bold">{currentSubscription.formulaName}</Text>
@@ -240,35 +240,37 @@ export function MobileSubscriptionPlans({ onBack, onNavigate }: MobileSubscripti
               {/* Progress bar */}
               <View style={{ marginBottom: 12 }}>
                 <View style={[styles.row, styles.spaceBetween, styles.mb4]}>
-                  <Text size="xs" color="#0c4a6e">{t('subscription.current.daysRemaining')}</Text>
-                  <Text size="xs" color="#0c4a6e" weight="bold">{currentSubscription.remainingDays} j</Text>
+                  <Text size="xs" color="#10b981">{t('subscription.current.daysRemaining')}</Text>
+                  <Text size="xs" color="#10b981" weight="bold">{currentSubscription.remainingDays} j</Text>
                 </View>
                 <View style={{ height: 6, backgroundColor: '#bfdbfe', borderRadius: 3 }}>
-                  <View style={{ height: 6, width: `${progressPercent}%`, backgroundColor: '#0284c7', borderRadius: 3 }} />
+                  <View style={{ height: 6, width: `${progressPercent}%`, backgroundColor: '#16a34a', borderRadius: 3 }} />
                 </View>
               </View>
 
               <View style={[styles.column, styles.gap4, styles.mb12]}>
                 <View style={[styles.row, styles.spaceBetween]}>
-                  <Text size="xs" color="#0c4a6e">{t('subscription.current.expiresAt')}</Text>
-                  <Text size="xs" color="#0c4a6e">{new Date(currentSubscription.endDate).toLocaleDateString('fr-FR')}</Text>
+                  <Text size="xs" color="#10b981">{t('subscription.current.expiresAt')}</Text>
+                  <Text size="xs" color="#10b981">{new Date(currentSubscription.endDate).toLocaleDateString('fr-FR')}</Text>
                 </View>
                 {currentSubscription.dayStartHour != null && currentSubscription.dayEndHour != null && (
                   <View style={[styles.row, styles.spaceBetween]}>
-                    <Text size="xs" color="#0c4a6e">{t('subscription.current.hours')}</Text>
-                    <Text size="xs" color="#0c4a6e">{currentSubscription.dayStartHour}h - {currentSubscription.dayEndHour}h</Text>
+                    <Text size="xs" color="#10b981">{t('subscription.current.hours')}</Text>
+                    <Text size="xs" color="#10b981">{currentSubscription.dayStartHour}h - {currentSubscription.dayEndHour}h</Text>
                   </View>
                 )}
               </View>
 
+              {/*
               <View style={[styles.row, styles.gap8]}>
-                <Button onPress={() => setIsChangeModalOpen(true)} style={{ flex: 1, backgroundColor: '#0284c7' }}>
+                <Button onPress={() => setIsChangeModalOpen(true)} style={{ flex: 1, backgroundColor: '#16a34a' }}>
                   <Text color="white">{t('subscription.change.title')}</Text>
                 </Button>
                 <Button onPress={handleCancelSubscription} style={{ flex: 1, backgroundColor: '#dc2626' }}>
                   <Text color="white">{t('subscription.cancel.title')}</Text>
                 </Button>
               </View>
+              */}
             </Card>
           );
         })()}
