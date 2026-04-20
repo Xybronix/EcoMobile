@@ -9,7 +9,7 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "extra": {
-      "apiUrl": "https://api.freebike237.com/api/v1",
+      "apiUrl": "http://www.srv884070.hstgr.cloud:22333/api/v1",
       "nativeVersion": "1.0.0",
       "router": {},
       "eas": {
