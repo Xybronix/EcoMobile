@@ -27,7 +27,7 @@ const getApiBaseUrl = () => {
   const envApiUrl = Constants.expoConfig?.extra?.apiUrl;
   
   // Priorité 3: URL par défaut (Cloudflare HTTPS en production)
-  const defaultUrl = 'http://www.srv884070.hstgr.cloud:22333/api/v1';
+  const defaultUrl = 'https://api.freebike237.com/api/v1';
   
   // En développement, on peut garder l'URL locale si besoin, 
   // mais pour tester le VPS on utilise defaultUrl
