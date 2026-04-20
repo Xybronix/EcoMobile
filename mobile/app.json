@@ -9,7 +9,7 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "extra": {
-      "apiUrl": "https://env-freebike-xybronix.hidora.com/api/v1",
+      "apiUrl": "https://api.freebike237.com/api/v1",
       "nativeVersion": "1.0.0",
       "router": {},
       "eas": {
