@@ -10,8 +10,9 @@ import { WalletBalance, walletService } from '@/services/walletService';
 import { getGlobalStyles } from '@/styles/globalStyles';
 import { haptics } from '@/utils/haptics';
 import { AlertTriangle, ChevronRight, Clock, MapPin, TrendingUp, Wallet, Zap, User as UserIcon } from 'lucide-react-native';
-import React, { useEffect, useState } from 'react';
-import { ScrollView, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useState, useCallback } from 'react';
+import { ScrollView, TouchableOpacity, View, RefreshControl } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { useMobileAuth } from '@/lib/mobile-auth';
 import { useMobileI18n } from '@/lib/mobile-i18n';
 import { MobileHeader } from '@/components/layout/MobileHeader';
@@ -43,6 +44,14 @@ export function MobileHome({ onNavigate }: MobileHomeProps) {
   const [rideStats, setRideStats] = useState<RideStats | null>(null);
   const [isLoadingRides, setIsLoadingRides] = useState(true);
   const [ridesError, setRidesError] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Refresh data when the screen is focused (tab switch or return from modal)
+  useFocusEffect(
+    useCallback(() => {
+      refreshAllData();
+    }, [])
+  );
 
   useEffect(() => {
     const loadNotificationCount = async () => {
@@ -287,13 +296,18 @@ export function MobileHome({ onNavigate }: MobileHomeProps) {
   };
 
   const refreshAllData = async () => {
-    await Promise.all([
-      refreshUserData(),
-      loadDepositInfo(),
-      refreshWallet(),
-      refreshRidesData(),
-      refreshNotificationCount()
-    ]);
+    setIsRefreshing(true);
+    try {
+      await Promise.all([
+        refreshUserData(),
+        loadDepositInfo(),
+        refreshWallet(),
+        refreshRidesData(),
+        refreshNotificationCount()
+      ]);
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   const stats = [
@@ -337,6 +351,14 @@ export function MobileHome({ onNavigate }: MobileHomeProps) {
         style={styles.scrollView}
         contentContainerStyle={[styles.scrollContentPadded, styles.gap24]}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={refreshAllData}
+            tintColor="#16a34a"
+            colors={["#16a34a"]}
+          />
+        }
       >
         {/* Welcome Section */}
         <View style={styles.gap8}>

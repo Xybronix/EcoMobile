@@ -7,8 +7,9 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { getGlobalStyles } from '@/styles/globalStyles';
 import { haptics } from '@/utils/haptics';
 import { Calendar, ChevronRight, Clock, MapPin } from 'lucide-react-native';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ScrollView, TouchableOpacity, View, ActivityIndicator, RefreshControl } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { useMobileAuth } from '@/lib/mobile-auth';
 import { useMobileI18n } from '@/lib/mobile-i18n';
 import { rideService } from '@/services/rideService';
@@ -39,6 +40,13 @@ export function MobileRideHistory({ onRideDetails, onNavigate }: MobileRideHisto
     total: 0,
     totalPages: 0
   });
+  
+  // Refresh data when the screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      handleRefresh();
+    }, [selectedFilter])
+  );
 
   useEffect(() => {
     loadRides(true);
